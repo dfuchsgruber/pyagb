@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 """ This module is essential as it extends paths relative to the tools directory to be relative to the root (the makefile)"""
 import os.path
 

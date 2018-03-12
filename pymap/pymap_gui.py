@@ -1,13 +1,14 @@
+#!/usr/bin/python3
+
 import tkinter
 import PIL.Image as PImage
 from tkinter import messagebox, filedialog
 from . import tkinterx
-from . import mapheader, mapfooter, mapevent, tileset, resources, project, tileset_gui, mapconnection, config
+from . import mapheader, mapfooter, mapevent, tileset, resources, project, tileset_gui, mapconnection, config, ow_imgs
 import PIL.ImageTk as ImageTk
 import os, getopt
 from . import tileset_gui
 import tkinter.ttk as ttk
-import constants
 
 #Global size variables
 BLOCK_CANVAS_SIZE = None
@@ -23,7 +24,7 @@ STDPROJ = config.STDPROJ
 
 class Pymap_gui(tkinter.Frame):
     """ Main gui frame for the pymap module """
-    def __init__(self, root, ow_img_pool, proj: project.Project):
+    def __init__(self, root, proj: project.Project):
 
 
         self.map = None
@@ -36,7 +37,6 @@ class Pymap_gui(tkinter.Frame):
         self._init_gui(root)
         self.undo_stack = [] #Action instance
         self.redo_stack = [] #as above
-        self.ow_img_pool = ow_img_pool
         self.show_ow_imgs = True
         self.header_dialog = None
         self.footer_dialog = None
@@ -224,7 +224,7 @@ class Pymap_gui(tkinter.Frame):
             """ Button 1 double click (follow warp if possible)"""
             if not self._can_draw(): return
             event_map_canvas_b1_press(e) #Select the event regulary
-            print("double", self.event_type)
+            #print("double", self.event_type)
             if self.event_type == "Warp":
                 self.open_map(self.selected_event_by_drag.target_bank, self.selected_event_by_drag.target_map)
             
@@ -295,7 +295,7 @@ class Pymap_gui(tkinter.Frame):
                 entries += _build_entries(["Picture"], 5, change_sensitive=True)
                 entries += _build_entries(["Field2", "Field3", "Level"], 6)
                 #Behaviour is a combo box and thus different
-                cbox_behaviour = tkinterx.LabeledCombobox(self.event_edit_widget, text="Behaviour", values=constants.values(constants.behaviours))
+                cbox_behaviour = tkinterx.LabeledCombobox(self.event_edit_widget, text="Behaviour", values=self.proj.constants.values("person_behaviours"))
                 self.__setattr__("event_edit_widget_" + "Behaviour".lower(), cbox_behaviour)
                 cbox_behaviour.get_handle().grid(row=9, sticky=tkinter.NW)
                 #cbox_behaviour.bind("<FocusOut>", (lambda _: self._event_apply_changes(self.event_type, self.event_id, supress_warnings=True)))
@@ -861,7 +861,7 @@ class Pymap_gui(tkinter.Frame):
     def action(self, action):
         """ Executes an undoable action and pushes it to the undo stack
         It also clears the redo stack. """
-        print("action", str(action.__class__))
+        #print("action", str(action.__class__))
         self._prepeare_undo_memory()
         self.undo_stack.append(action)
         action.do()
@@ -1087,7 +1087,7 @@ class Pymap_gui(tkinter.Frame):
         if not self._can_draw() or not self.show_ow_imgs: return
         person = self.map.persons[id] 
         x, y = person.x, person.y
-        img, pimg = self.ow_img_pool.get(person.picture)
+        img, pimg = self.proj.ow_img_pool.get(person.picture)
         width, height = img.size
         cimg, _, _ = self.event_map_widget_canvas_person_objects[id]
         self.event_map_widget_canvas.delete(cimg)
@@ -1109,7 +1109,7 @@ class Pymap_gui(tkinter.Frame):
         for person in self.map.persons:
             x, y = person.x, person.y
             if self.show_ow_imgs:
-                img, pimg = self.ow_img_pool.get(person.picture)
+                img, pimg = self.proj.ow_img_pool.get(person.picture)
                 width, height = img.size
                 cimg = self.event_map_widget_canvas.create_image(x * 16 - (width >> 1) + 8, y * 16 - (height) + 16, image=pimg, anchor=tkinter.NW)
                 self.event_map_widget_canvas_person_objects.append((cimg, width, height))
@@ -1261,18 +1261,22 @@ class Pymap_gui(tkinter.Frame):
         dialog = tkinter.Toplevel(self.root)
         self.header_dialog = dialog
         dialog.wm_title("Edit mapheader of map " + self.map.key)
-        dialog.attributes("-toolwindow", 1)
-        entries = [("Levelscript header", "levelscript_header", None), ("Music", "music", constants.music),
-        ("Flash type", "flash_type", constants.flash_types), ("Weather", "weather", constants.map_weathers), ("Map type", "type", constants.map_types),
-        ("Field18", "field_18", None), ("Show name", "show_name", constants.map_show_name), ("Field1A", "field_1a", None) , ("Battle style", "battle_style", constants.battle_types),
+        #dialog.attributes("-toolwindow", 1)
+        entries = [("Levelscript header", "levelscript_header", None), ("Music", "music", "songs"),
+        ("Flash type", "flash_type", "map_flash_types"), ("Weather", "weather", "map_weathers"), ("Map type", "type", "map_types"),
+        ("Field18", "field_18", None), ("Show name", "show_name", "map_show_name_types"), ("Field1A", "field_1a", None) , ("Battle style", "battle_style", "map_battle_styles"),
         ("Footer id", "id", None)
         ]
         dialog.dropdowns = [None for _ in entries]
         for i in range(len(entries)):
-            show, name, consts = entries[i]
+            show, name, const_table = entries[i]
             tkinter.Label(dialog, text=show + ":").grid(row=i, column=0, sticky=tkinter.NW)
-            if consts: entry = ttk.Combobox(dialog, values=list(constants.values(consts)))
-            else: entry = tkinter.Entry(dialog)
+            # Build a combobox that provides const options
+            if const_table:
+                values = list(self.proj.constants.values(const_table))
+                entry = ttk.Combobox(dialog, values=values)
+            else:
+                entry = tkinter.Entry(dialog)
             entry.grid(row=i, column=1, sticky=tkinter.NW)
             value = self.map.__getattribute__(name)
             try: value = hex(value)
@@ -1315,7 +1319,7 @@ class Pymap_gui(tkinter.Frame):
                 #Check if the new footer id is already used (if another map uses this footer id)
                 footer_id, _ = diffs["id"]
                 id_usage = self.proj.get_footer_usage(footer_id)
-                print(diffs["id"], id_usage)
+                #print(diffs["id"], id_usage)
                 if self.map.symbol in id_usage: id_usage.remove(self.map.symbol)
                 if len(id_usage):
                     if not tkinter.messagebox.askyesno(title="Footer id already used", message="The footer id " + str(footer_id) + " is already used by the following map(s) (listed by symbol) "+ str(id_usage) + ". A possible unused id would be " + hex(self.proj.get_smallest_availible_foooter_id()) + ". Do you want to continue?", default="no"): return
@@ -1338,7 +1342,7 @@ class Pymap_gui(tkinter.Frame):
         dialog = tkinter.Toplevel(self.root)
         self.connection_dialog = dialog
         dialog.wm_title("Edit connections of map " + self.map.key)
-        dialog.attributes("-toolwindow", 1)
+        #dialog.attributes("-toolwindow", 1)
         dialog.current_connection_num = None
 
         
@@ -1475,7 +1479,7 @@ class Pymap_gui(tkinter.Frame):
         self.connection_dialog.connection_ids.config(state="readonly")
         self.connection_dialog.connection_ids.get_handle().grid(row=0, column=0, sticky=tkinter.NW)
         tkinter.Label(self.connection_dialog.widget_frame, text="Adjacence type").grid(row=1, column=0, sticky=tkinter.NW)
-        self.connection_dialog.direction = tkinterx.Combobox(self.connection_dialog.widget_frame, constants.map_connections, callback=rearrange_maps)
+        self.connection_dialog.direction = tkinterx.Combobox(self.connection_dialog.widget_frame, self.proj.constants.values("map_adjacency_types"), callback=rearrange_maps)
         self.connection_dialog.direction.grid(row=1, column=1, sticky=tkinter.NW)
         tkinter.Label(self.connection_dialog.widget_frame, text="Displacement").grid(row=2, column=0, sticky=tkinter.NW)
         self.connection_dialog.displacement = tkinterx.Entry(self.connection_dialog.widget_frame, callback=rearrange_maps)
@@ -1531,7 +1535,7 @@ class Pymap_gui(tkinter.Frame):
         self.footer_dialog = dialog
         #self.root.withdraw()
         dialog.wm_title("Edit mapfooter of map " + self.map.key)
-        dialog.attributes("-toolwindow", 1)
+        #dialog.attributes("-toolwindow", 1)
         tkinter.Label(dialog, text="Primary tileset:").grid(row=0, column=0, sticky=tkinter.NW)
         tkinter.Label(dialog, text="Secondary tileset:").grid(row=1, column=0, sticky=tkinter.NW)
         entry_tsp, entry_tss = tkinterx.Combobox(dialog, values=self.proj.get_tileset_paths()), tkinterx.Combobox(dialog, values=self.proj.get_tileset_paths())
@@ -1644,7 +1648,7 @@ class Pymap_gui(tkinter.Frame):
         self.event_ow_image_widget_image_origin = [0 for _ in range(256)]
         height = 0
         for i in range(256):
-            ow_img, ow_pimg = self.ow_img_pool.get(i)
+            ow_img, ow_pimg = self.proj.ow_img_pool.get(i)
             self.event_ow_image_widget_image_origin[i] = height
             canvas.create_image(1, height + 1, image=ow_pimg, anchor=tkinter.NW)
             height += ow_img.size[1]
@@ -2139,7 +2143,7 @@ def _strcap(s):
     """ Capitalizes every char in a string """
     return "".join([c.capitalize() for c in s])
 
-def shell(args, ow_imgs):
+def shell(args):
     """ Shell call for the gui """
     global BLOCK_CANVAS_SIZE
     global MAP_CANVAS_SIZE
@@ -2149,7 +2153,7 @@ def shell(args, ow_imgs):
         sys.exit(2)
     for opt, arg in opts:
         if opt in ("-h", "help"):
-            print("Usage python pymap.py [projectfile=STDPROJ]")
+            print("Usage python pymap.py projectfile")
             return
     
     root = tkinter.Tk()
@@ -2161,12 +2165,8 @@ def shell(args, ow_imgs):
     BLOCK_CANVAS_SIZE = block_canvas_width, block_canvas_height
     MAP_CANVAS_SIZE = map_canvas_width, map_canvas_height
     root.wm_title("pymap")
-    if len(args):
-        proj = args[0]
-        proj = project.Project.load_project(proj)
-    else:
-        proj = project.Project.load_project(STDPROJ)
-    gui = Pymap_gui(root, ow_imgs, proj)
+    proj = project.Project.load_project(args[0])
+    gui = Pymap_gui(root, proj)
     
     root.mainloop()
     

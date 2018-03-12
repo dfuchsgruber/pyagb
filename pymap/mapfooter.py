@@ -1,6 +1,7 @@
+#!/usr/bin/python3
+
 import json
 from . import tileset
-import tempfile
 
 
 class Mapfooter:

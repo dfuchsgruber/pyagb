@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 """ Class that stores gfx tile data of an image (png) file """
 
 import png

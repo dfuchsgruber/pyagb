@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import tkinter
 import tkinter.simpledialog
 from . import tkinterx
@@ -206,7 +208,7 @@ class Tileset_gui(tkinter.Frame):
             dialog = tkinter.Toplevel(root)
             dialog.wm_title("Properties of block #" + hex(block_id if primary else block_id + 0x280))
             dialog.minsize(170, 190), dialog.maxsize(170, 190), dialog.resizable(0, 0)
-            dialog.attributes("-toolwindow",1)
+            #dialog.attributes("-toolwindow",1)
             label_texts = ["Behaviour", "Hm usage", "Field_2", "Field_3", "Field_4", "Field_5", "Field_6", "Field_7"]
             labels = [tkinter.Label(dialog, text=label_texts[i]).grid(row=i, column=0, sticky=tkinter.NW) for i in range(8)]
             entries = [tkinter.Entry(dialog) for i in range(0, 8)]

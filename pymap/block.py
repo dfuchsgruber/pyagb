@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 """ Module that implements a virtual block """
 
 class Block:

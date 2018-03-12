@@ -1,10 +1,11 @@
+#!/usr/bin/python3
+
 import tkinter.ttk as ttk
 import tkinter
 from . import project
 from . import tileset, image, mapheader
 from . import tkinterx
 import os
-import constants
 
 UNDEFINED_NAMESPACE = -1
 
@@ -40,9 +41,10 @@ class ResourcesBrowser(tkinter.Frame):
         ns_root = self.tree.insert('', 'end', text="Namespaces")
         self.tree_items[ns_root] = NsRoot()
         self.ns_roots = {} #Links to iids for every namespace root
-        for k in constants.map_namespaces:
-            self.ns_roots[constants.map_namespaces[k]] = self.tree.insert(ns_root, 'end', text=constants.map_namespaces[k])
-            self.tree_items[self.ns_roots[constants.map_namespaces[k]]] = NsRoot()
+        map_namespaces = self.project.constants.values("map_namespaces")
+        for map_namespace in map_namespaces:
+            self.ns_roots[map_namespace] = self.tree.insert(ns_root, 'end', text=map_namespace)
+            self.tree_items[self.ns_roots[map_namespace]] = NsRoot()
         self.ns_roots[UNDEFINED_NAMESPACE] = self.tree.insert(ns_root, 'end', text="undefined namespace")
 
         for bank in sorted(self.project.banks.keys()):
@@ -136,9 +138,10 @@ class MapItem:
             """ Changes the namespace of the map """
             mh = mapheader.load(frame.project.get_map_path(self.bank, self.mapid), frame.project, instanciate_ts=False)
             _, path, _, _ = frame.project.banks[self.bank][self.mapid]
-            new_namespace = tkinterx.askcombobox(frame.gui.root, "Change namespace", list(constants.map_namespaces.values()), default=mh.name_bank)
+            map_namespaces = self.project.constants.values("map_namespaces")
+            new_namespace = tkinterx.askcombobox(frame.gui.root, "Change namespace", list(map_namespaces), default=mh.name_bank)
             if mh.name_bank == new_namespace or new_namespace == None: return #No changes whatsoever
-            if new_namespace not in constants.map_namespaces.values():
+            if new_namespace not in map_namespaces:
                 new_namespace = UNDEFINED_NAMESPACE
             
             mh.name_bank = new_namespace

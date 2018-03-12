@@ -1,6 +1,6 @@
 #!/usr/bin python3
 
-import lz77
+from . import lz77
 import png
 import array
 
@@ -86,7 +86,6 @@ def dump_png_fp(fp, rom, img_offset, width, height, pal_offset, col_cnt, img_lz7
 
 def dump_png(path, rom, img_offset, width, height, pal_offset, col_cnt, img_lz77=False, pal_lz77=False, depth=4, pal_start_color=0):
     """ Dumps a png with pal from data by filename (creates fp and calls dump_png_fp) """
-    fp = open(path, "wb")
-    dump_png_fp(fp, rom, img_offset, width, height, pal_offset, col_cnt, img_lz77=img_lz77, pal_lz77=pal_lz77, depth=depth, pal_start_color=pal_start_color)
-    fp.close()
+    with open(path, "wb") as fp:
+        dump_png_fp(fp, rom, img_offset, width, height, pal_offset, col_cnt, img_lz77=img_lz77, pal_lz77=pal_lz77, depth=depth, pal_start_color=pal_start_color)
 

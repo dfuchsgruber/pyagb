@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from . import mapfooter, mapevent, mapconnection
 import json
 import os
@@ -101,6 +103,7 @@ def load(path, proj, instanciate_ts=True):
     m.signposts = [mapevent.from_dict(sd) for sd in m.signposts]
     m.triggers = [mapevent.from_dict(td) for td in m.triggers]
     m.connections = [mapconnection.from_dict(cd) for cd in m.connections]
+    m.key = path
     #print(d, m.footer)
     return m
 

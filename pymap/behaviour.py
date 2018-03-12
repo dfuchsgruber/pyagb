@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """ Class to modell access on behavior """
 
 BEHAVIOR = (0, 8)

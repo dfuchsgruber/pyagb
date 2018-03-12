@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 
 import json
 from . import image, palette, agbimg

@@ -1,6 +1,10 @@
+#!/usr/bin/python3
+
 from . import mapheader
 from . import tileset
 from . import image
+from . import constants
+from . import ow_imgs
 import json
 import os
 
@@ -14,7 +18,9 @@ class Project:
         self.tilesets = {}
         self.images = {}
         self.path = None
-        #self.project_root = "."
+        self.constants = None
+        self.config = {}
+        self.ow_img_pool = None
 
     def get_smallest_availible_foooter_id(self):
         """ Returns the smallest availible footer id """
@@ -179,9 +185,8 @@ class Project:
 
     @staticmethod
     def load_project(path):
-        fd = open(path, "r+")
-        dict = json.load(fd)
-        fd.close()
+        with open(path, "r") as f:
+            dict = json.load(f)
         p = Project()
         for bank in dict["banks"]:
             p.banks[int(bank, 0)] = {}
@@ -190,6 +195,10 @@ class Project:
         p.tilesets = dict["tilesets"]
         p.images = dict["images"]
         p.path = path
+
+        # Initialze meta data from files
+        p.constants = constants.Constants(path + ".constants")
+        p.ow_img_pool = ow_imgs.Ow_imgs(path + ".owimgassocs")
         return p
 
     @staticmethod
