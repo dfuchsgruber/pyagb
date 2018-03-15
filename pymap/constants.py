@@ -5,11 +5,14 @@ as C or assembly macros."""
 
 class Constants:
 
-    def __init__(self, path):
+    def __init__(self, path, macro_configuration):
         """ Initializes a constants instance that can resolve
-        and export constants by a .pmp.constants file. """
+        and export constants by a .pmp.constants file. The
+        manner in which macros are exported and used in source
+        files is defined in the macro configuration dict."""
         with open(path, "r") as f:
             self._constants = eval(f.read())
+        self.macro_conf = macro_configuration
 
     def constantize(self, value, label, pedantic=False):
         """ Translates a value and returns the corresponding
@@ -25,7 +28,7 @@ class Constants:
             values = table["values"]
             if value - base not in range(len(values)):
                 # Value not constantizeable
-                if pedantic: 
+                if pedantic and not value in table["expections"]:
                     raise Exception("Could not resolve value {0} for constant table {1}".format(value, label))
                 else: 
                     return hex(value)
@@ -35,7 +38,7 @@ class Constants:
             values = table["values"]
             if value not in values:
                 # Value not constantizeable
-                if pedantic: 
+                if pedantic and not value in table["exceptions"]: 
                     raise Exception("Could not resolve value {0} for constant table {1}".format(value, label))
                 else: 
                     return hex(value)
@@ -46,7 +49,8 @@ class Constants:
     
     def export_macro(self, label, type):
         """ Exports macro definitons for a constant
-        table which is returned as string. A label is passed
+        table which is placed at the path specified
+        by the macro_configuration. A label is passed
         to identify the constant table. The type parameter
         either is set to 'as' for assembly macros or 'c' for
         C language macros."""
@@ -60,11 +64,26 @@ class Constants:
             raise Exception("Unkown macro type {0}".format(type))
         if table["type"] == "enum":
             for i, const in enumerate(table["values"]):
-                macro += format.format(i, const) + "\n"
+                macro += format.format(hex(i), const) + "\n"
         elif table["type"] == "dict":
             for i in table["values"]:
-                macro += format.format(i, table["values"][i]) + "\n"
-        return macro
+                macro += format.format(hex(i), table["values"][i]) + "\n"
+        
+        conf = self.macro_conf[type]
+        path = conf["path"].format(label)
+        with open(path, "w+") as f:
+            f.write(macro)
+            print("Exported macro for constant table {0} to {1}".format(label, path))
+    
+    def get_include_directive(self, label, type):
+        """ Returns the include directive for a particular
+        constant table described by its label. The format
+        is determined by the type which either must be
+        'as' for assembly or 'c' for C language. """
+        conf = self.macro_conf[type]
+        return conf["directive"].format(label)
+        
+        
                 
     def values(self, label):
         """ Returns all constant symbols that are defined by

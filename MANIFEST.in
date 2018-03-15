@@ -1,1 +1,2 @@
 include pymap/pymap_img_assocs_none.png
+include bin/pybuild.ld

@@ -5,7 +5,7 @@ from . import image, palette, agbimg
 import os
 from . import path as rpath
 
-PATH_UNSAFED = "unsafed"
+PATH_UNSAFED = None
 
 class Tileset:
 

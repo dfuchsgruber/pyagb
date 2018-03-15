@@ -9,8 +9,9 @@ setup(name='pymap',
     packages = ['pymap', 'agb'],
     scripts = ['bin/pymapgui.py', 'bin/pymap2s.py',
     'bin/pymapex.py', 'bin/pyproj2s.py', 
-    'bin/pyset.py', 'bin/pyset2s.py',
-    'bin/pysetex.py'],
+    'bin/pybuild.py', 'bin/pyset2s.py',
+    'bin/pysetex.py', 'bin/pymapbatchex.py',
+    'bin/pyconstex.py'],
     install_requires = ['numpy', 'Pillow', 'PyPng'],
     include_package_data=True
 )

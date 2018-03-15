@@ -685,7 +685,8 @@ class Tileset_gui(tkinter.Frame):
        
         # Use the png method to generate 4bpp pngs
         width, height, pixels, _ = png.Reader(path).read()
-        fpout = open("D:/temp/___pymapts.png", "wb")
+
+        fpout = open(path, "wb")
         png.Writer(width, height, palette=rgbs, bitdepth=4).write(fpout, pixels)
         fpout.close()
         print("Sucessfully exported tileset gfx with palette", pal_id, "to", path)
@@ -897,28 +898,3 @@ class Tileset_gui(tkinter.Frame):
         if primary: self.tsp_error_label.config(text=estr)
         else: self.tss_error_label.config(text=estr)
 
-
-def shell(args):
-    return
-    #depreacted
-    try:
-        opts, args = getopt.getopt(args, "hp:s:", ["help"])
-    except getopt.GetoptError:
-        sys.exit(2)
-    tsp, tss = None, None
-    for opt, arg in opts:
-        if opt in ("-h", "help"): 
-            print("Usage: python ....py [-p path primary tileset] [-s path secondary tileset]")
-            return
-        elif opt == "-p": tsp = arg
-        elif opt == "-s": tss = arg
-    root = tkinter.Tk()
-    root.wm_title("pytileset")
-    gui = Tileset_gui(root)
-    if tsp: gui.open_tileset_path(tsp, True)
-    if tss: gui.open_tileset_path(tss, False)
-    root.mainloop()
-
-
-if __name__ == "__main__":
-    pass

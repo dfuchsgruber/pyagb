@@ -197,7 +197,9 @@ class Project:
         p.path = path
 
         # Initialze meta data from files
-        p.constants = constants.Constants(path + ".constants")
+        with open(path + ".config", "r") as f:
+            macro_config = eval(f.read())["macro"]
+        p.constants = constants.Constants(path + ".constants", macro_config)
         p.ow_img_pool = ow_imgs.Ow_imgs(path + ".owimgassocs")
         return p
 
