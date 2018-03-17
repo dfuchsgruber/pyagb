@@ -12,20 +12,21 @@ import agb.agbrom
 import os
 
 # Find the img none png
-cwd, _ = os.path.split(__file__)
-IMG_NONE_PATH = os.path.join(cwd, "pymap_img_assocs_none.png")
+dir, _ = os.path.split(__file__)
+IMG_NONE_PATH = os.path.join(dir, "pymap_img_assocs_none.png")
 
 class Ow_imgs():
     
-    def __init__(self, assocs_path):
+    def __init__(self, assocs_path, proj):
         """ Class to handle all overworld images in a lazy manner. It allows for links
         against a static rom and static pngs and otherwise displays a standard
         image for every overworld image. """
+        self.proj = proj
         with open(assocs_path, "r") as f:
             d = eval(f.read())
         self.extern = d["extern"]
         rompath, table_off, number_range, pal_table = d["base"]
-        if rompath: self.rom = agb.agbrom.Agbrom(rompath)
+        if rompath: self.rom = agb.agbrom.Agbrom(self.proj.realpath(rompath))
         else: self.rom = None
         self.table = table_off
         if number_range: self.number_range = number_range
@@ -42,8 +43,9 @@ class Ow_imgs():
             if i in self.extern:
                 #Image is an extern image reference
                 imgpath = self.extern[i]
-                fd = open(imgpath, "rb")
-                image = PImage.open(fd)
+                imtpath = self.proj.realpath(imgpath)
+                with open(imgpath, "rb") as fd:
+                    image = PImage.open(fd)
                 width, height = image.size
             else:
                 #Create a temp file for image storage

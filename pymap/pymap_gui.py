@@ -1538,7 +1538,7 @@ class Pymap_gui(tkinter.Frame):
         #dialog.attributes("-toolwindow", 1)
         tkinter.Label(dialog, text="Primary tileset:").grid(row=0, column=0, sticky=tkinter.NW)
         tkinter.Label(dialog, text="Secondary tileset:").grid(row=1, column=0, sticky=tkinter.NW)
-        entry_tsp, entry_tss = tkinterx.Combobox(dialog, values=self.proj.get_tileset_paths()), tkinterx.Combobox(dialog, values=self.proj.get_tileset_paths())
+        entry_tsp, entry_tss = tkinterx.Combobox(dialog, values=self.proj.get_tileset_symbols()), tkinterx.Combobox(dialog, values=self.proj.get_tileset_symbols())
         entry_tsp.grid(row=0, column=1, sticky=tkinter.NW), entry_tss.grid(row=1, column=1, sticky=tkinter.NW)
         tkinter.Label(dialog, text="Map width:").grid(row=2, column=0, sticky=tkinter.NW)
         tkinter.Label(dialog, text="Map height:").grid(row=3, column=0, sticky=tkinter.NW)

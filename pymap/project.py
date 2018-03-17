@@ -22,6 +22,16 @@ class Project:
         self.config = {}
         self.ow_img_pool = None
 
+    def projpath(self, path):
+        """ Creates a path realtive to the project file. """
+        projdir = os.path.dirname(self.path)
+        return os.path.relpath(path, start=projdir)
+
+    def realpath(self, path):
+        """ Retrieves the real path from a path that is
+        relative to the projpath """
+        return os.path.join(os.path.dirname(self.path), path)
+
     def get_smallest_availible_foooter_id(self):
         """ Returns the smallest availible footer id """
         used_footers = self.get_used_footers()
@@ -54,7 +64,7 @@ class Project:
         """ Returns the path of a map by its bank, map"""
         try:
             symbol, path, namespace, footer_id = self.banks[bank][mapid]
-            return path
+            return self.realpath(path)
         except: return None
 
     def get_map_location_by_symbol(self, symbol):
@@ -70,15 +80,31 @@ class Project:
         footer_id = mh.id
         symbol = mh.symbol
         namespace = mh.name_bank
-        path = self._sanitize(path)
+        path = self.projpath(self._sanitize(path))
         if not bank in self.banks: self.banks[bank] = {}
         self.banks[bank][map] = mh.symbol, path, namespace, footer_id
         mh.save(path)
 
+    def get_tileset_path(self, symbol):
+        """ Returns the path of a tileset (realpath) relative to cwd """
+        if not symbol in self.tilesets:
+            raise Exception("Tileset symbol {0} could not be resolved!".format(symbol))
+        return self.realpath(self.tilesets[symbol])
+
     def get_tileset_paths(self, _sorted=True):
-        """ Returns a list of all tileset paths """
-        if _sorted: return list(sorted(self.tilesets.keys()))
-        else: return list(self.tilesets.keys())
+        """ Returns a list of all tileset paths relative to cwd"""
+        paths = [self.get_tileset_path(symbol) for symbol in self.tilesets]
+        if _sorted:
+            return sorted(paths)
+        else:
+            return paths
+
+    def get_tileset_symbols(self, _sorted=True):
+        """ Returns all tileset symbols. """
+        symbols = list(self.tilesets.keys())
+        if _sorted: symbols.sort()
+        return symbols
+
 
     def get_tileset(self, symbol, instanciate_image=True):
         """ Returns a tileset by its symbol 
@@ -88,7 +114,7 @@ class Project:
         resolved and the image applied to tileset. This might
         throw an Exception."""
         if symbol in self.tilesets:
-            path = self.tilesets[symbol]
+            path = self.realpath(self.tilesets[symbol])
             try: ts = tileset.from_file(path)
             except Exception as e:
                 print("Exception while loading tileset " + symbol + " at '" +  path + "': " + str(e))
@@ -100,9 +126,10 @@ class Project:
             return ts
 
     def save_tileset(self, symbol, t: tileset.Tileset, path):
-        """ Saves a tileset by its symbol and stores its symbol and path link in this project """
-        path = self._sanitize(path)
-        self.tilesets[symbol] = path
+        """ Saves a tileset by its symbol and stores its symbol and path link in this project.
+        The path parameter must be realtive to cwd or absolute. """
+        path = self.projpath(path)
+        self.tilesets[symbol] = self._sanitize(path)
         t.path = path
         t.save(path)
 
@@ -131,29 +158,39 @@ class Project:
                     mh.footer.tss.symbol = symbol_new
                     changed = True
                 if changed:
-                    mh.save(path)
+                    mh.save(self.realpath(path))
         path = self.tilesets.pop(symbol_old)
         self.tilesets[symbol_new] = path
 
-        
+    def get_image_symbols(self, _sorted=True):
+        """ Returns a list of all image symbols. """
+        symbols = list(self.images.keys())
+        if _sorted: symbols.sort()
+        return symbols
+
     def get_image_paths(self, _sorted=True):
-        """ Returns a list of all image paths """
-        if _sorted: return list(sorted(self.images.keys()))
-        return list(self.images.keys())
+        """ Returns a list of all image paths (realpath relative to cwd)"""
+        paths = [self.get_image_path(symbol) for symbol in self.images]
+        if _sorted:
+            return sorted(paths)
+        else:
+            return paths
 
     def get_image_path(self, symbol):
-        """ Returns an image object of a gfx symbol """
+        """ Returns an image object of a gfx symbol (realpath relative to cwd)"""
         if symbol in self.images:
-            return self.images[symbol] 
+            return self.realpath(self.images[symbol])
         print("Warning - ", symbol, "is not associated with any .png file - return empty image")
         return None
 
     def save_image(self, symbol, path):
-        """ Stores its symbol and path link in this project """
+        """ Stores its symbol and path link in this project.
+        The path parameter must be absolute or relative to cwd."""
+        path = self.projpath(path)
         self.images[symbol] = self._sanitize(path)
         
     def remove_image(self, symbol):
-        """ Removes an image from the project and returns it at sucess and None at failue (e.g. image is not in this project)"""
+        """ Removes an image from the project and returns it at success and None at failue (e.g. image is not in this project)"""
         if symbol in self.images:
             return self.images.pop(symbol)
         return None
@@ -163,12 +200,19 @@ class Project:
         may have (depending on the number of tilesets) a very
         high computation time"""
         if symbol_old not in self.images: raise Exception("Gfx symbol '" + symbol_old + "' is not defined!")
+        
+        # Scan all tilesets for usage of gfx and resave
+        # all tilesets that use symbol_old.
         for t_sym in self.tilesets:
            ts = self.get_tileset(t_sym, instanciate_image=False)
            if ts:
                 if ts.gfx == symbol_old:
+                    # Change the symbol in the corresponding tileset
                     ts.gfx = symbol_new
-                    ts.save(self.tilesets[sym])
+                    path = self.get_tileset_path(t_sym)
+                    ts.save(path)
+                    
+        # Change intern path link (projpath)
         path = self.images.pop(symbol_old)
         self.images[symbol_new] = path
 
@@ -199,8 +243,9 @@ class Project:
         # Initialze meta data from files
         with open(path + ".config", "r") as f:
             macro_config = eval(f.read())["macro"]
+
         p.constants = constants.Constants(path + ".constants", macro_config)
-        p.ow_img_pool = ow_imgs.Ow_imgs(path + ".owimgassocs")
+        p.ow_img_pool = ow_imgs.Ow_imgs(path + ".owimgassocs", p)
         return p
 
     @staticmethod

@@ -341,14 +341,14 @@ class Tileset_gui(tkinter.Frame):
         #-------------------------------------------------------------------
         tkinter.Label(bpframe_tsp, text="Symbol").grid(row=1, column=0, sticky=tkinter.NW)
         tkinter.Label(bpframe_tss, text="Symbol").grid(row=1, column=0, sticky=tkinter.NW)
-        self.tsp_sym_combobox = tkinterx.Combobox(bpframe_tsp, values=self.project.get_tileset_paths(_sorted=True), state="readonly")
-        self.tss_sym_combobox = tkinterx.Combobox(bpframe_tss, values=self.project.get_tileset_paths(_sorted=True), state="readonly")
+        self.tsp_sym_combobox = tkinterx.Combobox(bpframe_tsp, values=self.project.get_tileset_symbols(_sorted=True), state="readonly")
+        self.tss_sym_combobox = tkinterx.Combobox(bpframe_tss, values=self.project.get_tileset_symbols(_sorted=True), state="readonly")
         self.tsp_sym_combobox.grid(row=1, column=1, sticky=tkinter.NW)
         self.tss_sym_combobox.grid(row=1, column=1, sticky=tkinter.NW)
         tkinter.Label(bpframe_tsp, text="Gfx").grid(row=2, column=0, sticky=tkinter.NW)
         tkinter.Label(bpframe_tss, text="Gfx").grid(row=2, column=0, sticky=tkinter.NW)
-        self.tsp_gfx_combobox = tkinterx.Combobox(bpframe_tsp, values=self.project.get_image_paths(_sorted=True), state="readonly")
-        self.tss_gfx_combobox = tkinterx.Combobox(bpframe_tss, values=self.project.get_image_paths(_sorted=True), state="readonly")
+        self.tsp_gfx_combobox = tkinterx.Combobox(bpframe_tsp, values=self.project.get_image_symbols(_sorted=True), state="readonly")
+        self.tss_gfx_combobox = tkinterx.Combobox(bpframe_tss, values=self.project.get_image_symbols(_sorted=True), state="readonly")
         self.tsp_gfx_combobox.grid(row=2, column=1, sticky=tkinter.NW)
         self.tss_gfx_combobox.grid(row=2, column=1, sticky=tkinter.NW)
         tkinter.Label(bpframe_tsp, text="Anim. init.").grid(row=3, column=0, sticky=tkinter.NW)
@@ -654,7 +654,7 @@ class Tileset_gui(tkinter.Frame):
         pal_id = int(self.tileset_pal_combobox.get())
         options = {
             "initialdir" : os.getcwd(),
-            "filetypes" : [("pymap palette files", ".ppl"), ("4bpp portable network graphics", ".png")],
+            "filetypes" : [("4bpp portable network graphics", ".png")],
             "title" : "Import palette",
             "parent" : self
         }

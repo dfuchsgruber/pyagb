@@ -12,6 +12,7 @@ from pymap import project
 import tempfile
 import subprocess
 
+
 cwd, _ = os.path.split(__file__)
 LDSCRIPT = os.path.join(cwd, "pybuild.ld")
 LDCHUNKSIZE = 64
@@ -61,6 +62,8 @@ Opts:
     build(proj, base, target, offset, cmd_config["as"], cmd_config["ld"], cmd_config["grit"], cmd_config["ars"],
     cmd_config["pymap2s"], cmd_config["pyset2s"], cmd_config["pyproj2s"], config["mapbanks_ptr"], config["mapfooters_ptr"])
 
+
+
 def build(proj, base, target, offset, cmd_as, cmd_ld, cmd_grit, cmd_ars, cmd_pymap2s, cmd_pyset2s, cmd_pyproj2s, mapbanks_ptr, mapfooters_ptr):
     """ Builds the project and referenced files. """
     
@@ -88,12 +91,18 @@ def build(proj, base, target, offset, cmd_as, cmd_ld, cmd_grit, cmd_ars, cmd_pym
         else:
             # Link together with previous results
             linked = link_objs(objs[i : i + LDCHUNKSIZE] + [linked], offset, cmd_ld)
+    
+    # Copy linked
+    print("Copying linked objects {0} -> linked.o...".format(linked.name))
+    os.system("cp {0} linked.o".format(linked.name))
+    with open("linked.o") as linked:
+        pass
 
+    # Create patch file
+    patchfile = patch(base, target, offset, linked, cmd_ars, mapbanks_ptr, mapfooters_ptr)
 
-    # Write into rom
-    patch(base, target, offset, linked, cmd_ars, mapbanks_ptr, mapfooters_ptr)
-
-    print("Project {0} built sucessfully!".format(proj.path))
+    # Create makefile
+    make(base, target, offset, linked, patchfile, cmd_ars)
 
 
 def build_assemblies(proj, base, target, offset, cmd_as, cmd_ld, cmd_grit, cmd_ars, cmd_pymap2s, cmd_pyset2s, cmd_pyproj2s):
@@ -105,7 +114,7 @@ def build_assemblies(proj, base, target, offset, cmd_as, cmd_ld, cmd_grit, cmd_a
         for mapid in proj.banks[bank]:
             _, path, _, _ = proj.banks[bank][mapid]
             # Create a new temporary file
-            asfile = tempfile.NamedTemporaryFile(dir=".", delete=True, suffix=".s")
+            asfile = tempfile.NamedTemporaryFile(dir=".", delete=False, suffix=".s")
             print("Compiling {0} -> {1}...".format(path, asfile.name))
             cmd = cmd_pymap2s["command"]
             flags = cmd_pymap2s["flags"]
@@ -191,7 +200,7 @@ def link_objs(objs, offset, cmd_ld):
     inputs = "INPUT({0})".format(" ".join([obj.name for obj in objs]))
     ldin_file.write(inputs)
 
-    linked_file = tempfile.NamedTemporaryFile(dir=".", delete=False, suffix=".o")
+    linked_file = tempfile.NamedTemporaryFile(dir=".", delete=True, suffix=".o")
 
     # Do linking
     print("Linking all objs -> {0}".format(linked_file.name))
@@ -213,6 +222,7 @@ def link_objs(objs, offset, cmd_ld):
 
 def patch(base, target, offset, linked, cmd_ars, mapbanks_ptr, mapfooters_ptr):
     """ Patches the file into the rom """
+    print(linked.name)
 
     print("Patching {0} to location {1} in {2} -> {3}...".format(linked.name,
     hex(offset), base, target))
@@ -233,14 +243,32 @@ def patch(base, target, offset, linked, cmd_ars, mapbanks_ptr, mapfooters_ptr):
     """.format(base, target, hex(offset + 0x08000000), linked.name,
     hex(mapbanks_ptr + 0x08000000), hex(mapfooters_ptr + 0x08000000))
     
-    patchfile = tempfile.NamedTemporaryFile(mode="w+", dir=".", delete=False, suffix=".asm")
-    patchfile.write(patch)
+    with open("patch.asm", "w+") as patchfile:
+        patchfile.write(patch)
+    return patchfile
+    
+
+def make(base, target, offset, linked, patchfile, cmd_ars):
+    """ Creates a makefile and executes the make cmd """
+
     cmd = cmd_ars["command"]
     flags = cmd_ars["flags"]
-    
-    command_to_execute = "{0} {1} {2}".format(cmd, flags, patchfile.name)
-    os.system(command_to_execute)
-    
+
+    print("Creating makefile -> makefile...")
+    makefile_content = """ARS=@{0}
+ARSFLAGS={1}
+all:
+\t$(ARS) $(ARSFLAGS) {2}
+clean:
+\trm -f {2}
+\trm -f {3}
+\trm -f makefile
+
+    """.format(cmd, flags, patchfile.name, linked.name)
+    with open("makefile", "w+") as makefile:
+        makefile.write(makefile_content)
+
+    print("Created makefile:\nUse 'make {flags} all' to build!\nUse 'make {flags} clean' to remove temporary files!")
 
 
 if __name__ == "__main__":

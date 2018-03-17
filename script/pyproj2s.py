@@ -44,13 +44,13 @@ def export(proj: project.Project, banksym, footersym, outfile):
     s+= ".align 4\n" + banksym + ":\n"
     for bank in range(max(proj.banks) + 1):
         if bank in proj.banks:
-            s += "\t .word _mapbank_" + str(bank) + "\n"
+            s += "\t .word mapbank_" + str(bank) + "\n"
         else:
             s += "\t .word 0\n"
     s += "\n\n"
 
     for bank in proj.banks:
-        s += ".align 4\n_mapbank_" + str(bank) + ":\n"
+        s += ".align 4\n.global mapbank_" + str(bank) + "\nmapbank_" + str(bank) + ":\n"
         for mapid in range(max(proj.banks[bank]) + 1):
             if mapid in proj.banks[bank]:
                 symbol, path, namespace, footer_id = proj.banks[bank][mapid]

@@ -13,6 +13,7 @@ def from_file(path):
     filename, extension = os.path.splitext(path)
     fd = open(path, "rb")
     if extension.lower() == ".ppl":
+        raise Exception("PPL format is decpreated and no longer supported!")
         #Open as pymap palette file (maybe we should use another extension, who knows...)
         colors = bytes(fd.read())
         fd.close()
