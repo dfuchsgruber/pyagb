@@ -118,7 +118,7 @@ class MapItem:
     def remove(self):
         """ Removes the map from the project and the tree """
         if tkinter.messagebox.askyesno(title="Remove map", message="Do you really want to remove this map from the project?"):
-            if self.frame.gui.map and self.frame.gui.bank == self.bank and self.frame.gui.mapid == self.mapid and self.frame.map_has_changed():
+            if self.frame.gui.map and self.frame.gui.bank == self.bank and self.frame.gui.mapid == self.mapid and self.frame.gui.map_has_changed():
                 if tkinter.messagebox.askyesno(title="Save changes before removal", message="Deleting the current map will result in a loss of all changes. Do you want to save the map before removing it?"):
                     self.frame.gui.file_save()
                 self.frame.gui.map = None
@@ -138,11 +138,13 @@ class MapItem:
             """ Changes the namespace of the map """
             mh = mapheader.load(frame.project.get_map_path(self.bank, self.mapid), frame.project, instanciate_ts=False)
             _, path, _, _ = frame.project.banks[self.bank][self.mapid]
-            map_namespaces = self.project.constants.values("map_namespaces")
+            map_namespaces = frame.project.constants.values("map_namespaces")
             new_namespace = tkinterx.askcombobox(frame.gui.root, "Change namespace", list(map_namespaces), default=mh.name_bank)
             if mh.name_bank == new_namespace or new_namespace == None: return #No changes whatsoever
+            
+            new_root = new_namespace
             if new_namespace not in map_namespaces:
-                new_namespace = UNDEFINED_NAMESPACE
+                new_root = UNDEFINED_NAMESPACE
             
             mh.name_bank = new_namespace
             mh.save(path)
@@ -151,7 +153,7 @@ class MapItem:
                 frame.gui.map.name_bank = new_namespace
 
             frame.tree.delete(self.ns_iid)
-            self.ns_iid = frame.tree.insert(frame.ns_roots[new_namespace], 'end', text=str(self.bank) + "." + str(self.mapid) + " : " + mh.symbol)
+            self.ns_iid = frame.tree.insert(frame.ns_roots[new_root], 'end', text=str(self.bank) + "." + str(self.mapid) + " : " + mh.symbol)
             frame.tree_items[self.ns_iid] = self
 
         def refractor():
@@ -186,7 +188,7 @@ class MapItem:
         popup_menu.add_command(label="Remove", command=self.remove)
         popup_menu.add_command(label="Refractor", command=refractor)
         popup_menu.add_command(label="Change namespace", command=change_namespace)
-        popup_menu.post(e.x_root, e.y_root)
+        popup_menu.tk_popup(e.x_root, e.y_root)
 
 
 class BankItem:
@@ -299,7 +301,7 @@ class BankItem:
         popup_menu.add_command(label="New", command=_new)
         popup_menu.add_command(label="Import", command=_import)
         popup_menu.add_command(label="Remove", command=remove)
-        popup_menu.post(e.x_root, e.y_root)
+        popup_menu.tk_popup(e.x_root, e.y_root)
         
 
 class MapRootItem:
@@ -328,7 +330,7 @@ class MapRootItem:
 
         popup_menu = tkinter.Menu(frame, tearoff=0)
         popup_menu.add_command(label="New bank", command=(lambda: new_bank()))
-        popup_menu.post(e.x_root, e.y_root)
+        popup_menu.tk_popup(e.x_root, e.y_root)
 
 class TilesetRootItem:
     
@@ -398,7 +400,7 @@ class TilesetRootItem:
         popup_menu = tkinter.Menu(frame.root, tearoff=0)
         popup_menu.add_command(label="New", command=_new)
         popup_menu.add_command(label="Import", command=_import)
-        popup_menu.post(e.x_root, e.y_root)
+        popup_menu.tk_popup(e.x_root, e.y_root)
 
 class TilesetItem:
     
@@ -471,7 +473,7 @@ class TilesetItem:
         #popup_menu.add_command(label="Change path", command=change_path)
         popup_menu.add_command(label="Remove", command=remove)
         popup_menu.add_command(label="Refractor", command=refractor)
-        popup_menu.post(e.x_root, e.y_root)
+        popup_menu.tk_popup(e.x_root, e.y_root)
 
 class GfxRootItem:
     
@@ -516,7 +518,7 @@ class GfxRootItem:
             
         popup_menu = tkinter.Menu(frame.root, tearoff=0)
         popup_menu.add_command(label="Import", command=_import)
-        popup_menu.post(e.x_root, e.y_root)
+        popup_menu.tk_popup(e.x_root, e.y_root)
 
 class GfxItem:
     
@@ -571,4 +573,4 @@ class GfxItem:
         popup_menu = tkinter.Menu(frame.root, tearoff=0)
         #popup_menu.add_command(label="Change path", command=change_path)
         popup_menu.add_command(label="Remove", command=remove)
-        popup_menu.post(e.x_root, e.y_root)
+        popup_menu.tk_popup(e.x_root, e.y_root)

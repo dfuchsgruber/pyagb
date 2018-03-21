@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """ This module provides functionality for exporting maps batchwise. """
 import sys

@@ -36,7 +36,7 @@ def shell(args):
 
     if not outfile: raise Exception("No output file specified")
 
-    s = mapheader_to_assembly(map_file, const)
+    s = mapheader_to_assembly(map_file, config["pymap2s"], const)
     fd = open(outfile, "w+")
     fd.write(s)
     fd.close()
@@ -51,7 +51,7 @@ def _data(indent, data):
     return "".join([_indented(indent, "." + type + " " + _hexstr(value) + "\n") for (value, type) in data])
         
 
-def mapheader_to_assembly(map_file, const):
+def mapheader_to_assembly(map_file, config, const):
     """ Initializes a mapheader and exports it and all subcomponents """
     # Load the mapheader and omit instanciation of subcomponents
     # to improve performance
@@ -61,10 +61,7 @@ def mapheader_to_assembly(map_file, const):
     preamble = """@*** Auto generated map assembly of {0} at {1} ***
     
     """.format(map_file, str(time.time()))
-    for label in ("map_battle_styles", "map_namespaces", "map_flash_types",
-        "songs", "map_types", "map_show_name_types", "map_weathers",
-        "map_adjacency_types", "map_connections", "flags", "items", "vars",
-        "person_behaviours"):
+    for label in config["constants"]:
         preamble += const.get_include_directive(label, "as") + "\n"
     
     # Create the source code

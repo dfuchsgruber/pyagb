@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import agb.agbrom
 import pymap
 import sys
@@ -89,6 +89,14 @@ def main(args):
     proj.save_map(bank, map, header, basepath + ".pmh")
     proj.save_project()
 
+def export_constant(proj, config, value, label, pedantic=False):
+    """ Exports a value and tries to constantize it if the exporter
+    has the constant table listed in used_constants configuration. """
+    if label in config["constants"]:
+        return proj.constants.constantize(value, label, pedantic=pedantic)
+    else:
+        return hex(value)
+
 def export_connections(rom: agb.agbrom.Agbrom, offset, basepath, proj, config, pedantic=False):
     """ Exports the map connections """
     count = rom.u32(offset)
@@ -97,7 +105,8 @@ def export_connections(rom: agb.agbrom.Agbrom, offset, basepath, proj, config, p
     for i in range(count):
         offset = base + 12 * i
         direction = rom.u32(offset)
-        connections[i].direction = proj.constants.constantize(rom.u32(offset), "map_connections", pedantic=pedantic)
+        connections[i].direction = export_constant(proj, config, rom.u32(offset),
+        "map_connections", pedantic=pedantic)
         connections[i].displacement = rom._int(offset + 4)
         connections[i].bank = rom.u8(offset + 8)
         connections[i].mapid = rom.u8(offset + 9)
@@ -111,23 +120,23 @@ def export_levelscript(rom: agb.agbrom.Agbrom, offset, type, basepath, proj, con
     if type in (1,3,5,6,7):
         # Unextended format
         ow_script_config = config["backend"]["ow_script"]
-        cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(offset), basepath, "lscr")
+        cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(offset), os.path.dirname(basepath), "lscr")
         if os.system(cmd):
             raise Exception("Execution of backend script exported produced exit code != 0")
-        label = ow_script_config["label"].format(rom.path, proj.path, hex(offset), basepath, "lscr")
+        label = ow_script_config["label"].format(rom.path, proj.path, hex(offset), os.path.dirname(basepath), "lscr")
         return label, ""
     elif type in (2,4):
         # Extended format
         ow_script_config = config["backend"]["ow_script"]
         label = "lscr_" + hex(offset)
         assembly = ".align 4\n.global " + label + "\n\n" + label + ":\n"
-        var = proj.constants.constantize(rom.u16(offset), "vars", pedantic=pedantic)
+        var = export_constant(proj, config, rom.u16(offset), "vars", pedantic=pedantic)
         value = hex(rom.u16(offset + 2))
         script_offset = rom.nullable_pointer(offset + 4)
-        cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(script_offset), basepath, "lscr")
+        cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(script_offset), os.path.dirname(basepath), "lscr")
         if os.system(cmd):
             raise Exception("Execution of backend script exported produced exit code != 0")
-        script_label = ow_script_config["label"].format(rom.path, proj.path, hex(script_offset), basepath, "lscr")
+        script_label = ow_script_config["label"].format(rom.path, proj.path, hex(script_offset), os.path.dirname(basepath), "lscr")
         field_8 = hex(rom.u16(offset + 8))
         assembly += "\t.hword " + var + ", " + value + "\n"
         assembly += "\t.word " + script_label + "\n"
@@ -176,16 +185,16 @@ def export_map(rom, offset, tsp, tss, symbol, basepath, proj, config, pedantic=F
         header.connections = []
     else:
         header.connections = export_connections(rom, rom.pointer(offset + 0xC), basepath, proj, config, pedantic=pedantic)
-    header.music = proj.constants.constantize(rom.u16(offset + 0x10), "songs", pedantic=pedantic)
+    header.music = export_constant(proj, config, rom.u16(offset + 0x10), "songs", pedantic=pedantic)
     header.id = rom.u16(offset + 0x12)
-    header.name_bank = proj.constants.constantize(rom.u8(offset + 0x14), "map_namespaces", pedantic=pedantic)
-    header.flash_type = proj.constants.constantize(rom.u8(offset + 0x15),"map_flash_types", pedantic=pedantic)
-    header.weather = proj.constants.constantize(rom.u8(offset + 0x16), "map_weathers", pedantic=pedantic)
-    header.type = proj.constants.constantize(rom.u8(offset + 0x17), "map_types", pedantic=pedantic)
-    header.show_name = proj.constants.constantize(rom.u8(offset + 0x19), "map_show_name_types", pedantic=pedantic)
+    header.name_bank = export_constant(proj, config, rom.u8(offset + 0x14), "map_namespaces", pedantic=pedantic)
+    header.flash_type = export_constant(proj, config, rom.u8(offset + 0x15), "map_flash_types", pedantic=pedantic)
+    header.weather = export_constant(proj, config, rom.u16(offset + 0x16), "map_weathers", pedantic=pedantic)
+    header.type = export_constant(proj, config, rom.u8(offset + 0x17), "map_types", pedantic=pedantic)
+    header.show_name = export_constant(proj, config, rom.u8(offset + 0x19), "map_show_name_types", pedantic=pedantic)
     header.field_18 = rom.u8(offset + 0x18)
     header.field_1a = rom.u8(offset + 0x1A)
-    header.battle_style = proj.constants.constantize(rom.u8(offset + 0x1B), "map_battle_styles", pedantic=pedantic)
+    header.battle_style = export_constant(proj, config, rom.u8(offset + 0x1B), "map_battle_styles", pedantic=pedantic)
     header.symbol = symbol
     return header
 
@@ -267,7 +276,7 @@ def export_person(rom: agb.agbrom.Agbrom, offset, basepath, proj, config, pedant
     person.x = rom.s16(offset + 4)
     person.y = rom.s16(offset + 6)
     person.level = rom.u8(offset + 8)
-    person.behaviour = proj.constants.constantize(rom.u8(offset + 9), "person_behaviours", pedantic=pedantic)
+    person.behaviour = export_constant(proj, config, rom.u8(offset + 9), "person_behaviours", pedantic=pedantic)
     person.behaviour_range = rom.u8(offset + 0xA)
     person.field_b = rom.u8(offset + 0xB)
     person.is_trainer = rom.u8(offset + 0xC) & 1
@@ -279,14 +288,14 @@ def export_person(rom: agb.agbrom.Agbrom, offset, basepath, proj, config, pedant
     script_off = rom.nullable_pointer(offset + 0x10)
     if script_off:
         ow_script_config = config["backend"]["ow_script"]
-        cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(script_off), basepath, "person")
+        cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(script_off), os.path.dirname(basepath), "person")
         if os.system(cmd):
             raise Exception("Execution of backend script exported produced exit code != 0")
-        person.script = ow_script_config["label"].format(rom.path, proj.path, hex(script_off), basepath, "person")
+        person.script = ow_script_config["label"].format(rom.path, proj.path, hex(script_off), os.path.dirname(basepath), "person")
     else:
         person.script = "0"
 
-    person.flag = proj.constants.constantize(rom.u16(offset + 0x14), "flags", pedantic=pedantic)
+    person.flag = export_constant(proj, config, rom.u16(offset + 0x14), "flags", pedantic=pedantic)
     person.field_16 = rom.u8(offset + 0x16)
     person.field_17 = rom.u8(offset + 0x17)
     return person
@@ -309,7 +318,7 @@ def export_trigger(rom : agb.agbrom.Agbrom, offset, basepath, proj, config, peda
     trigger.y = rom.s16(offset + 2)
     trigger.level = rom.u8(offset + 4)
     trigger.field_5 = rom.u8(offset+ 5)
-    trigger.variable = proj.constants.constantize(rom.u16(offset + 6), "vars", pedantic=pedantic)
+    trigger.variable = export_constant(proj, config, rom.u16(offset + 6), "vars", pedantic=pedantic)
     trigger.value = rom.u16(offset + 8)
     trigger.field_a = rom.u8(offset + 0xA)
     trigger.field_b = rom.u8(offset + 0xB)
@@ -318,10 +327,10 @@ def export_trigger(rom : agb.agbrom.Agbrom, offset, basepath, proj, config, peda
     script_off = rom.nullable_pointer(offset + 0xC)
     if script_off:
         ow_script_config = config["backend"]["ow_script"]
-        cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(script_off), basepath, "trigger")
+        cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(script_off), os.path.dirname(basepath), "trigger")
         if os.system(cmd):
             raise Exception("Execution of backend script exported produced exit code != 0")
-        trigger.script = ow_script_config["label"].format(rom.path, proj.path, hex(script_off), basepath, "trigger")
+        trigger.script = ow_script_config["label"].format(rom.path, proj.path, hex(script_off), os.path.dirname(basepath), "trigger")
     else:
         trigger.script = "0"
 
@@ -342,14 +351,14 @@ def export_sign(rom: agb.agbrom.Agbrom, offset, basepath, proj, config, pedantic
         script_offset = rom.nullable_pointer(offset + 0x8)
         if script_offset:
             ow_script_config = config["backend"]["ow_script"]
-            cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(script_offset), basepath, "sign")
+            cmd = ow_script_config["exec"].format(rom.path, proj.path, hex(script_offset), os.path.dirname(basepath), "sign")
             if os.system(cmd):
                 raise Exception("Execution of backend script exported produced exit code != 0")
-            sign.script = ow_script_config["label"].format(rom.path, proj.path, hex(script_offset), basepath, "sign")
+            sign.script = ow_script_config["label"].format(rom.path, proj.path, hex(script_offset), os.path.dirname(basepath), "sign")
         else:
             sign.script = "0"
     else:
-        sign.item_id = proj.constants.constantize(rom.u16(offset + 8), "items", pedantic=pedantic)
+        sign.item_id = export_constant(proj, config, rom.u16(offset + 8), "items", pedantic=pedantic)
         sign.hidden = rom.u8(offset + 0xA)
         sign.count = rom.u8(offset + 0xB)
     return sign

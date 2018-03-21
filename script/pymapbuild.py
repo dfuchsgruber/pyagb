@@ -14,7 +14,7 @@ import subprocess
 
 
 cwd, _ = os.path.split(__file__)
-LDSCRIPT = os.path.join(cwd, "pybuild.ld")
+LDSCRIPT = os.path.join(cwd, "pymapbuild.ld")
 LDCHUNKSIZE = 64
 
 def main(args):
@@ -73,7 +73,7 @@ def build(proj, base, target, offset, cmd_as, cmd_ld, cmd_grit, cmd_ars, cmd_pym
 
     # Find lscr assemblies
     print("Find levelscript assemblies...")
-    lscr_assemblies = find_lscrs()
+    lscr_assemblies = find_lscrs(os.path.dirname(proj.path))
     print("Found {0} levelscript assemblies.".format(len(lscr_assemblies)))
     assemblies += lscr_assemblies
 
@@ -95,7 +95,7 @@ def build(proj, base, target, offset, cmd_as, cmd_ld, cmd_grit, cmd_ars, cmd_pym
     # Copy linked
     print("Copying linked objects {0} -> linked.o...".format(linked.name))
     os.system("cp {0} linked.o".format(linked.name))
-    with open("linked.o") as linked:
+    with open("linked.o", "w+") as linked:
         pass
 
     # Create patch file
@@ -113,6 +113,7 @@ def build_assemblies(proj, base, target, offset, cmd_as, cmd_ld, cmd_grit, cmd_a
     for bank in proj.banks:
         for mapid in proj.banks[bank]:
             _, path, _, _ = proj.banks[bank][mapid]
+            path = proj.realpath(path)
             # Create a new temporary file
             asfile = tempfile.NamedTemporaryFile(dir=".", delete=False, suffix=".s")
             print("Compiling {0} -> {1}...".format(path, asfile.name))
@@ -125,6 +126,7 @@ def build_assemblies(proj, base, target, offset, cmd_as, cmd_ld, cmd_grit, cmd_a
     # Build the tileset files (pts)
     for symbol in proj.tilesets:
         path = proj.tilesets[symbol]
+        path = proj.realpath(path)
         # Create a new temporary file
         asfile = tempfile.NamedTemporaryFile(dir=".", delete=True, suffix=".s")
         print("Compiling {0} -> {1}...".format(path, asfile.name))
@@ -147,6 +149,7 @@ def build_assemblies(proj, base, target, offset, cmd_as, cmd_ld, cmd_grit, cmd_a
     # Build the pngs
     for symbol in proj.images:
         path = proj.images[symbol]
+        path = proj.realpath(path)
         # Create a new temporary file
         asfile = tempfile.NamedTemporaryFile(dir=".", delete=True, suffix=".s")
         print("Compiling {0} -> {1}...".format(path, asfile.name))
