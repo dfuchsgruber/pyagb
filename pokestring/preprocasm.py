@@ -5,12 +5,12 @@ import os
 
 """ Preprocessor for assembly files """
 
-DIRECTIVE_STRING = ".string" # example: '.string LANG "foo"'
-DIRECTIVE_AUTOSTRING = ".autostring" # example: '.autostring LANG WIDTH HEIGHT "foo"'
-DIRECTIVE_STRINGPAD = ".stringpad" # example: '.stringpad LANG LENGTH "foo"'
+DIRECTIVE_STRING = ".string" # example: '.string "foo"'
+DIRECTIVE_AUTOSTRING = ".autostring" # example: '.autostring WIDTH HEIGHT "foo"'
+DIRECTIVE_STRINGPAD = ".stringpad" # example: '.stringpad LENGTH "foo"'
 
 
-def preprocess_assembly(filepath, charmappath, outpath, language, terminator=0xFF):
+def preprocess_assembly(filepath, charmappath, outpath, terminator=0xFF):
     """ Preprocesses an assembly file. """
 
 
@@ -32,31 +32,25 @@ def preprocess_assembly(filepath, charmappath, outpath, language, terminator=0xF
         if len(tokens) < 1:
             output += os.linesep
         elif tokens[0] == DIRECTIVE_STRING:
-            string = " ".join(tokens[2:])
-            if language != tokens[1]:
-                continue
-            output += ".byte " + " ".join(
+            string = " ".join(tokens[1:])
+            output += ".byte " + ", ".join(
                 map(str, process_string(string, ps))
             ) + os.linesep
         elif tokens[0] == DIRECTIVE_AUTOSTRING:
-            string = " ".join(tokens[4])
-            line_cnt = int(tokens[3], 0)
-            linewidth = int(tokens[2], 0)
-            if language != tokens[1]:
-                continue
+            string = " ".join(tokens[3:])
+            line_cnt = int(tokens[2], 0)
+            linewidth = int(tokens[1], 0)
             bytes = process_string(string, ps)
             # Format string
             bytes = format.format_pstring(bytes, linewidth,
             line_cnt)
-            output += ".byte " + " ".join(map(str, bytes)) + os.linesep
+            output += ".byte " + ", ".join(map(str, bytes)) + os.linesep
         elif tokens[0] == DIRECTIVE_STRINGPAD:
-            padding = int(tokens[2], 0)
-            string = " ".join(tokens[3:])
-            if language != tokens[1]:
-                continue
+            padding = int(tokens[1], 0)
+            string = " ".join(tokens[2:])
             bytes = process_string(string, ps)
             bytes += [0] * (padding - len(bytes))
-            output += ".byte " + " ".join(map(str, bytes)) + os.linesep
+            output += ".byte " + ", ".join(map(str, bytes)) + os.linesep
         else:
             output += line + os.linesep
 

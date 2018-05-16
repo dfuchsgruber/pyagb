@@ -15,13 +15,13 @@ def from_file(path):
     if extension.lower() == ".ppl":
         raise Exception("PPL format is decpreated and no longer supported!")
         #Open as pymap palette file (maybe we should use another extension, who knows...)
-        colors = bytes(fd.read())
+        colors = list(bytes(fd.read()))
         fd.close()
         return colors
     elif extension.lower() == ".png":
         #Extract palette from 4bpp indexed png
         img = Image.open(fd)
-        colors = bytes(img.palette.palette)
+        colors = list(bytes(img.palette.palette))
         fd.close()
         return colors
     else:

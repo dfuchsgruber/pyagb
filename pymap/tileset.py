@@ -21,8 +21,8 @@ class Tileset:
         self.init_func = "0"
 
         number_blocks = 0x280 if is_primary else 384
-        self.blocks = [[0] * 8 for i in range(number_blocks)]
-        self.behaviours = [0] * number_blocks
+        self.blocks = [[0 for _ in range(8)] for i in range(number_blocks)]
+        self.behaviours = [[0 for _ in range(8)] for i in range(number_blocks)]
 
     def load_image_file(self, path):
         if not path: return

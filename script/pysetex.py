@@ -24,6 +24,8 @@ def _mkdirs(dir):
 
 def export_tileset(rom, proj: project.Project, offset, symbol, gfx_symbol, export_gfx=None, basename=None, forced_block_size=0, delete_anim_edit=False, mkdirs=False):
     """ Exports a tileset into a pts (pymap tileset file)"""
+    
+    print(hex(offset))
     tinfo = rom.array(offset, 4)
     compression = tinfo[0]
     is_primary = not (tinfo[1] & 1)

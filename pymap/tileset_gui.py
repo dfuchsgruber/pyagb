@@ -679,16 +679,19 @@ class Tileset_gui(tkinter.Frame):
             pal = self.secondary_tileset.palettes[pal_id - 7]
         
         # Group the flat palette into RGB triples
-        rgbs = zip(pal[0::3], pal[1::3], pal[2::3])
+        rgbs = list(zip(pal[0::3], pal[1::3], pal[2::3]))
+        print(len(rgbs))
         
         path = self.project.get_image_path(t.gfx)
        
         # Use the png method to generate 4bpp pngs
         width, height, pixels, _ = png.Reader(path).read()
 
-        fpout = open(path, "wb")
-        png.Writer(width, height, palette=rgbs, bitdepth=4).write(fpout, pixels)
-        fpout.close()
+        # Extract pixel information
+        pixels = list(pixels)
+
+        with open(path, "wb") as f:
+            png.Writer(width, height, palette=rgbs, bitdepth=4).write(f, pixels)
         print("Sucessfully exported tileset gfx with palette", pal_id, "to", path)
         
 

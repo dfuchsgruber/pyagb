@@ -134,34 +134,39 @@ class Owscript_Exploration_tree:
 
                 # Create the assembly and iterate through all commands
                 assembly = ".global {0}\n\n{0}:\n".format(label)
-                while True:
-                    # Try retrieving the command id
-                    try:
-                        cmd_id = self.rom.u8(offset)
-                    except Exception as ex:
-                        print("Error at exporting script {0}, offset of error {1}. Rom \
-                        not hold offset".format(label, hex(offset)))
-                        raise ex
-                    # Try retrieving the command
-                    try:
-                        cmd = self.owscript_cmds[cmd_id]
-                    except Exception as ex:
-                        print("Error at exporting script {0}, offset of error {1}. \
-                        Undefined command {2}".format(label, hex(offset), hex(cmd_id)))
-                        raise ex
-                    # Export command structure
-                    try:
-                        assembly += cmd.export(offset, used_constants) + "\n"
-                    except Exception as ex:
-                        print("Error at exporting script {0}, offset of error {1}. \
-                        Could not export command {2}".format(label, hex(offset), hex(cmd_id)))
-                        raise ex
-                    # Break the iteration of the command ends a (sub)script
-                    if cmd.get_ends_section(self.rom, offset):
-                        break
-                    offset += cmd.size(self.rom, offset)
-                
-                self.assemblies[TYPE_SCRIPT].append((label, assembly, used_constants))
+                if offset < 0: 
+                    print("Warning. Resolving something that is not a pointer and got offset {0} < 0.".format(
+                        hex(offset)
+                    ))
+                else:
+                    while True:
+                        # Try retrieving the command id
+                        try:
+                            cmd_id = self.rom.u8(offset)
+                        except Exception as ex:
+                            print("Error at exporting script {0}, offset of error {1}. Rom \
+                            not hold offset".format(label, hex(offset)))
+                            raise ex
+                        # Try retrieving the command
+                        try:
+                            cmd = self.owscript_cmds[cmd_id]
+                        except Exception as ex:
+                            print("Error at exporting script {0}, offset of error {1}. \
+                            Undefined command {2}".format(label, hex(offset), hex(cmd_id)))
+                            raise ex
+                        # Export command structure
+                        try:
+                            assembly += cmd.export(offset, used_constants) + "\n"
+                        except Exception as ex:
+                            print("Error at exporting script {0}, offset of error {1}. \
+                            Could not export command {2}".format(label, hex(offset), hex(cmd_id)))
+                            raise ex
+                        # Break the iteration of the command ends a (sub)script
+                        if cmd.get_ends_section(self.rom, offset):
+                            break
+                        offset += cmd.size(self.rom, offset)
+                    
+                    self.assemblies[TYPE_SCRIPT].append((label, assembly, used_constants))
                 
 
     def make_commands(self):

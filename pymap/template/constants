@@ -1,0 +1,566 @@
+# Constants definition
+{
+    "move_tutor" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" :  []
+    },
+    "evolution_methods" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : []
+    },
+    "items" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : []
+    },
+    "species" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : []
+    },
+    "abilities" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : []
+    },
+    "pokemon_types" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : [
+            "TYPE_NORMAL",
+            "TYPE_FIGHTING",
+            "TYPE_FLYING",
+            "TYPE_POISON",
+            "TYPE_GROUND",
+            "TYPE_ROCK",
+            "TYPE_BUG",
+            "TYPE_GHOST",
+            "TYPE_STEEL",
+            "TYPE_UNKNOWN",
+            "TYPE_FIRE",
+            "TYPE_WATER",
+            "TYPE_GRASS",
+            "TYPE_ELECTRIC",
+            "TYPE_PSYCHIC",
+            "TYPE_ICE",
+            "TYPE_DRAGON",
+            "TYPE_DARK"
+        ]
+    },
+    "egg_groups" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : [
+            "EGG_GROUP_NONE",
+            "EGG_GROUP_MONSTER",
+            "EGG_GROUP_WATER_1",
+            "EGG_GROUP_BUG",
+            "EGG_GROUP_FLYING",
+            "EGG_GROUP_FIELD",
+            "EGG_GROUP_FAIRY",
+            "EGG_GROUP_GRASS",
+            "EGG_GROUP_HUMAN",
+            "EGG_GROUP_WATER_3",
+            "EGG_GROUP_MINERAL",
+            "EGG_GROUP_AMORPHUS",
+            "EGG_GROUP_WATER_2",
+            "EGG_GROUP_DITTO",
+            "EGG_GROUP_DRAGON",
+            "EGG_GROUP_UNDISCOVERED",
+        ]
+    },
+    "attacks" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : []
+    },
+    "attack_affects_whom_flags" : {
+        "type" : "dict",
+        "values" : {
+            0 : "SELECTED_TARGET",
+            1 : "TARGET_DEPENDS_ON_ATTACK",
+            2 : "TARGET_UNUSED",
+            4 : "RANDOM_TARGET",
+            8 : "TARGET_BOTH_FOES",
+            16 : "TARGET_USER",
+            32 : "TARGET_BOTH_FOES_AND_PARTNER",
+            64 : "TARGET_OPPONENT_FIELD"
+        }
+    },
+    "attack_flags" : {
+        "type" : "dict",
+        "values" : {
+            1 : "MAKES_CONTACT",
+            2 : "AFFECTED_BY_PROTECT",
+            4 : "AFFECTED_BY_MAGIC_COAT",
+            8 : "AFFECTED_BY_SNATCH",
+            16 : "MIRRORABLE",
+            32 : "TRIGGERS_KINGS_ROCK"
+        }
+    },
+    "attack_categories" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : []
+    },
+    "trainerclasses" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : []
+    },
+    "item_pockets" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : [
+            "POCKET_NONE",
+            "POCKET_ITEMS",
+            "POCKET_KEY_ITEMS",
+            "POCKET_POKEBALLS",
+            "POCKET_TM_HM",
+            "POCKET_BERRIES"
+        ]
+    },
+    "trainer_ai_flags" : {
+        "type" : "dict",
+        "values" : {
+            0 : "TRAINER_AI_STRATEGY_NONE",
+            (2**0) : "TRAINER_AI_NO_EFFECTLESS_OR_NEGATIVE_EFFECTS",
+            (2**1) : "TRAINER_AI_VARIABILITY",
+            (2**2) : "TRAINER_AI_SUPER_EFFECTIVE",
+            (2**3) : "TRAINER_AI_STATUS_MOVES_PREFERED_IN_FIRST_ROUND",
+            (2**4) : "TRAINER_AI_PREFER_CERTAIN_MOVES",
+            (2**5) : "TRAINER_AI_PREFER_NO_DAMAGE_MOVES",
+            (2**7) : "TRAINER_AI_PREFER_NO_DAMAGE_MOVES_IF_OTHER_POKEMON_IN_PARTY",
+            (2**8) : "TRAINER_AI_CONSIDER_PERECNTUAL_HP",
+            (2**29) : "TRAINER_AI_FLEE",
+            (2**30) : "TRAINER_AI_SAFARI_ZONE",
+            (2**31) : "TRAINER_AI_FLEE_IF_HP_LOW",
+        }
+    },
+    "flags" : {
+        "type" : "dict",
+        "values" : {},
+        "exceptions" : set([
+            0
+        ])
+    },
+    "vars" : {
+        "type" : "dict",
+        "values" : {
+            0x404C : "AKTANIA_FLASHBACK_LSCR_PLAYER_INVISIBLE",
+            0x4050 : "INTRO",
+            0x4051 : "STORY_PROGRESS",
+            0x4052 : "STARTER_SELECTED",
+            0x4053 : "TRAINERSCHOOL_DONE",
+            0x4054 : "MERIANA_CITY_REVOLUTIONARY",
+            0x4055 : "ROUTE_3_MILL_ALTARIA_EGG_SCRIPT",
+            0x4056 : "AMONIA_PLAYERFACING_INTRO",
+            0x4077 : "DYN_MULTICHOICE_ITEM_CNT",
+            0x407C : "NEXT_POKEMON_SHINY",
+
+            0x50CC : "TRAINER_TIPP_CNT",
+            0x50CD : "SGM_VER",
+            0x50CE : "HATCHING_BOOST_STEPS",
+            0x50CF : "ASCHHAIN_LAVADOS_VAR",
+            0x50D0 : "ASH",
+            0x50D1 : "FOSSIL_RESTAURATED_SPECIES",
+            0x50D2 : "ORINA_CITY_NORTH_STREET_BLOCKED",
+            0x50D3 : "LAZ_CORP_CURRENT_LEVEL",
+            0x50D4 : "BANK_CREDIT",
+            0x50D5 : "MERIANA_ARENA_HEALS",
+            0x50D6 : "MERIANA_ARENA_TRAINERS",
+            0x50D7 : "MERIANA_ARENA_TRIGGER",
+            0x50D8 : "MONEY_GIFT_FOR_HOMELESS",
+            0x50D9 : "SONG_OVERRIDE",
+            0x50DA : "POKEDEX_ACTIVE_COMPARATOR",
+            0x50DB : "POKEDEX_LAST_SPECIES",
+            0x50DC : "BATTLE_SONG_OVERRIDE",
+            0x50DF : "SHADER_STATE",
+            0x50E0 : "DUNGEON_STEPS_TO_ENTER",
+            0x50E1 : "DUNGEON_STEPS",
+            0x50E2 : "WONDERTRADE_STEPS_TO_ENABLE",
+            0x50E3 : "BATTLE_BG_OVERRIDE",
+            0x50E4 : "OPPONENT_MEGA_ITEM",
+            0x50E5 : "PLAYER_MEGA_ITEM",
+
+
+            0x50E8 : "DIFFICULTY_LEVEL_RANGE",
+            0x50E9 : "POKERADAR_ENEMY_STATE",
+            0x50EA : "POKERADAR_ENCOUNTER_COUNT",
+            0x50EB : "POKERADAR_EMENY_SPECIES",
+            0x50EC : "POKEPAD_SHORTCUTS",
+            0x50ED : "POKEPAD_LAST_USED",
+            0x50EE : "POKERADAR_ENEMY_LEVEL",
+            
+            0x50F2 : "WONDERTRADE_CNT",
+            0x50F4 : "TRAINERSCHOOL_CORRECT_ANSWERS",
+            0x50F5 : "DUNGEON_TYPE",
+
+            0x50F7 : "DETECTOR_FLAG",
+            0x50F8 : "TRAINER_LEVEL_OVERRIDE",
+            0x50F9 : "DIFFICULTY",
+            0x50FA : "KARMA_POINTS",
+            0x50FB : "KARMA_VALUE",
+
+            0x800F : "LASTTALKED",
+            0x800D : "LASTRESULT",
+            0x800C : "PLAYERFACING",
+        },
+        "exceptions" : set([
+            0
+        ])
+    },
+    "ordinals" : {
+        "type" : "dict",
+        "values" : {
+            0 : "LESS",
+            1 : "EQUAL",
+            2 : "HIGHER",
+            3 : "LESS_OR_EQUAL",
+            4 : "HIGHER_OR_EQUAL",
+            5 : "NOT_EQUAL"
+        }
+    },
+    "callstds" : {
+        "type" : "dict",
+        "values" : {
+            0 : "ITEM_OBTAIN",
+            1 : "ITEM_FIND",
+            2 : "MSG_FACE",
+            3 : "MSG_SIGN",
+            4 : "MSG_KEEPOPEN",
+            5 : "MSG_YES_NO",
+            6 : "MSG"
+        }
+    },
+    "movements" : {
+        "type" : "dict",
+        "values" : {
+            0x00 : "FACE_DOWN",
+            0x01 : 'LOOK_UP',
+            0x02 : 'LOOK_LEFT',
+            0x03 : 'LOOK_RIGHT',
+            0x04 : 'LOOK_DOWN',
+            0x08 : 'STEP_DOWN_VERY_SLOW',
+            0x09 : 'STEP_UP_VERY_SLOW',
+            0x0a : 'STEP_LEFT_VERY_SLOW',
+            0x0b : 'STEP_RIGHT_VERY_SLOW',
+            0x0c : 'STEP_DOWN_SLOW',
+            0x0d : 'STEP_UP_SLOW',
+            0x0e : 'STEP_LEFT_SLOW',
+            0x0f : 'STEP_RIGHT_SLOW',
+            0x10 : 'STEP_DOWN',
+            0x11 : 'STEP_UP',
+            0x12 : 'STEP_LEFT',
+            0x13 : 'STEP_RIGHT',
+            0x14 : 'JUMP_DOWN2',
+            0x15 : 'JUMP_UP2',
+            0x16 : 'JUMP_LEFT2',
+            0x17 : 'JUMP_RIGHT2',
+            0x1d : 'STEP_DOWN_FAST',
+            0x1e : 'STEP_UP_FAST',
+            0x1f : 'STEP_LEFT_FAST',
+            0x20 : 'STEP_RIGHT_FAST',
+            0x21 : 'STEP_IN_PLACE_DOWN',
+            0x22 : 'STEP_IN_PLACE_UP',
+            0x23 : 'STEP_IN_PLACE_LEFT',
+            0x24 : 'STEP_IN_PLACE_RIGHT',
+            0x25 : 'STEP_IN_PLACE_DOWN_FAST',
+            0x26 : 'STEP_IN_PLACE_UP_FAST',
+            0x27 : 'STEP_IN_PLACE_LEFT_FAST',
+            0x28 : 'STEP_IN_PLACE_RIGHT_FAST',
+            0x29 : 'STEP_IN_PLACE_DOWN_VERY_FAST',
+            0x2a : 'STEP_IN_PLACE_UP_VERY_FAST',
+            0x2b : 'STEP_IN_PLACE_LEFT_VERY_FAST',
+            0x2c : 'STEP_IN_PLACE_RIGHT_VERY_FAST',
+            0x2d : 'LOOK_DOWN_DELAYED',
+            0x2e : 'LOOK_UP_DELAYED',
+            0x2f : 'LOOK_LEFT_DELAYED',
+            0x30 : 'LOOK_RIGHT_DELAYED',
+            0x31 : 'SLIDE_DOWN',
+            0x32 : 'SLIDE_UP',
+            0x33 : 'SLIDE_LEFT',
+            0x34 : 'SLIDE_RIGHT',
+            0x3d : 'SLIDE_DOWN_ON_RIGHT_FOOT',
+            0x3e : 'SLIDE_UP_ON_RIGHT_FOOT',
+            0x3f : 'SLIDE_LEFT_ON_RIGHT_FOOT',
+            0x40 : 'SLIDE_RIGHT_ON_RIGHT_FOOT',
+            0x41 : 'SLIDE_DOWN_ON_LEFT_FOOT',
+            0x42 : 'SLIDE_UP_ON_LEFT_FOOT',
+            0x43 : 'SLIDE_LEFT_ON_LEFT_FOOT',
+            0x44 : 'SLIDE_RIGHT_ON_LEFT_FOOT',
+            0x45 : 'RUN_INFINITLY',
+            0x46 : 'JUMP_DOWN_RUNNING',
+            0x47 : 'JUMP_UP_RUNNING',
+            0x48 : 'JUMP_LEFT_RUNNING',
+            0x49 : 'JUMP_RIGHT_RUNNING',
+            0x4a : 'FACE_PLAYER',
+            0x4b : 'FACE_AWAY_FROM_PLAYER',
+            0x4e : 'JUMP_DOWN',
+            0x4f : 'JUMP_UP',
+            0x50 : 'JUMP_LEFT',
+            0x51 : 'JUMP_RIGHT',
+            0x52 : 'JUMP_IN_PLACE_FACE_DOWN',
+            0x53 : 'JUMP_IN_PLACE_FACE_UP',
+            0x54 : 'JUMP_IN_PLACE_FACE_LEFT',
+            0x55 : 'JUMP_IN_PLACE_FACE_RIGHT',
+            0x56 : 'JUMP_IN_PLACE_FACE_DOWN_TO_UP',
+            0x57 : 'JUMP_IN_PLACE_FACE_UP_TO_DOWN',
+            0x58 : 'JUMP_IN_PLACE_FACE_LEFT_TO_RIGHT',
+            0x59 : 'JUMP_IN_PLACE_FACE_RIGHT_TO_LEFT',
+            0x60 : 'HIDE_SPRITE',
+            0x61 : 'SHOW_SPRITE',
+            0x62 : 'SAY_EXCLAM',
+            0x63 : 'SAY_QUESTION',
+            0x64 : 'SAY_X',
+            0x65 : 'SAY_DOUBLE_EXCLAM',
+            0x66 : 'SAY_SMILE',
+            0x6E : 'MOVEX_DOWN',
+            0x6F : 'MOVEY_DOWN',
+            0x78 : 'LOOK_RIGHT_LEFT_DOWNFACING',
+            0xA0 : 'LIFT_DOWN',
+            0xA1 : 'LIFT_UP',
+            0xA2 : 'LIFT_LEFT',
+            0xA3 : 'LIFT_RIGHT',
+            0xA5 : 'FLY_OUT_OF_SCREEN',
+            0xA6 : 'FLY_FROM_SCREEN',
+            0xfe : 'STOP'
+        }
+    },
+    "map_adjacency_types" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : [
+            "NONE",
+            "SOUTH",
+            "NORTH",
+            "WEST",
+            "EAST",
+            "DIVE",
+            "RETURN_FROM_DIVE"
+        ]
+    },
+    "songs" : {
+        "type" : "dict",
+        "values" : {},
+        "exceptions" : set((
+            0, 0xFFFF
+        ))
+    },
+    "person_behaviours" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : []
+    },
+    "map_namespaces" : {
+        "type" : "dict",
+        "values" : {}
+    },
+    "map_show_name_types" : {
+        "type" : "dict",
+        "values" : {
+            0 : "DONT_SHOW",
+            1 : "SHOW",
+            2 : "MAP_SHOW_NAME_2",
+            3 : "MAP_SHOW_NAME_3",
+            4 : "MAP_SHOW_NAME_4",
+            5 : "MAP_SHOW_NAME_5",
+            6 : "SHOW_VILLAGE",
+            7 : "MAP_SHOW_NAME_7",
+            0xD : "SHOW_CITY"
+        }
+    },
+    "map_weathers" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : [
+            "MAP_WEATHER_INSIDE",
+            "MAP_WEATHER_SUNNY_WITH_CLOUD_REFLECTION",
+            "MAP_WEATHER_OUTSIDE",
+            "MAP_WEATHER_RAIN",
+            "MAP_WEATHER_SNOW",
+            "MAP_WEATHER_THUNDER",
+            "MAP_WEATHER_STATIC_FOG",
+            "MAP_WEATHER_ASH",
+            "MAP_WEATHER_SANDSTORM",
+            "MAP_WEATHER_DYNAMIC_FOG",
+            "MAP_WEATHER_DENSE_FOG",
+            "MAP_WEATHER_CLOUDY",
+            "MAP_WEATHER_EXTREME_SUN",
+            "MAP_WEATHER_EXTREME_THUNDER",
+            "MAP_WEATHER_UNDERWATER",
+            "MAP_WEATHER_WEATHER_0F"
+        ]
+    },
+    "map_types" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : [
+            "MAP_TYPE_STD",
+            "MAP_TYPE_VILLAGE",
+            "MAP_TYPE_CITY",
+            "MAP_TYPE_ROUTE",
+            "MAP_TYPE_BASEMENT",
+            "MAP_TYPE_UNDERWATER",
+            "MAP_TYPE_TYPE_06",
+            "MAP_TYPE_TYPE_07",
+            "MAP_TYPE_INSIDE",
+            "MAP_TYPE_SECRET_BASE"
+        ]
+    },
+    "map_battle_styles" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : [
+            "BATTLE_TYPE_RANDOM",
+            "BATTLE_TYPE_ARENA",
+            "BATTLE_TYPE_TEAM_ROCKET",
+            "BATTLE_TYPE_03",
+            "BATTLE_TYPE_ELITE4_FIRST",
+            "BATTLE_TYPE_ELITE4_SECOND",
+            "BATTLE_TYPE_ELITE4_THIRD",
+            "BATTLE_TYPE_ELITE4_FOURTH",
+            "BATTLE_TYPE_BIG_POKEBALL"
+        ]
+    },
+    "map_flash_types" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : [
+            "FLASH_NONE", 
+            "DARK_FLASH_USABLE", 
+            "DARK_FLASH_NOT_USABLE"
+        ]
+    },
+    "map_connections" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : [
+            "NONE",
+            "SOUTH",
+            "NORTH",
+            "WEST",
+            "EAST",
+            "DIVE",
+            "RETURN_FROM_DIVE"
+        ]
+    },
+    "pokemon_language_ids" : {
+        "type" : "enum",
+        "base" : 0x201,
+        "values" : [
+            "LANGUAGE_JAP",
+            "LANGUAGE_ENG",
+            "LANGUAGE_FRA",
+            "LANGAUGE_ITA",
+            "LANGUAGE_GER",
+            "LANGUAGE_KOR",
+            "LANGUAGE_ESP"
+        ]
+    },
+    "natures" : {
+        "type" : "enum",
+        "base" : 0,
+        "values" : []
+    },
+    "pokemon_attributes" : {
+        "type" : "enum",
+        "base" : 0,
+        "values": [
+            "ATTRIBUTE_PID",
+            "ATTRIBUTE_TID",
+            "ATTRIBUTE_NICKNAME",
+            "ATTRIBUTE_LANGUAGE",
+            "ATTRIBUTE_SANITY_0",
+            "ATTRIBUTE_SANITY_1",
+            "ATTRIBUTE_SANITY_2",
+            "ATTRIBUTE_OT_NAME",
+            "ATTRIBUTE_MARKINGS",
+            "ATTRIBUTE_CHECKSUM",
+            "ATTRIBUTE_FILLER",
+            "ATTRIBUTE_SPECIES",
+            "ATTRIBUTE_ITEM",
+            "ATTRIBUTE_ATTACK1",
+            "ATTRIBUTE_ATTACK2",
+            "ATTRIBUTE_ATTACK3",
+            "ATTRIBUTE_ATTACK4",
+            "ATTRIBUTE_PP1",
+            "ATTRIBUTE_PP2",
+            "ATTRIBUTE_PP3",
+            "ATTRIBUTE_PP4",
+            "ATTRIBUTE_PP_BONUSES",
+            "ATTRIBUTE_COOLNESS",
+            "ATTRIBUTE_BEAUTY",
+            "ATTRIBUTE_CUTENESS",
+            "ATTRIBUTE_EXP",
+            "ATTRIBUTE_HP_EV",
+            "ATTRIBUTE_ATT_EV",
+            "ATTRIBUTE_DEF_EV",
+            "ATTRIBUTE_INIT_EV",
+            "ATTRIBUTE_SATT_EV",
+            "ATTRIBUTE_SDEF_EV",
+            "ATTRIBUTE_HAPPINESS",
+            "ATTRIBUTE_SMARTNESS",
+            "ATTRIBUTE_POKERUS",
+            "ATTRIBUTE_CATCH_LOCATION",
+            "ATTRIBUTE_CATCH_LEVEL",
+            "ATTRIBUTE_U0",
+            "ATTRIBUTE_CATCH_INFO",
+            "ATTRIBUTE_HP_IV",
+            "ATTRIBUTE_ATT_IV",
+            "ATTRIBUTE_DEF_IV",
+            "ATTRIBUTE_INIT_IV",
+            "ATTRIBUTE_SATT_IV",
+            "ATTRIBUTE_SDEF_IV",
+            "ATTRIBUTE_IS_EGG",
+            "ATTRIBUTE_ABILITY",
+            "ATTRIBUTE_TOUGHNESS",
+            "ATTRIBUTE_SHEEN",
+            "ATTRIBUTE_U1",
+            "ATTRIBUTE_U2",
+            "ATTRIBUTE_U3",
+            "ATTRIBUTE_U4",
+            "ATTRIBUTE_U5",
+            "ATTRIBUTE_U6",
+            "ATTRIBUTE_STATUS",
+            "ATTRIBUTE_LEVEL",
+            "ATTRIBUTE_CURRENT_HP",
+            "ATTRIBUTE_TOTAL_HP",
+            "ATTRIBUTE_ATK",
+            "ATTRIBUTE_DEF",
+            "ATTRIBUTE_INIT",
+            "ATTRIBUTE_SATK",
+            "ATTRIBUTE_SDEF",
+            "ATTRIBUTE_SPECIES2"
+        ]
+    },
+    "attack_results" : {
+        "type" : "dict",
+        "values" : {
+            1 : "ATTACK_MISSED",
+            2 : "ATTACK_SUPER_EFFECTIVE",
+            4 : "ATTACK_NOT_EFFECTIVE",
+            8 : "ATTACK_NO_EFFECT",
+            16 : "ATTACK_OHKO",
+            32 : "ATTACK_FAILED",
+            64 : "ATTACK_ENDURED",
+            128 : "ATTACK_ENDURED_BY_FOCUS_SASH"
+        }
+    },
+    "battle_weathers" : {
+        "type" : "dict",
+        "values" : {
+            1 : "BATTLE_WEATHER_RAIN",
+            2 : "BATTLE_WEATHER_WOLKENBRUCH",
+            4 : "BATTLE_WEATHER_RAIN_DRIZZLE",
+            8 : "BATTLE_WEATHER_SANDSTORM",
+            16 : "BATTLE_WEATHER_SANDSTORM_ABILITY",
+            32 : "BATTLE_WEATHER_SUN",
+            64 : "BATTLE_WEATHER_SUN_DROUGHT",
+            128 : "BATTLE_WEATHER_HAIL"
+        }
+    }
+
+}

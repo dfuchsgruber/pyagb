@@ -1,0 +1,324 @@
+{
+    # Define configuration for the macro
+    # export of constants.
+    "macro" : {
+        # Define the configuration of assembly
+        # macro exports
+        "as" : {
+            # Define the path where the macro / header
+            # files will be placed (relative to the
+            # execution of the pymap tools). {0} will
+            # be replaced by the label of the respective
+            # constant table
+            "path" : "include/as/constants/{0}.s",
+            # Define the directive which is prepended to 
+            # each source file in need of a constant table
+            # for resolving. {0} will be replaced by the
+            # label of the respective constant table
+            "directive" : ".include \"{0}.s\"",
+            # Define a set of labels that describe the constant
+            # tables that will be executed
+            "include" : set((
+                'pokemon_types', 'item_pockets', 'map_battle_styles', 
+                'map_namespaces', 'map_flash_types', 'attacks', 
+                'flags', 'songs', 'map_types', 'evolution_methods',
+                'attack_categories', 'attack_affects_whom_flags',
+                'species', 'attack_flags', 'ordinals', 
+                'movements', 'person_behaviours', 'move_tutor', 
+                'abilities', 'map_show_name_types', 
+                'trainer_ai_flags', 'vars', 'trainerclasses', 
+                'callstds', 'map_weathers', 'egg_groups', 
+                'map_adjacency_types', 'items', 'map_connections',
+                'pokemon_language_ids', 'natures',
+                'pokemon_attributes', 'attack_results', 'battle_weathers'
+            ))
+        },
+        # Define the configuration of C language
+        # macro exports
+        "c" : {
+            # Define the path where the macro / header
+            # files will be placed (relative to the
+            # execution of the pymap tools). {0} will
+            # be replaced by the label of the respective
+            # constant table
+            "path" : "include/c/constants/{0}.h",
+            # Define the directive which is prepended to 
+            # each source file in need of a constant table
+            # for resolving. {0} will be replaced by the
+            # label of the respective constant table
+            "directive" : "#include \"constants/{0}.h\"",
+            # Define a set of labels that describe the constant
+            # tables that will be executed
+            "include" : set((
+                'pokemon_types', 'item_pockets', 'map_battle_styles', 
+                'map_namespaces', 'map_flash_types', 'attacks', 
+                'flags', 'songs', 'map_types', 'evolution_methods',
+                'attack_categories', 'attack_affects_whom_flags',
+                'species', 'attack_flags', 'ordinals', 
+                'movements', 'person_behaviours', 'move_tutor', 
+                'abilities', 'map_show_name_types', 
+                'trainer_ai_flags', 'vars', 'trainerclasses', 
+                'callstds', 'map_weathers', 'egg_groups', 
+                'map_adjacency_types', 'items', 'map_connections',
+                'pokemon_language_ids', 'natures',
+                'pokemon_attributes', 'attack_results', 'battle_weathers'
+            ))
+        }
+    },
+    # Define configuration for pymapexport
+    "pymapex" : {
+        # Define the backend invokes for scripts
+        # and tilesets.
+        "backend" : {
+            # Define the os command that is
+            # invoked once an overworld script
+            # offset is encountered and to
+            # be exported.
+            # {0} will be replaced with the path to
+            # the agb rom file.
+            # {1} will be replaced with the path to
+            # the project file.
+            # {2} will be replaced with the offset
+            # (hex) of the script.
+            # {3} will contain with the directory
+            # of the map's output
+            # {4} will contain context bound meta
+            # information. Possible are: "lscr",
+            # "person", "trigger", "sign".
+            "ow_script" : {
+                # Define the os command that is executed
+                #"exec" : "echo \"{0} {1} {2} {3} {3}\"",
+                "exec" : "pyowscriptex.py -s {2} -o {3} --singlefile {0} {1}",
+                # Define the label that the script will
+                # be associated with
+                "label" : "({2} + 0x08000000)"
+            },
+            # Define the os command that is
+            # invoked once an overworld script
+            # offset is encountered and to
+            # be exported.
+            # {0} will be replaced with the path to
+            # the agb rom file.
+            # {1} will be replaced with the path to
+            # the project file.
+            # {2} will be replaced with the offset
+            # (hex) of the tileset.
+            # {3} will be replaced with the tileset's
+            # number relative to tileset_base. Caution:
+            # this calculation refers to the tileset_base
+            # configuration of pymapex (below) and not
+            # the configuration of pysetex (usually they
+            # should be the same however...)
+            # {4} will be replaced with the base
+            # of the map's output path (without
+            # the .pmh extension).
+            "tileset" : {
+                # Define the os command that is executed
+                "exec" : "pysetex.py -g tileset/{3}/gfx_maptileset_{3}.png -n {3} -o tileset/{3}/maptileset_{3} -x gfx_maptileset_{3}Tiles -y maptileset_{3} --deleteanim --mkdirs {0} {1}",
+                # Define the label that the script will
+                # be associated with
+                "label" : "maptileset_{3}",
+                # Redundant defintion of the tileset base offset
+                # that provides pymapex with the capability of
+                # calculating the tilesets relative number
+                # and passing it to the backend
+                "tileset_base" : 0x2D49B8
+            }
+        },
+        # Define configurations for the batch export system.
+        "batch" : {
+            # Define the output basepath (without .pmh extension)
+            # of the map files.
+            # {0} will be replaced with the map bank
+            # {1} will be replaced with the map id
+            # {2} will be replaced with the offset of the map
+            "map_output_path" : "map/{0}/{1}/map_{0}_{1}",
+            # Define the symbol that will be created (e.g.
+            # for foo 'foo_footer' will be created)
+            # {0} will be replaced with the map bank
+            # {1} will be replaced with the map id
+            # {2} will be replaced with the offset of the map
+            "map_symbol" : "map_{0}_{1}"
+        },
+        # Define a standard maptable that is used
+        # for retrieving maps indexed by a bank,
+        # mapid tuple.
+        "maptable" : 0x5526C, #BPRD,
+        # Define which constant tables pymapex has access
+        # to, i.e. which one will be used to export maps
+        "constants" : set([
+            "map_connections", "vars", "songs", "map_namespaces", 
+            "map_flash_types", "map_weathers", "map_types",
+            "map_show_name_types", "map_battle_styles",
+            "person_behaviours", "flags", "items"
+        ])
+    },
+    # Define configuration for pysetexport
+    "pysetex" : {
+        # Define a standard tileset base that is
+        # used for retrieving tileset offsets
+        # from numbers and vice versa
+        "tileset_base" : 0x2D49B8,
+        # Define a default symbol pattern that is
+        # retrieved by a tileset offset
+        # {0} will be replaced by the tileset's
+        # offset (hex).
+        # {1} will be replaced by the tileset's
+        # number respective to the tileset base
+        "default_symbol" : "maptileset_{1}"
+    },
+    # Define configuration for pymap2s
+    "pymap2s" : {
+        # Define which constant tables pymap2s will
+        # include at the preamble of each .s file
+        "constants" : set([
+            "map_connections", "vars", "songs", "map_namespaces", 
+            "map_flash_types", "map_weathers", "map_types",
+            "map_show_name_types", "map_battle_styles",
+            "person_behaviours", "flags", "items"
+        ])
+    },
+    # Define configuration for the building tool.
+    # If using pymap2s, pyset2s, pyproj2s this is
+    # not needed at all. Pybuild simply calls
+    # arm-none-eabi-as, grit, arm-none-eabi-ld
+    # and armips.
+    "pybuild" : {
+        # Define commands for as, grit, ld and ars
+        "commands" : {
+            # Command, flags for the assembler
+            "as" : {
+                "command" : "arm-none-eabi-as",
+                "flags" : "-mthumb -Iinclude/ -mcpu=arm7tdmi -march=armv4t"
+            },
+            # Command, flags for the linker
+            "ld" : {
+                "command" : "arm-none-eabi-ld",
+                "flags" : "-z muldefs --relocatable"
+            },
+            # Command, flags for grit
+            "grit" : {
+                "command" : "grit",
+                "flags" : "-gu32 -gzl -gB 4 -gt -m! -p! -fh! -fts"
+            },
+            # Command for armips
+            "ars" : {
+                "command" : "armips",
+                "flags" : "-erroronwarning"
+            },
+            # Command for pymap2s
+            "pymap2s" : {
+                "command" : "pymap2s.py",
+                "flags" : ""
+            },
+            # Command for pyset2s
+            "pyset2s" : {
+                "command" : "pyset2s.py",
+                "flags" : ""
+            },
+            # Command for pyproj2s
+            "pyproj2s" : {
+                "command" : "pyproj2s.py",
+                "flags" : ""
+            }
+        },
+        # Define a rom that will be read
+        # for inserting the map data
+        "base" : "base/bprd.gba",
+        # Define a rom that will be created
+        # by the process. It is possible
+        # to overwrite the base rom.
+        "target" : "build/bprd.gba",
+        # Define a location for the map
+        # data (maps, tilesets, gfxs)
+        "offset" : 0x800000,
+        # Define the pointer to the map
+        # bank table (will be replaced)
+        "mapbanks_ptr" : 0x5526C,
+        # Define the pointer to the map
+        # footer table (will be replaced)
+        "mapfooters_ptr" : 0x551B4
+    },
+    "owscript_export" : {
+        # Define a label a script will
+        # get.
+        # {0} is replaced by its offset
+        "script_label" : "ow_script_{0}",
+        # Define a label a movement list
+        # will get.
+        # {0} is replaced by its offset
+        "movement_list_label" : "ow_moves_{0}",
+        # Define a label a mart item list
+        # will get.
+        # {0} is replaced by its offset
+        "mart_list_label" : "mart_items_{0}",
+        # Define string export backend that
+        # is invoked everytime a string
+        # reference is encountered
+        "string_backend" : {
+            # Define the console command that will
+            # be executed.
+            # {0} is replaced with the string's
+            # offset in hex.
+            "exec" : "echo string {0}",
+            # Define the label that the string will
+            # be associated with.
+            # {0} is replaced with the string's
+            # offset in hex.
+            "label" : "str_{0}",
+            # If the backend is disabled the intern
+            # string exporter is used. Note that
+            # in order for the assembly files to
+            # be compiled they first have to be
+            # preprocessed by pyprepoc.py
+            "use_string_backend" : False,
+            # If use_string_backend is set to False
+            # the intern exporter is used which
+            # also can be configured
+            "intern" : {
+                # Define a charmap for string
+                # handling. The path is relative to
+                # the execution directory of the
+                # tool.
+                "charmap" : "table.tbl",
+                # Set the language label which a
+                # string will be associated with
+                "language" : "GER",
+                # Define the byte that terminates
+                # a string (usually 0xFF)
+                "terminator" : 0xFF
+            }
+
+        },
+        # Define which constants the owscript export
+        # module has access to, i.e. which it will
+        # try to resolve values against and include
+        # in the preamble if neccessary.
+        "constants" : set([
+            'items', 'species', 'attacks', 'flags', 'vars', 
+            'ordinals', 'callstds', 'movements', 'songs', 
+            'map_weathers', 'person_behaviours'
+        ]),
+        # Define the range(s) of the variable space.
+        # Some script command also take variables as
+        # parameters from which they resolve the real
+        # value. To make this tool infer when this
+        # mechanism is used describe which var values
+        # actually resolve to numbers.
+        "var_range" : set([
+            range(0x4000, 0x6000), range(0x8000, 0x8010)
+        ]),
+        # Define a file where the tool stores the offsets
+        # that is has already explored in order to prevent
+        # exporting shared subscripts multiple times.
+        # The path, as usual, is relative to the project
+        # file.
+        "explored_offsets" : "owscript_explored.lib",
+        # Define a header file that specifies the script
+        # command macros by its directive.
+        # Note that this file must be created manually
+        # via e.g. python shell:
+        "directive" : ".include \"overworld_script.s\""
+
+    }
+}

@@ -17,6 +17,8 @@ UNDO_STACK_MAX = 0x10000
 #Access to global size variables
 WIDTH = 0
 HEIGHT = 1
+# Properties widget
+PROPERTIES_HEIGHT = 11
 
 
 NONE, MAP, LEVEL, EVENTS = range(4)
@@ -247,6 +249,7 @@ class Pymap_gui(tkinter.Frame):
         self.event_ow_image_widget = None
 
     def _select_event(self, type, id):
+        if not self.map: return
         """ Selects an event for editing its properties """
         def _build_entries(names, startrow, change_sensitive=False):
             """ Build entries for different attributes in names
@@ -256,10 +259,25 @@ class Pymap_gui(tkinter.Frame):
             change action whenever a value is entered otherwise only at loss of focus"""
             entries = []
             for name in names:
+                
+                # The placement is somewhat ugly
+                # If in the first column
+                # then the row index is used
+                # else 2 is added
+                if startrow < PROPERTIES_HEIGHT:
+                    # First column
+                    row = startrow
+                    col = 0
+                else:
+                    # Assume there are only 2 cols
+                    row = startrow + 2 - PROPERTIES_HEIGHT
+                    col = 1
+
+
                 widget = tkinterx.LabeledEntry(self.event_edit_widget, text=name)
                 self.__setattr__("event_edit_widget_" + name.lower(), widget)
                 self.event_edit_widgets.append(widget)
-                widget.get_handle().grid(row=startrow, sticky=tkinter.NW)
+                widget.get_handle().grid(row=row, column=col, sticky=tkinter.NW)
                 startrow += 1
                 if change_sensitive: widget.add_callback(lambda: self._event_apply_changes(self.event_type, self.event_id, supress_warnings=True))
                 #else: widget.bind("<FocusOut>", (lambda _: self._event_apply_changes(self.event_type, self.event_id, supress_warnings=True)))
@@ -1890,7 +1908,13 @@ class Action_event_add(Action_event):
         self.id = self._get_element_count(stype)
 
     def do(self):
-        if self.stype == "Person": self.root.map.persons.append(mapevent.Map_event_person())
+        if self.stype == "Person":
+            self.root.map.persons.append(mapevent.Map_event_person())
+            # Find the first unused target index
+            target_candidates = set(range(256))
+            for person in self.root.map.persons: target_candidates.discard(person.target_index)
+            self.root.map.persons[-1].target_index = min(target_candidates)
+
         elif self.stype == "Warp": self.root.map.warps.append(mapevent.Map_event_warp())
         elif self.stype == "Trigger": self.root.map.triggers.append(mapevent.Map_event_trigger())
         elif self.stype in ("Sign", "SignScript", "SignItem"): self.root.map.signposts.append(mapevent.Map_event_sign())
@@ -2160,7 +2184,7 @@ def shell(args):
     screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()
     block_canvas_width = 8 * 16 #Always 8 Tiles
     block_canvas_height = int(screen_height * 0.7)
-    map_canvas_width = int((screen_width - block_canvas_width) * 0.73)
+    map_canvas_width = int((screen_width - block_canvas_width) * 0.70)
     map_canvas_height = int(screen_height * 0.85)
     BLOCK_CANVAS_SIZE = block_canvas_width, block_canvas_height
     MAP_CANVAS_SIZE = map_canvas_width, map_canvas_height

@@ -54,7 +54,7 @@ def export(proj: project.Project, banksym, footersym, outfile):
         for mapid in range(max(proj.banks[bank]) + 1):
             if mapid in proj.banks[bank]:
                 symbol, path, namespace, footer_id = proj.banks[bank][mapid]
-                if footer_id in footers: print("Warning: Collision for footer_id {0}. Following symbols collide {1} {2}.",format(str(footer_id), str(footers[footer_id]), symbol))
+                if footer_id in footers: print("Warning: Collision for footer_id {0}. Following symbols collide {1} {2}".format(str(footer_id), str(footers[footer_id]), symbol))
                 footers[footer_id] = symbol
                 s += "\t.word " + symbol + "\n"
             else:

@@ -108,6 +108,10 @@ class Pstring:
                 if byte == self.terminator: return None
                 return byte
             seq, len_seq = self.hex_to_char.get_longest_prefix(rom_stream, depth=0)
+            if seq is None:
+                raise Exception("Unable to parse byte sequence at {0} ({1}...)".format(
+                    hex(offset), rom.u8(offset)
+                ))
             string += seq
             offset += len_seq
 

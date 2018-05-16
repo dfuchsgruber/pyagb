@@ -80,9 +80,9 @@ class Project:
         footer_id = mh.id
         symbol = mh.symbol
         namespace = mh.name_bank
-        path = self.projpath(self._sanitize(path))
+        projpath = self.projpath(self._sanitize(path))
         if not bank in self.banks: self.banks[bank] = {}
-        self.banks[bank][map] = mh.symbol, path, namespace, footer_id
+        self.banks[bank][map] = mh.symbol, projpath, namespace, footer_id
         mh.save(path)
 
     def get_tileset_path(self, symbol):
@@ -128,8 +128,8 @@ class Project:
     def save_tileset(self, symbol, t: tileset.Tileset, path):
         """ Saves a tileset by its symbol and stores its symbol and path link in this project.
         The path parameter must be realtive to cwd or absolute. """
-        path = self.projpath(path)
-        self.tilesets[symbol] = self._sanitize(path)
+        projpath = self.projpath(path)
+        self.tilesets[symbol] = self._sanitize(projpath)
         t.path = path
         t.save(path)
 
@@ -255,3 +255,41 @@ class Project:
     @staticmethod
     def _sanitized_relative_path(path):
         return Project._sanitize(os.path.relpath(path))
+
+
+# Find the project templates
+dir, _ = os.path.split(__file__)
+TEMPLATE_DIR = os.path.join(dir, "templates")
+
+def create_project(path):
+    """ Creates a new project and all neccessary auxilliary files """
+    proj = Project()
+    proj.save_project(path)
+    print("Saved project to {0}".format(path))
+
+    # Create a constants 
+    const_templ_path = os.path.join(TEMPLATE_DIR, "constants")
+    with open(const_templ_path, "r") as f:
+        const_templ = f.read()
+    const_path = path + ".constants"
+    with open(const_path, "w+") as f:
+        f.write(const_templ)
+    print("Saved constants to {0}".format(const_path))
+
+    # Create config
+    conf_templ_path = os.path.join(TEMPLATE_DIR, "config")
+    with open(conf_templ_path, "r") as f:
+        conf_templ = f.read()
+    conf_path = path + ".config"
+    with open(conf_path, "w+") as f:
+        f.write(conf_templ)
+    print("Saved configurations to {0}".format(conf_path))
+
+    # Create owimgassocs
+    owimg_templ_path = os.path.join(TEMPLATE_DIR, "owimgassocs")
+    with open(owimg_templ_path, "r") as f:
+        owimg_templ = f.read()
+    owimg_path = path + ".owimgassocs"
+    with open(owimg_path, "w+") as f:
+        f.write(owimg_templ)
+    print("Saved overworld image associations to {0}".format(owimg_path))

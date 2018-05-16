@@ -12,7 +12,7 @@ setup(name='pyagb',
     'script/pymapbuild.py', 'script/pyset2s.py',
     'script/pysetex.py', 'script/pymapbatchex.py',
     'script/pymapconstex.py', 'script/pyowscriptex.py',
-    'script/pypreproc.py'],
+    'script/pypreproc.py', 'script/bin2s.py'],
     install_requires = ['numpy', 'Pillow', 'PyPng'],
     include_package_data=True
 )

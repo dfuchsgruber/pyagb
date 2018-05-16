@@ -10,15 +10,18 @@ def main(args):
     """ Exports the constants of a project as header / macro files """
 
     try:
-        opts, args = getopt.getopt(args, "h:", ["help"])
+        opts, args = getopt.getopt(args, "h:", ["help", "get"])
     except getopt.GetoptError:
         sys.exit(2)
     
+    get = False
     # Parse opts
     for opt, _ in opts:
         if opt in ("-h", "--help"): 
-            print("Usage: pymapconstex.py project")
+            print("Usage: pymapconstex.py project\n\nUse --get to only output all files")
             exit(0)
+        elif opt in ("--get"):
+            get = True
     
     # Parse args
     proj = project.Project.load_project(args[0])
@@ -27,11 +30,22 @@ def main(args):
     with open(args[0] + ".config", "r") as f:
         config = eval(f.read())["macro"]
     
+    if get:
+        paths = []
+
     # Exports headers / macros for each type
     for type in config:
         for label in config[type]["include"]:
-            proj.constants.export_macro(label, type)
+            if get:
+                # Append the path of this label
+                path = proj.constants.macro_conf[type]["path"].format(label)
+                paths.append(path)
+            else:
+                proj.constants.export_macro(label, type)
     
+    if get:
+        print(" ".join(paths))
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

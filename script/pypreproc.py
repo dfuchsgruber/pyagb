@@ -16,13 +16,11 @@ if __name__ == "__main__":
     # Parse opts
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            print("""Usage pypreproc.py [opts] input charmap [language | macro]
+            print("""Usage pypreproc.py [opts] input charmap [macro]
 
 Arguments:
     input           :   Input file path
     charmap         :   Charmap file path
-    [language]      :   Language which string definitions must
-                        match. Required for filetype 'asm'
     [macro]         :   Macro which strings must be contained
                         in. Required for filetype 'c'
 
@@ -31,18 +29,16 @@ Options:
     -o {path}       :   Output file
 
 Supported assembly directives:
-    1. Translates a normal string if the language matches
-    and otherwise tosses it.
-        Example: .string <language> "foo"
-    2. Translates a normal string and pads it with zeroes
-    if language machtes and otherwise tosses it
-        Example: .stringpad <language> <length> "foo"
+    1. Translates a string into .byte section
+        Example: .string "foo"
+    2. Translates a normal string and pads it with zeros
+        Example: .stringpad <length> "foo"
     3. Translates a string and automatically inserts
     linebreaks / linescrolls where needed. If no more
     lines fit in the textbox a scrolling is inserted
     as linebreak. Linebreaks are only performed at
     spaces (sequences mapping to 0x0).
-        Example: .autostring <language> <linewidth> <lines per box> "foo"
+        Example: .autostring <linewidth> <lines per box> "foo"
     
 Supported c / cpp directives:
     MACRO("foo", "bar", ...)
@@ -86,10 +82,7 @@ Supported c / cpp directives:
             extension {0}.".format(extension))
     
     if filetype == "asm":
-        if len(args) < 3:
-            raise Exception("No language specified (see --help).")
-        language = args[2]
-        preprocasm.preprocess_assembly(input, charmap, output, language)
+        preprocasm.preprocess_assembly(input, charmap, output)
     else:
         if len(args) < 3:
             raise Exception("No macro specified (see --help).")

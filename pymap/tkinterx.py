@@ -5,6 +5,52 @@ import tkinter
 import tkinter.simpledialog
 import tkinter.ttk as ttk
 
+class ScrollableLabelframe(ttk.Labelframe):
+    """ Instance of ttk.Labelframe that is scrollable """
+    def __init__(self, parent, text=""):
+
+        super(ScrollableLabelframe, self).__init__(parent, text=text)
+
+        # Create a canvas where the actual interior
+        # is placed inside and also a scrollbar
+        vscrollbar = tkinter.Scrollbar(self, orient=tkinter.VERTICAL)
+        vscrollbar.pack(fill=tkinter.Y, side=tkinter.RIGHT, expand=False)
+        canvas = tkinter.Canvas(self, bd=0, highlightthickness=0,
+            yscrollcommand=vscrollbar.set)
+        canvas.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=False)
+        vscrollbar.config(command=canvas.yview)
+
+        # Reset the view
+        canvas.xview_moveto(0)
+        canvas.yview_moveto(0)
+
+        # Create the inner frame
+        self.inner_frame = tkinter.Frame(canvas)
+        inner_frame_id = canvas.create_window(0, 0, window=self.inner_frame, 
+            anchor=tkinter.NW)
+
+        def _config_inner(e):
+            # Update scrollbars
+            canvas.config(scrollregion="0 0 {0} {1}".format(
+                self.inner_frame.winfo_reqwidth(), 1000#self.inner_frame.winfo_reqheight()
+            ))
+            if self.inner_frame.winfo_reqwidth() != canvas.winfo_width():
+                # Canvas width must adapt to inner frame
+                canvas.config(width=self.inner_frame.winfo_reqwidth())
+            vscrollbar.config(command=canvas.yview)
+
+            
+        self.inner_frame.bind("<Configure>", _config_inner)
+
+        def _config_canvas(e):
+            if self.inner_frame.winfo_reqwidth != canvas.winfo_reqwidth:
+                # Adapt inner frame to match the canvas size
+                canvas.itemconfigure(inner_frame_id, width=canvas.winfo_reqwidth())
+        canvas.bind("<Configure>", _config_canvas)
+
+    def get_handle(self):
+        return self.inner_frame
+
 class DropDown(tkinter.OptionMenu):
     """ Instance of OptionMenu for better access to attributes"""
     def __init__(self, parent, options: list, initial_value: str=None):
