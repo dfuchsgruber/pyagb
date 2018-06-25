@@ -259,7 +259,7 @@ class Project:
 
 # Find the project templates
 dir, _ = os.path.split(__file__)
-TEMPLATE_DIR = os.path.join(dir, "templates")
+TEMPLATE_DIR = os.path.join(dir, "template")
 
 def create_project(path):
     """ Creates a new project and all neccessary auxilliary files """
