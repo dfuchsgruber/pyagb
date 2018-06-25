@@ -144,6 +144,55 @@ class Pstring:
         return sequence
 
 
+    def _patternstart(self, offset, rom, find_start=None):
+        """ Helper method to find the start of a pattern located at offset """
+        if find_start is None:
+            return offset
+        if find_start == "r":
+            while offset >= 0:
+                if len(rom.get_references(offset, alignment=0)): return offset
+                offset -= 1
+            raise Exception("Pattern start could not be found by reference")
+        elif find_start == "t":
+            while offset >= 0:
+                if rom.u8(offset) == self.terminator: return offset + 1
+                offset -= 1
+            raise Exception("Pattern start could not be found by terminator")
+        elif find_start == "rt":
+            while offset >= 0:
+                if len(rom.get_references(offset, alignment=0)): return offset
+                if rom.u8(offset) == self.terminator: break
+                offset -= 1
+            raise Exception("Pattern start could not be found by reference and limiting terminator")
+        else:
+            raise Exception("Invalid mode to find pattern start '{0}'".format(str(find_start)))
+
+    def findpattern(self, strpattern, rom, find_start=None):
+        """ Finds all occurrences of a string pattern in a rom file
+
+        Paramters:
+        strpattern: The string to search for 
+        rom: The agbrom.Agbrom instance to search in
+        find_start: If set to a non None not the offsets of direct matches with
+                    the pattern are returned but rather the offsets of the
+                    strings containing the pattern.
+                    Possible are: 't' : The begin of a string is identified by the
+                                        the end of the preceeding string (terminator byte)
+                                  'r' : The begin is found until the rom holds a reference
+                                        to it
+                                  'rt' : The begin is found until the rom holds a reference
+                                        but never before a terminator byte
+
+        Returns:
+        A list of integers representing the offsets
+        """
+        pattern = self.str2hex(strpattern)[:-1] # Truncate 0xFF
+        return [
+            self._patternstart(offset, rom, find_start=find_start) for 
+            offset in rom.findall(pattern, alignment=0)
+            ]
+
+
 
 
 

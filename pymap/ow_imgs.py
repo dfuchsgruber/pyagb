@@ -38,36 +38,41 @@ class Ow_imgs():
         """ Gets a tuple (pil image, photo image) of a picture """
         if i not in range(256): i = 0
         if not self.pictures[i]:
-            #Compute the picture first
 
+            # Compute picture either from rom or extern file
             if i in self.extern:
-                #Image is an extern image reference
-                imgpath = self.extern[i]
-                imtpath = self.proj.realpath(imgpath)
-                with open(imgpath, "rb") as fd:
-                    image = PImage.open(fd)
-                width, height = image.size
+                # Load from extern file
+                path = self.proj.realpath(self.extern[i])
+                image = pyimage.Image()
+                image.load_image_file(path)
+            elif i in self.number_range:
+                # Extract picture from rom
+                ow_sprite = self.rom.pointer(self.table + 4 * i)
+                graphics = self.rom.pointer(ow_sprite + 28)
+                img_off = self.rom.pointer(graphics)
+                width = self.rom.u16(ow_sprite + 8)
+                height = self.rom.u16(ow_sprite + 10)
+                pal_tag = self.rom.u16(ow_sprite + 2)
+                pal_offset = self._pal_offset(pal_tag)
+                # Dump picture to tempfile
+                fd = tempfile.NamedTemporaryFile(mode="w+b", suffix=".png", delete=False)
+                path = fd.name
+                agb.img_dump.dump_png_fp(fd, self.rom, img_off, width, height, pal_offset, 16, img_lz77=False, pal_lz77=False, depth=4)
+                fd.close()
+                # Load as pymap image
+                image = pyimage.Image()
+                image.load_image_file(path)
+                # Delete tempfile
+                os.remove(path)
             else:
-                #Create a temp file for image storage
-                if i not in self.number_range:
-                    fd = open(IMG_NONE_PATH, "rb")
-                    width, height = 16, 16
-                else:
-                    fd = tempfile.NamedTemporaryFile(mode="w+b")
-                    ow_sprite = self.rom.pointer(self.table + 4 * i)
-                    graphics = self.rom.pointer(ow_sprite + 28)
-                    img_off = self.rom.pointer(graphics)
-                    width = self.rom.u16(ow_sprite + 8)
-                    height = self.rom.u16(ow_sprite + 10)
-                    pal_tag = self.rom.u16(ow_sprite + 2)
-                    pal_offset = self._pal_offset(pal_tag)
-                    agb.img_dump.dump_png_fp(fd, self.rom, img_off, width, height, pal_offset, 16, img_lz77=False, pal_lz77=False, depth=4)
-            pymapimage = pyimage.Image()
-            pymapimage.load_image_file(fd)
-            image = pymapimage.get_image(int(width / 8), int(height / 8), pymapimage.palette)
-            pimage = PhotoImage = ImageTk.PhotoImage(image)
-            self.pictures[i] = (image, pimage)
-            fd.close()
+                # From default none image
+                image = pyimage.Image()
+                image.load_image_file(IMG_NONE_PATH)
+
+            width, height = image.width, image.height
+            rawimage = image.get_image(int(width / 8), int(height / 8), image.palette)
+            pimage = PhotoImage = ImageTk.PhotoImage(rawimage)
+            self.pictures[i] = (rawimage, pimage)
         return self.pictures[i]
             
     def _pal_offset(self, tag):

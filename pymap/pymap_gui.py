@@ -1201,7 +1201,7 @@ class Pymap_gui(tkinter.Frame):
         tss_sym = self.map.footer.tss_sym
         if tss_sym:
             self.map.footer.tss = self.proj.get_tileset(tss_sym)
-        
+        print(tsp_sym, tss_sym)
 
     def _refresh_title(self):
         """ Refreshes the title """
@@ -1257,6 +1257,7 @@ class Pymap_gui(tkinter.Frame):
     def file_save(self):
         """ Saves a file """
         if not self.map: return
+        print(self.map.footer.tss_sym)
         self.proj.save_map(self.bank, self.mapid, self.map, self.proj.get_map_path(self.bank, self.mapid))
         self.map_tree.refresh()
         self.proj.save_project()
@@ -1625,6 +1626,7 @@ class Pymap_gui(tkinter.Frame):
                 if len(entry_tss.get()): self.map.footer.tss = tileset.from_file(entry_tss.get())
                 self._refresh()"""
             except Exception as e:
+                raise e
                 messagebox.showerror("Footer error", "Unable to save footer properties: " + str(e))
         tkinter.Button(dialog, text="Apply", command=apply_changes).grid(row=6, column=0, sticky=tkinter.NW)
         def close():

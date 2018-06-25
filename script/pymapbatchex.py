@@ -96,6 +96,7 @@ def batch_export(rom, proj, maps, basepath, symbol, map_table, config, pedantic=
     """ Performs batch export on a list of tuples bank, mapid """
 
     for bank, mapid in maps:
+        print(hex(rom.pointer(map_table)))
         offset = rom.pointer(rom.pointer(rom.pointer(map_table) + 4 * bank) + 4 * mapid)
         map_symbol = symbol.format(bank, mapid, offset)
         map_basepath = basepath.format(bank, mapid, offset)

@@ -18,6 +18,8 @@ def format_pstring(bytes, linewidth, line_cnt):
     len_line = 0 # Keep track of the current line's length
     lines = 0 # Keep track of how many lines are displayed
 
+    print("Sequence ", bytes)
+
     for byte in bytes:
 
         output.append(byte)
@@ -32,7 +34,7 @@ def format_pstring(bytes, linewidth, line_cnt):
             lines = 0
         elif byte == NEWLINE:
             # Newline forced.
-            if splitter != NEWLINE and \
+            if byte != NEWLINE and \
                 lines >= line_cnt:
                 # There is no room for
                 # additional lines
@@ -73,10 +75,10 @@ def format_pstring(bytes, linewidth, line_cnt):
             # If there can be more lines
             # displayed use a NEWLINE as splitter
             # and else a SCROLLINE
-            if line_cnt < lines:
+            if lines < line_cnt:
                 output[-pos] = NEWLINE
                 lines += 1
             else:
                 output[-pos] = SCROLLINE
-        
-        return output
+    print("Output", output)
+    return output

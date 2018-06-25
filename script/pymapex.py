@@ -11,6 +11,8 @@ def _flatten(l):
     return [item for sub in l for item in sub]
 
 def _mkdirs(dir):
+    if dir in ("", "."):
+        return
     if not os.path.exists(dir):
         print("Creating directory {0}".format(dir))
         os.makedirs(dir)
@@ -158,6 +160,7 @@ def export_levelscripts(rom: agb.agbrom.Agbrom, offset, basepath, proj, config, 
         lscr += ".word " + label + "\n"
         assemblies.append(assembly)
     lscr += "\n\n".join([""] + assemblies)
+    print("Basepath", basepath)
     _mkdirs(os.path.dirname(basepath))
     filename = os.path.join(os.path.dirname(basepath), "lscr.asm")
     

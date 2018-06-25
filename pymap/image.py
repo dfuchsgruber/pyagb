@@ -14,11 +14,11 @@ class Image:
         self.palette = None
         self.empty = True
         self.width, self.height = None, None
-
        
 
     def load_image_file(self, path):
-        if not path: return
+        if not path:
+            raise Exception("No path provided to load image")
         try: self.image = PImage.open(path)
         except Exception as e:
             print("Image", path, "could not be opened", e)
@@ -29,7 +29,6 @@ class Image:
         self.palette = self.image.palette.palette
         self.empty = False
         self.tiles = self._img_to_tiles(self.image)
-
 
 
 

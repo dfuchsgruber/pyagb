@@ -55,14 +55,13 @@ class Agbrom:
     def findall(self, bytes, alignment=2):
         """ Finds all occurences of a byte pattern that is properly aligned (i.e. the offset
         is divisible by 2^alignment) and returns the corresponding offsets as list."""
-        modulus = 1 << alignment
         results = []
         position = -1
         bytes = bytearray(bytes)
         while True:
             position = self.bytes.find(bytes, position+1)
             if position >= 0:
-                if position % modulus == 0:
+                if position % (2 ** alignment) == 0:
                     results.append(position)
                 else:
                     print("Warning. Found unaligned reference at "+hex(position))
@@ -71,7 +70,7 @@ class Agbrom:
                 break
         return results
     
-    def get_references(self, offset):
+    def get_references(self, offset, alignment=2):
         """ Finds all references to an offset. """
         offset += 0x08000000
         bytes = [
@@ -80,7 +79,7 @@ class Agbrom:
             (offset >> 16) & 0xFF,
             (offset >> 24) & 0xFF
         ]
-        return self.findall(bytes)
+        return self.findall(bytes, alignment=alignment)
 
     def get_repoint_patch(self, offset, label):
         """ Uses get_references to find all references to an offset and returns a patch file
