@@ -16,9 +16,7 @@ def format_pstring(bytes, linewidth, line_cnt):
 
     output = []
     len_line = 0 # Keep track of the current line's length
-    lines = 0 # Keep track of how many lines are displayed
-
-    print("Sequence ", bytes)
+    lines = 1 # Keep track of how many lines are displayed
 
     for byte in bytes:
 
@@ -31,7 +29,7 @@ def format_pstring(bytes, linewidth, line_cnt):
         elif byte == PARAGRAPH:
             # Box is cleared.
             len_line = 0
-            lines = 0
+            lines = 1
         elif byte == NEWLINE:
             # Newline forced.
             if byte != NEWLINE and \
@@ -80,5 +78,4 @@ def format_pstring(bytes, linewidth, line_cnt):
                 lines += 1
             else:
                 output[-pos] = SCROLLINE
-    print("Output", output)
     return output

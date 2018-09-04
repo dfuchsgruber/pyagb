@@ -692,7 +692,10 @@ class Pymap_gui(tkinter.Frame):
         def _update_info(event):
             """ Updates infos concerning coordinates and blocks """
             if not self._can_draw(): return
-            x, y = int(event.x / 16), int(event.y / 16)
+            hslider, _ = self.map_widget_canvas_bar_h.get()
+            vslider, _ = self.map_widget_canvas_bar_v.get()
+            x, y = event.x + (hslider * self.map.footer.width * 16), event.y + (vslider * self.map.footer.height * 16)
+            x, y = int(x / 16), int(y / 16)
             if self._coordinate_in_map(x, y):
                 block = self.map.footer.blocks[y][x] & 0x3FF
                 self.map_widget_label_info["text"] = "x : " + hex(x) + ", y : " + hex(y) + ", Block : " + hex(block)
