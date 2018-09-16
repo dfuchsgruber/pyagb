@@ -54,7 +54,7 @@ def tileset_to_assembly(tileset_file):
     def pal_to_rgbs(pal):
         rgb = []
         for i in range(0, len(pal), 3):
-            rgb.append((pal[i] >> 3) | (pal[i + 1] << 2) | (pal[i + 2] << 7))
+            rgb.append((pal[i] >> 3) | ((pal[i + 1] >> 3) << 5) | ((pal[i + 2] >> 3) << 10))
         return rgb
     
     s += ".align 4\n" + symbol + "_palettes:\n"
