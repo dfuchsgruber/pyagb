@@ -5,6 +5,7 @@ import sys
 import time
 import getopt
 import os.path
+from pymap import project
 
 def _flatten(l):
     return [item for sub in l for item in sub]
@@ -18,25 +19,29 @@ def shell(args):
     outfile = None
     for opt, arg in opts:
         if opt in ("-h", "--help"): 
-            print("Usage: python pyset2s.py -o outfile infile")
+            print("Usage: python pyset2s.py -o outfile project infile")
             return
         elif opt == "-o": outfile = os.path.abspath(arg)
-    tileset_file = args[0]
+    proj_file = args[0]
+    tileset_file = args[1]
+    proj = project.Project.load_project(proj_file)
     if not outfile: raise Exception("No output file specified")
-    s = tileset_to_assembly(tileset_file)
+    s = tileset_to_assembly(tileset_file, proj)
     fd = open(outfile, "w+")
     fd.write(s)
     fd.close()
 
-def tileset_to_assembly(tileset_file):
+def tileset_to_assembly(tileset_file, proj):
     """ Transforms a tileset file into an assembly string """
     s = "@*** Auto generated tileset assembly of '" + tileset_file + "', " + str(time.time()) + "***\n\n"
 
 
     t = pymap.tileset.from_file(tileset_file, from_root=True, path_absolute=True) #This is executed from the root dir
     symbol = t.symbol
+    includes = [proj.constants.get_include_directive(include, 'as') for include in proj.config['pyset2s']['constants']]
+
     #First create the header (global symbols)
-    s += "\n".join([".global " + symbol + g for g in ["", "_palettes", "_blocks", "_behaviours"]])
+    s += "\n".join(includes + [] + [".global " + symbol + g for g in ["", "_palettes", "_blocks", "_behaviours"]])
     s += "\n\n"
 
     #Create the tileset chunk

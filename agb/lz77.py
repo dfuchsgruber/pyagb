@@ -1,45 +1,142 @@
 #!/usr/bin python3
 
 import sys
+import warnings
+import struct
 
-def decomp(rom, off):
-    """ Decomps lz77 compressed data specified by GBATEK, returns an uint8 list"""
-    #if (rom.u8(off) >> 4) & 0xF != 1: raise Exception("Lz77 Error: Data is not lz77 compressed")
-    if (rom.u8(off) >> 4) & 0xF != 1: print("Lz77 Warning: Data is not lz77 compressed (at least not properly). Still trying to decompress...")
-    size = rom.u8(off + 1) + (rom.u8(off + 2) << 8) + (rom.u8(off + 3) << 16) #LE read of bit 8-31 of size field
-    out = [0] * size
-    off += 4 #Data starts at offset = 0x4
-    dst = 0
+def decompress(data, offset=0):
+    """ Decompresses lz77 compressed data specified by GBATEK
+    for the agb.
+
+    Parameters:
+    -----------
+    rom : agbrom.Agbrom
+        The rom instance to obtain data from
+    offset : int
+        The offset of the data to decompress.
+
+    Yields:
+    -------
+    data : int
+        Bytes of the decompressed data
+    """
+    data = bytes(data)
+
+    header = struct.unpack_from('<I', data, offset)[0]
+    magic = header & 0xFF
+    size = header >> 8
+
+    if magic >> 4 != 1:
+        warnings.warn(f'No proper lz77 header found at {hex(offset)}. Trying to decrompess nonetheless...')
+
+    literals = [0] * size
+    literal_offset = 0
+    offset += 4
+
     while size:
-        enc = rom.u8(off)
-        off += 1
+        # Get the types of the 8 next factors
+        encoded = header = struct.unpack_from('<B', data, offset)[0]
+        offset += 1
         for i in range(7, -1, -1):
-            if enc & (1 << i):
-                #Reference to literal chain
-                ref = rom.u8(off) + (rom.u8(off+1) << 8)
-                off += 2
+            if size == 0:
+                # No more data remaining
+                break
+            # Process factors (from msb to lsb)
+            # print(f'Before block {7 - i}: {list(literals[:literal_offset])}')
+            if encoded & (1 << i):
+                # Factor refers to the literal chain
+                ref = struct.unpack_from('<H', data, offset)[0]
+                offset += 2
 
-                #Decode literal Reference
-                disp = (ref >> 8) | ((ref & 0xF) << 8)
-                length = ((ref >> 4) & 0xF) + 3 #Length+3 by GBATEK specs
+                #Decode literal Referencodede
+                displacement = (ref >> 8) | ((ref & 0xF) << 8) # Displacement w.r.t. refered frame
+                if displacement == 0:
+                    warnings.warn(f'Lz77 data contains VRAM-unsafe compression (DISP=0)...')
 
-                #Output the literal 
-                for j in range(0, length):
-                    try:
-                        out[dst] = out[dst-disp-1]
-                    except Exception as e:
-                        print("Warning in lz77 decomp, malformed data :"+str(e))
-                        out[dst] = 0
-                    dst += 1
+                length = ((ref >> 4) & 0xF) + 3 # Length + 3 due to GBATEK speces (no frame is smaller)
+                # print(f'Copying block of size {length} with displacement {displacement}')
+
+                # Copy from from the literals
+                for _ in range(length):
+                    literals[literal_offset] = literals[literal_offset - displacement - 1]
+                    literal_offset += 1
                     size -= 1
-                    if not size: return out
-
             else:
-                #New literal, raw dump
-                out[dst] = rom.u8(off)
-                off += 1
-                dst += 1
+                # Current factor is not in the literal frame
+                literals[literal_offset] = struct.unpack_from('<B', data, offset)[0]
+                offset += 1
+                literal_offset += 1
                 size -= 1
-                if not size: return out
-    return out
+    return literals            
                 
+def compress(data):
+    """ Compresses data with lz77 compression. 
+    
+    Paramters:
+    ----------
+    data : bytes
+        The data to compress (char values).
+    
+    Returns:
+    -------
+    compressed : bytearray
+        The bytes of the compressed sequence.
+    """
+    # Create the header
+    data = bytes(data)
+    header = 0x10 | (len(data) << 8) 
+    literals = bytearray(struct.pack('<i', header))
+
+    offset = 0
+    # Start compressing
+    while offset < len(data):
+        # print(f'Compressing at offset {hex(offset)}...')
+        # Append the encoding for the next 8 factors
+        encoding_offset = len(literals)
+        literals.append(0)
+        
+        for i in range(7, -1, -1):
+            if offset >= len(data): continue
+            # print(f'Factor #{ 7 - i } at {hex(len(literals))}')
+            # Create a new factor
+            # Only consider literals that are in 12-bit range (-1)
+            # and do not overlap with the current 8-blocks as the
+            # encoding byte is not fixed yet.
+            window_start = max(0, offset - (1 << 12)) # Only consider factors within 12-bit range
+            # print(f'Window for factors spans from {hex(window_start)} to {hex(offset)} + factor_size')
+
+            match_offset, match_size = -1, -1
+            # The factors have minimum size of 3
+            # The factors can only have a 4-bit size, but the size is 3 based
+            for factor_size in range(3, 16 + 3):
+                if offset + factor_size >= len(data): break
+                factor = data[offset : offset + factor_size]
+                # print(f'Seraching for factor {list(factor)}')
+                # Do not allow displacements of 1 since in VRAM halfwords will be copied.
+                # Thus displacements of 1 may induce malformed data copies
+                factor_offset = data.find(factor, window_start, offset + factor_size - 2)
+                if factor_offset < 0:
+                    # The factor is not availible -> all bigger factors won't be as well
+                    break
+                match_size = factor_size
+                match_offset = factor_offset
+
+            if match_size >= 3:
+                # Factor is already part of the literal chain
+                literals[encoding_offset] |= 1 << i
+
+                displacement = offset - match_offset - 1
+                assert(displacement) >= 1
+                # print(f'Match of size {match_size} at {hex(match_offset)} with displacement {displacement}')
+                # print(f'Displacement is {displacement}, size is {match_size}')
+                msb = (displacement >> 8) | ((match_size - 3) << 4)
+                lsb = displacement & 0xFF
+                literals.append(msb)
+                literals.append(lsb)
+                offset += match_size
+            else:
+                # print(f'Raw dump')
+                literals.append(data[offset])
+                offset += 1
+
+    return literals

@@ -1,0 +1,4 @@
+numpy
+pyclibrary
+Pilow
+pypng

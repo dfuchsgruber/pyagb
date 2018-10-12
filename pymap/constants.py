@@ -3,95 +3,85 @@
 """ This module is responsible for resolving constants and exporting them
 as C or assembly macros."""
 
+import json
+import collections
+
+class ConstantTable(collections.Mapping):
+    """ This class represents a single constant table,
+     where strings are mapped to numerical values."""
+
+    def __init__(self, _type='dict', base=None, values=None):
+        """ Initializes a constant table.
+        Parameters:
+        -----------
+        _type : string in 'dict', 'enum'
+            Either the table is a dictionary of string -> int
+            or a list of strings, where the mapping string ->
+            int is generated iteratively.
+        base : int or None
+            If the type is 'enum' the base is the integer the
+            first element of the constants is assigned to.
+        values : dict, enum or None
+            The actual values of the constant table.
+        """
+        self.type = _type
+        self.base = base
+        if values is not None:
+            # Provide a dictionary interface also for enum constants
+            if self.type == 'enum':
+                if not isinstance(values, list):
+                    raise RuntimeError(f'Expected a list for values parameter for type "{self.type}"')
+                self.values = dict((constant, idx + self.base) for idx, constant in enumerate(values))
+            elif self.type == 'dict':
+                if not isinstance(values, dict):
+                    raise RuntimeError(f'Expected a dict for values parameter for type "{self.type}"')
+                self.values = values
+            else:
+                raise RuntimeError(f'Unknown constants type "{self.type}"')
+        
+    def __getitem__(self, key):
+        return self.values[key]
+    
+    def __iter__(self):
+        return iter(self.values)
+    
+    def __len__(self):
+        return len(self.values)
+        
 class Constants:
 
-    def __init__(self, path, macro_configuration):
-        """ Initializes a constants instance that can resolve
-        and export constants by a .pmp.constants file. The
-        manner in which macros are exported and used in source
-        files is defined in the macro configuration dict."""
-        with open(path, "r") as f:
-            self._constants = eval(f.read())
-        self.macro_conf = macro_configuration
+    def __init__(self, constant_paths):
+        """ Initializes a constant instance that can resolve
+        mappings from string -> integer serving as constants
+        for the pymap project.
+        
+        Parameters:
+        -----------
+        constant_paths : dict (string -> path.Path)
+            Mapping from constants identifier to the path of the
+            constants table. The path is split into its components
+            to ensure cross-plattform compatibility.
+        """
+        self.constant_paths = constant_paths
+        # Only initialize a constant table on demand
+        self.constant_tables = dict((key, None) for key in constant_paths)
 
-    def constantize(self, value, label, pedantic=False):
-        """ Translates a value and returns the corresponding
-        constant (string). A label is passed to identify
-        the constant table which is used for lookup. If
-        the pedantic flag is set the method will raise
-        an exception if the value could not be resolved
-        and otherwise simply return the values
-        hex representation."""
-        table = self._constants[label]
-        if table["type"] == "enum":
-            base = table["base"]
-            values = table["values"]
-            if value - base not in range(len(values)):
-                # Value not constantizeable
-                if pedantic and not value in table["expections"]:
-                    raise Exception("Could not resolve value {0} for constant table {1}".format(value, label))
-                else: 
-                    return hex(value)
-            else:
-                return values[value - base]
-        elif table["type"] == "dict":
-            values = table["values"]
-            if value not in values:
-                # Value not constantizeable
-                if pedantic and not value in table["exceptions"]: 
-                    raise Exception("Could not resolve value {0} for constant table {1}".format(value, label))
-                else: 
-                    return hex(value)
-            else:
-                return values[value]
-        else:
-            raise Exception("Unkown constant table type {0} for constant table {1}".format(table["type"], label))
-    
-    def export_macro(self, label, type):
-        """ Exports macro definitons for a constant
-        table which is placed at the path specified
-        by the macro_configuration. A label is passed
-        to identify the constant table. The type parameter
-        either is set to 'as' for assembly macros or 'c' for
-        C language macros."""
-        table = self._constants[label]
-        macro = ""
-        if type == "as":
-            format = ".equ {1}, {0}"
-        elif type == "c":
-            format = "#define {1} {0}"
-        else:
-            raise Exception("Unkown macro type {0}".format(type))
-        if table["type"] == "enum":
-            for i, const in enumerate(table["values"]):
-                macro += format.format(hex(i), const) + "\n"
-        elif table["type"] == "dict":
-            for i in table["values"]:
-                macro += format.format(hex(i), table["values"][i]) + "\n"
-        
-        conf = self.macro_conf[type]
-        path = conf["path"].format(label)
-        with open(path, "w+") as f:
-            f.write(macro)
-            print("Exported macro for constant table {0} to {1}".format(label, path))
-    
-    def get_include_directive(self, label, type):
-        """ Returns the include directive for a particular
-        constant table described by its label. The format
-        is determined by the type which either must be
-        'as' for assembly or 'c' for C language. """
-        conf = self.macro_conf[type]
-        return conf["directive"].format(label)
-        
-        
-                
-    def values(self, label):
-        """ Returns all constant symbols that are defined by
-        a particular table identified by label. """
-        table = self._constants[label]
-        if table["type"] == "enum":
-            return table["values"]
-        elif table["type"] == "dict":
-            return table["values"].values()
-        else:
-            raise Exception("Unkown constant table type {0} for constant table {1}".format(table["type"], label))
+    def __getitem__(self, key):
+        if key not in self.constant_tables:
+            raise RuntimeError(f'Undefined constant table "{key}"')
+        if self.constant_tables[key] is None:
+            # Initialize the constant table
+            with open(str(self.constant_paths[key])) as f:
+                content = json.load(f)
+            base = None
+            if content['type'] == 'enum':
+                if 'base' in content:
+                    base = content['base']
+                else:
+                    base = 0
+            self.constant_tables[key] = ConstantTable(_type=content['type'], base=base, values=content['values'])
+        return self.constant_tables[key]
+
+    def __contains__(self, key):
+        """ Checks if a constant table is defined. """
+        return key in self.constant_tables
