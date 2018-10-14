@@ -14,12 +14,10 @@ class Structure:
                 The name of the member
             type : str
                 The name of the type
-            default : object
-                The default initialization
         """
         self.structure = structure
 
-    def from_data(self, rom, offset, project, context):
+    def from_data(self, rom, offset, project, context, parents):
         """ Initializes all members as scalars from the rom. 
         
         Parameters:
@@ -32,30 +30,41 @@ class Structure:
             The project to e.g. fetch constant from
         context : list of str
             The context in which the data got initialized
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
 
         Returns:
         --------
         structure : dict
             The initialized structure
-        offset : int
-            The offset after all scalar members of the struct have been processed
         """
         structure = {}
-        for attribute, type, _ in self.structure:
-            # Use the callback
-            value, offset = type.from_data(rom, offset, project, context)
+        for attribute, datatype in self.structure:
+            value = datatype.from_data(rom, offset, project, context + [attribute], parents + [structure])
+            offset += len(datatype)
             structure[attribute] = value
-        return structure, offset
+        return structure
 
-    def to_assembly(self, structure, label=None, alignment=None):
+    def to_assembly(self, structure, parents, label=None, alignment=None, global_label=False):
         """ Returns an assembly representation of a structure.
 
         structure : dict
             The structure to convert to an assembly string.
         label : string or None
             The label to export (only if not None).
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent.
+        label : string or None
+            The label to export (only if not None).
         alignment : int or None
             The alignment of the structure if required
+        global_label : bool
+            If the label generated will be exported globally.
+            Only relevant if label is not None.
             
         Returns:
         --------
@@ -65,56 +74,52 @@ class Structure:
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        assemblies, additional_blocks = zip(*(datatype.to_assembly(getattr(self, attribute)) for attribute, datatype, default in self.structure))
-
-        # Concatenate all additional blocks to a new list of 
-        additional_blocks = sum(additional_blocks, [])
+        assemblies, additional_blocks = [], []
+        for attribute, datatype in self.structure:
+            assembly_datatype, additional_blocks_datatype = datatype.to_assembly(structure[attribute], parents + [structure])
+            assemblies.append(assembly_datatype)
+            additional_blocks += additional_blocks_datatype
         
-        return label_and_align('\n'.join(assemblies), label, alignment), additional_blocks
+        return label_and_align('\n'.join(assemblies), label, alignment, global_label), additional_blocks
 
-    def to_dict(self):
-        """ Returns a dict representation of the structure.
+    def __call__(self, parents):
+        """ Initializes a new structure with default values. 
+        
+        Parameters:
+        -----------
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
         
         Returns:
         --------
-        attributes : dict
-            Mapping from attributes -> values.
-         """
-        return {attribute : getattr(self, attribute) for attribute, _, _ in self.structure}
-    
-    def from_dict(self, attributes):
-        """ 
-        Initializes the structure from a dictionary of attributes.
-        Note that this dict does
-        not initialize the structural information self.structure which
-        instead has to be passed to the constructor. 
-
-        Parameters:
-        -----------
-        attributes : dict
-            The attributes and values for the event."""
-        for key in attributes:
-            setattr(self, key, attributes[key])
+        structure : dict
+            New structure with default values.
+        """
+        structure = {}
+        for attribute, datatype in self.structure:
+            structure[attribute] = datatype(parents + [structure])
+        return structure
 
 class ScalarType:
-    """ Class to encapsulte scalar types. """
+    """ Class to model scalar types. """
 
     def __init__(self, fmt, constant=None):
-        """ Initializes a scalar type. 
+        """ Initailizes the scalar type.
         
         Parameters:
         -----------
         fmt : str
-            A string {s/u}{bitlength} that encodes the scalar type.
-            Example: 'u8', 's32', ...
+            The format string for the scalar type. Either (u|s)(8|16|32) or 'pointer'.
         constant : str or None
-            The constant table this type will be associated with.
+            The constant table associated with the scalar type.
         """
         self.fmt = fmt
         self.constant = constant
-    
-    
-    def from_data(self, rom, offset, proj, context):
+
+    def from_data(self, rom, offset, proj, context, parents):
         """ Retrieves the scalar type from a rom.
         
         Parameters:
@@ -127,6 +132,11 @@ class ScalarType:
             The pymap project to access e.g. constants.
         context : list of str
             The context in which the data got initialized
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
         
         Returns:
         --------
@@ -135,24 +145,31 @@ class ScalarType:
         offset : int
             The offeset of the next bytes after the value was processed
         """
-        value, offset = scalar_from_data[self.fmt](rom, offset, proj)
+        value, _ = scalar_from_data[self.fmt](rom, offset, proj)
 
         # Try to associate the value with a constant
         value = associate_with_constant(value, proj, self.constant)
         return value, offset
 
-    @staticmethod
-    def to_assembly(value, label=None, alignment=None):
+    def to_assembly(self, value, parents, label=None, alignment=None, global_label=False):
         """ Returns an assembly instruction line to export this scalar type.
         
         Parameters:
         -----------
         value : string or int
             The value to export
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
         label : string or None
             The label to export (only if not None).
         alignment : int or None
             The alignment of the structure if required
+        global_label : bool
+            If the label generated will be exported globally.
+            Only relevant if label is not None.
             
         Returns:
         --------
@@ -162,7 +179,24 @@ class ScalarType:
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        label_and_align(scalar_to_assembly[self.fmt](value), label, align), []
+        return label_and_align(scalar_to_assembly[self.fmt](value), label, alignment, global_label), []
+
+    def __call__(self, parents):
+        """ Returns a new empty value (0). 
+        
+        Parameters:
+        -----------
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        value : int
+            Zero value (0)."""
+        return 0
 
 
 class BitfieldType:
@@ -190,7 +224,7 @@ class BitfieldType:
         self.fmt = fmt
         self.structure = structure
 
-    def from_data(self, rom, offset, proj, context):
+    def from_data(self, rom, offset, proj, context, parents):
         """ Retrieves the constant type from a rom and tries to associate the constant value.
         
         Parameters:
@@ -203,6 +237,11 @@ class BitfieldType:
             The pymap project to access e.g. constants.
         context : list of str
             The context in which the data got initialized
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
         
         Returns:
         --------
@@ -221,18 +260,33 @@ class BitfieldType:
             bit_idx += size
         return value, offset
 
-    def to_assembly(self, values):
+    def to_assembly(self, values, parents, label=None, alignment=None, global_label=False):
         """ Returns an assembly instruction line to export this scalar type.
         
         Parameters:
         -----------
         values : list of string or int
             The values to export
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
+        label : string or None
+            The label to export (only if not None).
+        alignment : int or None
+            The alignment of the structure if required
+        global_label : bool
+            If the label generated will be exported globally.
+            Only relevant if label is not None.
             
         Returns:
         --------
         assembly : str
             The assembly representation instruction line
+        additional_blocks : list of str
+            Additional assembly blocks that resulted in the recursive
+            compiliation of this type.
         """
         if not len(values) == len(self.structure):
             raise RuntimeError(f'More values for bitfield provided {len(values)} than structure supports {len(self.structure)}')
@@ -241,8 +295,28 @@ class BitfieldType:
         for value, triplet in zip(values, self.structure):
             member, _, size = triplet # Unpack the member information
             mask = (1 << size) - 1
-            shifted.append(f'(({value} << {bit_idx}) & mask)')
-        return scalar_to_assembly[self.fmt](' | '.join(shifted))
+            shifted.append(f'(({value} << {bit_idx}) & {mask})')
+            bit_idx += size
+        assembly = scalar_to_assembly[self.fmt](' | '.join(shifted))
+        return label_and_align(assembly, label, alignment, global_label), []
+
+    def __call__(self, parents):
+        """ Initializes a new empty bitfield.
+        
+        Parameters:
+        -----------
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        value : list of int or str
+            The empty bitfield (zeros).
+        """
+        return [0] * len(self.structure)
 
 class UnionType:
     """ Class for union type. """
@@ -252,22 +326,34 @@ class UnionType:
         
         Parameters:
         -----------
-        subtypes : dict
+        subtypes : dict from str -> Type
             Dict mapping from subtype names to the respective subtypes
-            of the union. The keys are of type str, while the values
-            are tuples of Type instances (ScalarType, Structure, ...) and
-            default values. 
+            of the union. Keys are the subtype names str and map to
+            types such as ScalarType, BitfieldType, etc.
         name_get : function
             Function that returns the name of the subtype that is currently
             used for the union. The union type will be exported to assembly
             for this type and only values for this subtype will be retrieved
             considering the from_data function. Therefore values of other
             subtypes remain default initialized.
+            
+            Parameters:
+            -----------
+            parents : list
+                The parent values of this value. The last
+                element is the direct parent. The parents are
+                possibly not fully initialized as the values
+                are explored depth-first.
+
+            Returns:
+            --------
+            active_subtype : str
+                The name of the subtype that is active in the union.
         """
         self.subtypes = subtypes
         self.name_get = name_get
     
-    def from_data(self, rom, offset, project, context):
+    def from_data(self, rom, offset, project, context, parents):
         """ Retrieves the constant type from a rom and tries to associate the constant value.
         
         Parameters:
@@ -280,6 +366,11 @@ class UnionType:
             The pymap project to access e.g. constants.
         context : list of str
             The context in which the data got initialized.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
         
         Returns:
         --------
@@ -289,35 +380,300 @@ class UnionType:
             The maximum offset after each subtype was consumed.
         """
         values = {}
-        if self.name_get() not in self.subtypes:
+        if self.name_get(parents) not in self.subtypes:
             raise RuntimeError(f'Active subtype of union {self.name_get()} not part of union type.')
         for name in self.subtypes:
-            subtype, default = self.subtypes[name]
-            if name == self.name_get():
-                value, offset_processed = subtype.from_data(rom, offset, project, context)
+            if name == self.name_get(parents):
+                value, offset_processed = self.subtypes[name].from_data(rom, offset, project, context + [name], parents + [values])
                 values[name] = value
             else:
-                values[name] = default
+                values[name] = self.subtypes[name](parents)
 
         return values, offset_processed
 
-    def to_assembly(self, values):
+    def to_assembly(self, values, parents, label=None, alignment=None, global_label=None):
         """ Creates an assembly representation of the union type.
         
         Parameters:
         -----------
         values : dict
             Dict that maps from the subtype names to their value instanciaton.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
+        label : string or None
+            The label to export (only if not None).
+        alignment : int or None
+            The alignment of the structure if required
+        global_label : bool
+            If the label generated will be exported globally.
+            Only relevant if label is not None.
 
         Returns:
         --------
         assembly : str
             The assembly representation of the specific subtype.
+        additional_blocks : list of str
+            Additional assembly blocks that resulted in the recursive
+            compiliation of this type.
         """
-        active_subtype_name = self.name_get()
-        active_subtype, _ = self.subtypes[active_subtype_name]
-        return active_subtype.to_assembly(values[active_subtype_name])
+        active_subtype_name = self.name_get(parents)
+        active_subtype = self.subtypes[active_subtype_name]
+        return active_subtype.to_assembly(values[active_subtype_name], parents + [values], label=label, alignment=alignment, global_label=global_label)
+
+    def __call__(self, parents):
+        """ Initializes a new empty union type. 
         
+        Parameters:
+        -----------
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        value : dict
+            Dict that maps from each subtype to the default initializaiton.
+        """
+        return {name : self.subtypes[name](parents) for name in self.subtypes}
+        
+class ArrayType:
+    """ Type for arrays. """
+
+    def __init__(self, datatype, size_get):
+        """ Initializes the array type.
+        
+        Parameters:
+        -----------
+        datatype : type
+            The underlying datatype
+        size_get : function
+            Function that returns the number of elements in the array. This
+            function can access all parents of the array type, but not
+            all parent's elements will be initialized, as the exporting
+            of types is depth-first.
+            Parameters:
+            -----------
+            parents : list
+                The parent values of this value. The last
+                element is the direct parent. The parents are
+                possibly not fully initialized as the values
+                are explored depth-first.
+
+            Returns:
+            --------
+            size : int
+                The number of elements in the array.
+        """
+        self.datatype = datatype
+        self.size_get = size_get
+
+    def from_data(self, rom, offset, project, context, parents):
+        """ Retrieves the constant type from a rom and tries to associate the constant value.
+        
+        Parameters:
+        -----------
+        rom : agb.agbrom.Agbrom
+            The rom to retrieve the data from.
+        offset : int
+            The offset to retrieve the data from.
+        proj : pymap.project.Project
+            The pymap project to access e.g. constants.
+        context : list of str
+            The context in which the data got initialized.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
+        
+        Returns:
+        --------
+        values : list
+            A list of values in the array.
+        offset : int
+            The offset after all elements in the array were consumed.
+        """
+        num_elements = self.size_get(parents)
+        values = []
+        for i in range(num_elements):
+            value, offset = self.datatype.from_data(rom, offset, project, context + [str(i)], parents + [values])
+            values.append(value)
+        return values, offset
+    
+    
+    def to_assembly(self, values, parents, label=None, alignment=None, global_label=None):
+        """ Creates an assembly representation of the union type.
+        
+        Parameters:
+        -----------
+        values : list
+            The values of the array
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
+        label : string or None
+            The label to export (only if not None).
+        alignment : int or None
+            The alignment of the structure if required
+        global_label : bool
+            If the label generated will be exported globally.
+            Only relevant if label is not None.
+
+        Returns:
+        --------
+        assembly : str
+            The assembly representation of the array.
+        additional_blocks : list of str
+            Additional assembly blocks that resulted in the recursive
+            compiliation of this type.
+        """
+        blocks = []
+        additional_blocks = []
+        for i in range(self.size_get(parents)):
+            block, additional = self.datatype.to_assembly(values[i], parents + [values])
+            blocks.append(block)
+            additional_blocks += additional
+        assembly = '\n'.join(blocks)
+        return label_and_align(assembly, label, alignment, global_label), additional_blocks
+
+    def __call__(self, parents):
+        """ Initializes a new array. 
+        
+        Parameters:
+        -----------
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+
+        Returns:
+        --------
+        values : list
+            List with default initialized elements.
+        """
+        values = []
+        for _ in range(self.size_get(parents)):
+            values.append(self.datatype(parents + [values]))
+        return values
+
+class PointerType:
+    """ Class to models pointers. """
+
+    def __init__(self, datatype, label_get):
+        """ Initializes the pointer to another datatype.
+        
+        Parameters:
+        -----------
+        datatype : Type
+            The datatype the pointer is pointing to.
+        label_get : function
+            Function that creates the label for the structure.
+            
+            Returns:
+            --------
+            label : str or None
+                The label of the data the pointer points to.
+            alignment : int or None
+                The alignment of the data that the pointer points to.
+            global_label : bool
+                If the data's label will be exported globally.
+            """
+        self.datatype = datatype
+        self.label_get = label_get
+
+    def from_data(self, rom, offset, project, context, parents):
+        """ Retrieves the pointer type from a rom.
+        
+        Parameters:
+        -----------
+        rom : agb.agbrom.Agbrom
+            The rom to retrieve the data from.
+        offset : int
+            The offset to retrieve the pointer from.
+        proj : pymap.project.Project
+            The pymap project to access e.g. constants.
+        context : list of str
+            The context in which the data got initialized.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
+        
+        Returns:
+        --------
+        data : object
+            The data the pointer is pointing to.
+        offset : int
+            The offset after the pointer was consumed.
+        """
+        data_offset, offset = pointer.from_data(rom, offset, project, context, parents)
+        # Retrieve the data
+        data, _ = self.datatype.from_data(rom, data_offset, project, context, parents)
+        return data, offset
+    
+    def to_assembly(self, data, parents, label=None, alignment=None, global_label=None):
+        """ Creates an assembly representation of the pointer type.
+        
+        Parameters:
+        -----------
+        data : object
+            The data the pointer is pointing to.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
+        label : string or None
+            The label to export (only if not None).
+        alignment : int or None
+            The alignment of the structure if required
+        global_label : bool
+            If the label generated will be exported globally.
+            Only relevant if label is not None.
+
+        Returns:
+        --------
+        assembly : str
+            The assembly representation of the pointer.
+        additional_blocks : list of str
+            Additional assembly blocks that resulted in the recursive
+            compiliation of this type.
+        """
+        data_label, data_alignment, data_global_label = self.label_get()
+        assembly, additional_blocks = pointer.to_assembly(data_label, parents, label=label, alignment=alignment, global_label=global_label)
+        # Create assembly for the datatype that the pointer refers to
+        data_assembly, data_additional_blocks = self.datatype.to_assembly(data, parents, label=data_label, alignment=data_alignment, global_label=data_global_label)
+        # The data assembly is an additional block as well
+        additional_blocks.append(data_assembly)
+        additional_blocks += data_additional_blocks
+        return assembly, data_additional_blocks
+
+    def __call__(self, parents):
+        """ Initializes a new array. 
+        
+        Parameters:
+        -----------
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+
+        Returns:
+        --------
+        data : object
+            Default intialized object.
+        """
+        return self.datatype()
 
 
 # Define dict of lambdas to retrieve scalar types
@@ -370,7 +726,7 @@ def associate_with_constant(value, proj, constant):
             warn(f'Constant table {constant} not found in project.')
     return value
 
-def label_and_align(assembly, label, alignment):
+def label_and_align(assembly, label, alignment, global_label):
     """ Adds label and alignment to an assembly representation of a type.
     
     Parameters:
@@ -381,6 +737,9 @@ def label_and_align(assembly, label, alignment):
         The label of the type if requested
     alignment : int or None
         The alignment of the type if requested
+    global_label : bool
+        If the label generated will be exported globally.
+        Only relevant if label is not None.
     
     Returns:
     --------
@@ -391,7 +750,18 @@ def label_and_align(assembly, label, alignment):
     if alignment is not None:
         blocks.append(f'.align {alignment}')
     if label is not None:
-        blocks.append(f'.global {label}')
+        if global_label:
+            blocks.append(f'.global {label}')
         blocks.append(f'{label}:')
     blocks.append(assembly)
     return '\n'.join(blocks)
+
+
+# Initialize common types
+u8 = ScalarType('u8')
+u16 = ScalarType('u16')
+u32 = ScalarType('u32')
+s8 = ScalarType('s8')
+s16 = ScalarType('s16')
+s32 = ScalarType('s32')
+pointer = ScalarType('pointer')

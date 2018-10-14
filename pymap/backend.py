@@ -25,7 +25,7 @@ def ow_script(rom, offset, project, context):
         The label associated with the script offset
     """
     print(f'Encoutered ow_script @{hex(offset)} in context {context}')
-    return hex(offset)
+    return hex(offset + 0x8000000)
 
 
 def gfx(rom, offset, project, context, compressed):
@@ -52,7 +52,29 @@ def gfx(rom, offset, project, context, compressed):
         The label associated with the gfx offset
     """
     print(f'Encoutered gfx @{hex(offset)} in context {context}')
-    return hex(offset)
+    return hex(offset + 0x8000000)
+
+def tileset(rom, offset, context):
+    """ Backend for exporting tilesets. 
+
+    Parameters:
+    -----------
+    rom : agb.agbrom.Agbrom
+        The rom instance to export scripts from
+    offset : int
+        The offset to export the script from
+    project : pymap.project.Project
+        The pymap project
+    context : list of str
+        The context in which the data got initialized
+
+    Returns:
+    --------
+    label : str
+        The label associated with the tileset.
+    """
+    print(f'Encoutered tileset @{hex(offset)} in context {context}')
+    return hex(offset + 0x08000000)
 
 class OwScriptPointerType(agb.types.ScalarType):
     """ Type class for overworld script pointers """
@@ -60,7 +82,7 @@ class OwScriptPointerType(agb.types.ScalarType):
     def __init__(self):
         super().__init__('pointer')
 
-    def from_data(self, rom, offset, project, context):
+    def from_data(self, rom, offset, project, context, parents):
         """ Retrieves the overworld script pointer type from a rom.
         
         Parameters:
@@ -73,6 +95,11 @@ class OwScriptPointerType(agb.types.ScalarType):
             The pymap project to access e.g. constants.
         context : list of str
             The context in which the data got initialized
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
         
         Returns:
         --------
@@ -81,7 +108,7 @@ class OwScriptPointerType(agb.types.ScalarType):
         offset : int
             The offeset of the next bytes after the value was processed
         """
-        value, offset = super().from_data(rom, offset, project, context)
+        value, offset = super().from_data(rom, offset, project, context, parents)
         if value is None: return '0', offset
         label = ow_script(rom, value, project, context)
         return label, offset
@@ -99,7 +126,7 @@ class GfxPointerType(agb.types.ScalarType):
         super().__init__('pointer')
         self.compressed = compressed
 
-    def from_data(self, rom, offset, project, context):
+    def from_data(self, rom, offset, project, context, parents):
         """ Retrieves the overworld script pointer type from a rom.
         
         Parameters:
@@ -112,6 +139,11 @@ class GfxPointerType(agb.types.ScalarType):
             The pymap project to access e.g. constants.
         context : list of str
             The context in which the data got initialized
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
         
         Returns:
         --------
@@ -120,7 +152,7 @@ class GfxPointerType(agb.types.ScalarType):
         offset : int
             The offeset of the next bytes after the value was processed
         """
-        value, offset = super().from_data(rom, offset, project, context)
+        value, offset = super().from_data(rom, offset, project, context, parents)
         if value is None: return '0', offset
-        label = gfx(rom, value, project, self.compressed, context)
+        label = gfx(rom, value, project, context, self.compressed)
         return label, offset
