@@ -15,7 +15,7 @@ person_type = agb.types.Structure([
     ('is_trainer', agb.types.u8),
     ('field_D', agb.types.u8),
     ('alter_radius', agb.types.u16),
-    ('script', backend.OwScriptPointerType()),
+    ('script', backend.ow_script_pointer_type),
     ('flag', agb.types.ScalarType('u16', constant='flags')),
     ('field_16', agb.types.u16)
 ])
@@ -29,7 +29,7 @@ trigger_type = agb.types.Structure([
     ('value', agb.types.u16),
     ('field_A', agb.types.u8),
     ('field_B', agb.types.u8),
-    ('script', backend.OwScriptPointerType())
+    ('script', backend.ow_script_pointer_type)
 ])
 
 warp_type = agb.types.Structure([
@@ -74,7 +74,7 @@ signpost_type = agb.types.Structure([
             ('amount', None, 5),
             ('chunk', None, 3)
         ]),
-        'script' : backend.OwScriptPointerType()
+        'script' : backend.ow_script_pointer_type
     }, signpost_structure_get))
 ])
 
@@ -90,7 +90,7 @@ event_header_type = agb.types.Structure([
             (lambda parents: int(parents[-1]['person_cnt']))
         ),
         # The label is always persons, 2-aligned, and not global
-        (lambda: ('persons', 2, False))
+        (lambda parents: ('persons', 2, False))
     )),
     ('warps', agb.types.PointerType(
         agb.types.ArrayType(warp_type,
@@ -98,7 +98,7 @@ event_header_type = agb.types.Structure([
             (lambda parents: int(parents[-1]['warp_cnt']))
         ),
         # The label is always warps, 2-aligned, and not global
-        (lambda: ('warps', 2, False))
+        (lambda parents: ('warps', 2, False))
     )),
     ('triggers', agb.types.PointerType(
         agb.types.ArrayType(trigger_type,
@@ -106,7 +106,7 @@ event_header_type = agb.types.Structure([
             (lambda parents: int(parents[-1]['trigger_cnt']))
         ),
         # The label is always triggers, 2-aligned, and not global
-        (lambda: ('triggers', 2, False))
+        (lambda parents: ('triggers', 2, False))
     )),
     ('signposts', agb.types.PointerType(
         agb.types.ArrayType(signpost_type,
@@ -114,6 +114,6 @@ event_header_type = agb.types.Structure([
             (lambda parents: int(parents[-1]['signpost_cnt']))
         ),
         # The label is always signposts, 2-aligned, and not global
-        (lambda: ('signposts', 2, False))
+        (lambda parents: ('signposts', 2, False))
     )),
 ])
