@@ -14,7 +14,7 @@ person_type = agb.types.Structure([
     ('field_B', agb.types.u8),
     ('is_trainer', agb.types.u8),
     ('field_D', agb.types.u8),
-    ('alter_radius', agb.types.u16),
+    ('alert_radius', agb.types.u16),
     ('script', backend.ow_script_pointer_type),
     ('flag', agb.types.ScalarType('u16', constant='flags')),
     ('field_16', agb.types.u16)
@@ -36,29 +36,10 @@ warp_type = agb.types.Structure([
     ('x', agb.types.s16),
     ('y', agb.types.s16),
     ('level', agb.types.u8),
-    ('target_idx', agb.types.u8),
-    ('bank', agb.types.u8),
-    ('map', agb.types.u8)    
+    ('target_warp_idx', agb.types.u8),
+    ('target_bank', agb.types.u8),
+    ('target_map', agb.types.u8)    
 ])
-
-def signpost_structure_get(parents):
-    """ Returns the structure of a signpost based on its type field.
-    
-    Parameters:
-    -----------
-    parents : list
-        The parents of the signpost.
-    
-    Returns:
-    --------
-    structure : 'item' or 'script'
-        The structure of the signpost.
-    """
-    signpost_type = parents[-1]['type']
-    if signpost_type < 5:
-        return 'script'
-    else:
-        return 'item'
 
 signpost_type = agb.types.Structure([
     ('x', agb.types.s16),
@@ -75,7 +56,7 @@ signpost_type = agb.types.Structure([
             ('chunk', None, 3)
         ]),
         'script' : backend.ow_script_pointer_type
-    }, signpost_structure_get))
+    }, backend.signpost_structure_get))
 ])
 
 

@@ -4,7 +4,7 @@ from . import backend
 MAX_BLOCKS_PRIMARY = 0x200
 MAX_BLOCKS_SECONDARY = 0x180
 PALETTES_PRIMARY = 7
-PALETTES_SECONDARY = 5
+PALETTES_SECONDARY = 6
 
 # Define a rgb color type
 color_type = agb.types.BitfieldType('u16', [
@@ -12,6 +12,12 @@ color_type = agb.types.BitfieldType('u16', [
     ('blue', None, 5),
     ('green', None, 5)
 ])
+
+# Define a palette type
+palette_type = agb.types.ArrayType(
+    color_type,
+    (lambda parents: 16)
+)
 
 # Define an array type to define a block tilemap
 block_tilemap_type = agb.types.ArrayType(agb.types.u16, lambda _: 8)
@@ -40,11 +46,12 @@ tileset_type = agb.types.Structure([
         ))
     )),
     # Palette is a pointer to an array of colors
-    ('palette', agb.types.PointerType(
-        agb.types.ArrayType(color_type,
+    ('palettes', agb.types.PointerType(
+        agb.types.ArrayType(
+        palette_type,
         # The size of the array is determined by the is_primary attribute of the structure
-        (lambda parents: (PALETTES_PRIMARY * 16 if int(parents[-1]['is_primary']) != 0 else PALETTES_SECONDARY * 16))
-        ), (lambda parents: ('palette', 2, False))
+        (lambda parents: (PALETTES_PRIMARY if int(parents[-1]['is_primary']) != 0 else PALETTES_SECONDARY))
+        ), (lambda parents: ('palettes', 2, False))
     )),
     ('blocks', agb.types.PointerType(
         agb.types.ArrayType(block_tilemap_type,

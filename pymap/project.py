@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import json
-from . import constants
+from . import constants, configuration
 from pathlib import Path
 from agb import types
 
@@ -24,9 +24,7 @@ class Project:
             self.tilesets = {}
             self.images = {}
             self.constants = constants.Constants({})
-            self.config = {
-                'types' : []
-            }
+            self.config = configuration.default_configuration.copy()
         else:
             self.from_file(file_path)
 
@@ -55,8 +53,7 @@ class Project:
         self.constants = constants.Constants(paths)
 
         # Initialize the configuration
-        with open(file_path + '.config') as f:
-            self.config = json.load(f)
+        self.conifg = configuration.get_configuration(file_path + '.config')
 
         
     def save(self, file_path):

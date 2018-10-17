@@ -199,6 +199,37 @@ class PriorizedMembersStructure(Structure):
             offset += datatype.size(structure[attribute], parents)
         return structure
 
+    def __call__(self, parents):
+        """ Initializes a new structure with default values. 
+        
+        Parameters:
+        -----------
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        structure : dict
+            New structure with default values.
+        """
+        structure = {}
+        parents = parents + [structure]
+        # Initialize priorized members first
+        for priorized_attribute in self.priorized_members:
+            for attribute, datatype in self.structure:
+                if attribute == priorized_attribute:
+                    structure[attribute] = datatype(parents)
+
+        # Initialize other members
+        for attribute, datatype in self.structure:
+            if attribute not in self.priorized_members:
+                structure[attribute] = datatype(parents + [structure])
+        return structure
+
+
 
 class ScalarType:
     """ Class to model scalar types. """

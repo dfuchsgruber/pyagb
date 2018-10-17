@@ -5,7 +5,7 @@ connection_type = agb.types.Structure([
     ('direction', agb.types.ScalarType('u32', constant='map_connections')),
     ('displacement', agb.types.s32),
     ('bank', agb.types.u8),
-    ('map', agb.types.u8),
+    ('map_idx', agb.types.u8),
     ('field_A', agb.types.u8),
     ('field_B', agb.types.u8)
 ])

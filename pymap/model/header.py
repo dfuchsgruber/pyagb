@@ -19,7 +19,7 @@ header_type = agb.types.Structure([
     ('weather', agb.types.ScalarType('u8', constant='map_weathers')),
     ('type', agb.types.ScalarType('u8', constant='map_types')),
     ('field_18', agb.types.u8),
-    ('field_19', agb.types.u8),
     ('show_name', agb.types.ScalarType('u8', constant='map_show_name_types')),
+    ('field_1A', agb.types.u8),
     ('battle_style', agb.types.ScalarType('u8', constant='map_battle_styles'))
 ])

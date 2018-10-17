@@ -157,6 +157,25 @@ def footer(rom, offset, project, context, parents):
     print(f'Encoutered map footer @{hex(offset)} in context {context}')
     return hex(offset + 0x08000000)
 
+def signpost_structure_get(parents):
+    """ Returns the structure of a signpost based on its type field.
+    
+    Parameters:
+    -----------
+    parents : list
+        The parents of the signpost.
+    
+    Returns:
+    --------
+    structure : 'item' or 'script'
+        The structure of the signpost.
+    """
+    signpost_type = parents[-1]['type']
+    if signpost_type < 5:
+        return 'script'
+    else:
+        return 'item'
+
 class BackendPointerType(agb.types.ScalarType):
     """ Class for pointers that represent structures that
     may or may not be exported by the backend of pymap."""
