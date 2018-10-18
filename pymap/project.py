@@ -2,6 +2,7 @@
 
 import json
 from . import constants, configuration
+import pymap.model.model
 from pathlib import Path
 from agb import types
 
@@ -19,14 +20,17 @@ class Project:
         """
         if file_path is None:
             # Initialize empty project
-            self.banks = {}
+            self.headers = {}
             self.footers = {}
             self.tilesets = {}
-            self.images = {}
+            self.gfxs = {}
             self.constants = constants.Constants({})
             self.config = configuration.default_configuration.copy()
         else:
             self.from_file(file_path)
+
+        # Initialize models
+        self.model = pymap.model.model.get_model(self.config['model'])
 
     def from_file(self, file_path):
         """ Initializes the project from a json file. Should not
@@ -41,10 +45,10 @@ class Project:
         with open(file_path) as f:
             content = json.load(f)
 
-        self.banks = content['banks']
+        self.headers = content['headers']
         self.footers = content['footers']
         self.tilesets = content['tilesets']
-        self.images = content['images']
+        self.gfxs = content['gfxs']
 
         # Initialize the constants
         with open(file_path + '.constants') as f:
@@ -53,7 +57,7 @@ class Project:
         self.constants = constants.Constants(paths)
 
         # Initialize the configuration
-        self.conifg = configuration.get_configuration(file_path + '.config')
+        self.config = configuration.get_configuration(file_path + '.config')
 
         
     def save(self, file_path):
@@ -66,10 +70,10 @@ class Project:
             The project file path to save at.
         """
         representation = {
-            'banks' : self.banks,
+            'headers' : self.headers,
             'footers' : self.footers,
             'tilesets' : self.tilesets,
-            'images' : self.images
+            'gfxs' : self.gfxs
         }
         with open(file_path, 'w+') as f:
             json.dump(representation, f, indent='\t')

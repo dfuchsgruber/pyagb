@@ -157,24 +157,6 @@ def footer(rom, offset, project, context, parents):
     print(f'Encoutered map footer @{hex(offset)} in context {context}')
     return hex(offset + 0x08000000)
 
-def signpost_structure_get(parents):
-    """ Returns the structure of a signpost based on its type field.
-    
-    Parameters:
-    -----------
-    parents : list
-        The parents of the signpost.
-    
-    Returns:
-    --------
-    structure : 'item' or 'script'
-        The structure of the signpost.
-    """
-    signpost_type = parents[-1]['type']
-    if signpost_type < 5:
-        return 'script'
-    else:
-        return 'item'
 
 class BackendPointerType(agb.types.ScalarType):
     """ Class for pointers that represent structures that
@@ -252,3 +234,11 @@ footer_pointer_type = BackendPointerType(footer)
 
 # Define a type for levelscript headers
 levelscript_header_type = BackendPointerType(levelscript_header)
+
+# These models will be exported
+default_model = {
+    'ow_script_pointer' : ow_script_pointer_type,
+    'tileset_pointer' : tileset_pointer_type,
+    'footer_pointer' : footer_pointer_type,
+    'levelscript_header_pointer' : levelscript_header_type
+}

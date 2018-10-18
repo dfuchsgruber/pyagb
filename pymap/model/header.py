@@ -1,25 +1,36 @@
 import agb.types
-from . import event, connection, backend
+
+event_header_pointer_type = agb.types.PointerType(
+    'event.event_header',
+    (lambda parents: ('events', 2, False))
+)
+
+connection_header_pointer_type = agb.types.PointerType(
+    'connection.connection_header',
+    (lambda parents: ('connection_header', 2, False))
+)
 
 header_type = agb.types.Structure([
-    ('footer', backend.footer_pointer_type),
-    ('events', agb.types.PointerType(
-        event.event_header_type,
-        (lambda parents: ('events', 2, False))
-    )),
-    ('levelscripts', backend.levelscript_header_type),
-    ('connections', agb.types.PointerType(
-        connection.connection_header_type,
-        (lambda parents: ('connections', 2, False))
-    )),
-    ('music', agb.types.ScalarType('u16', constant='songs')),
-    ('footer_idx', agb.types.u16),
-    ('namespace', agb.types.ScalarType('u8', constant='map_namespaces')),
-    ('flash_type', agb.types.ScalarType('u8', constant='map_flash_types')),
-    ('weather', agb.types.ScalarType('u8', constant='map_weathers')),
-    ('type', agb.types.ScalarType('u8', constant='map_types')),
-    ('field_18', agb.types.u8),
-    ('show_name', agb.types.ScalarType('u8', constant='map_show_name_types')),
-    ('field_1A', agb.types.u8),
-    ('battle_style', agb.types.ScalarType('u8', constant='map_battle_styles'))
+    ('footer', 'footer_pointer'),
+    ('events', 'header.event_header_pointer'),
+    ('levelscripts', 'levelscript_header_pointer'),
+    ('connections', 'header.connection_header_pointer'),
+    ('music', 'u16'),
+    ('footer_idx', 'u16'),
+    ('namespace', 'u8'),
+    ('flash_type', 'u8'),
+    ('weather', 'u8'),
+    ('type', 'u8'),
+    ('field_18', 'u8'),
+    ('show_name', 'u8'),
+    ('field_1A', 'u8'),
+    ('battle_style', 'u8')
 ])
+
+# These model declarations will be exported
+
+default_model = {
+    'header.event_header_pointer' : event_header_pointer_type,
+    'header.connection_header_pointer' : connection_header_pointer_type,
+    'header.header' : header_type
+}

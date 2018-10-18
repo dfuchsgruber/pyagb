@@ -10,9 +10,7 @@ default_configuration = {
             'tileset' : []
         }
     },
-    'model' : {
-        'backend' : None
-    }
+    'model' : None
 }
 
 # Helper function to recursively iterate over the dicts
