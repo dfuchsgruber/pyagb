@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(name='pyagb', 
     version='1.0', 
     description='Python3 interface for Gameboy Advance ROMs (agb)',
     author='Wodka',
-    packages = ['pymap', 'agb', 'pokestring', 'pokescript'],
+    packages = find_packages(),
     scripts = ['script/pymapgui.py', 'script/pymap2s.py',
     'script/pymapex.py', 'script/pyproj2s.py', 
     'script/pymapbuild.py', 'script/pyset2s.py',
