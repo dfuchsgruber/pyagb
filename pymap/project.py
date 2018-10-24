@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import json
 from . import constants, configuration
 import pymap.model.model

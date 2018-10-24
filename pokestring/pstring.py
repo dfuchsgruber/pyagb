@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """ This module can translate any hex encoded string.
 (hex -> string, string -> hex)"""
 

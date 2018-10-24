@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 MAPEVENT_PERSON = 0
 MAPEVENT_WARP = 1
 MAPEVENT_TRIGGER = 2

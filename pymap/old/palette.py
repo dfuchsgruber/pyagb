@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 """ Class to store palette data (a list of triples (5-bit rgb CCCCC000))"""
 
 import json

@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 from . import mapfooter, mapevent, mapconnection
 import json
 import os

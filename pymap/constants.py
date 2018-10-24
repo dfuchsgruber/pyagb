@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 """ This module is responsible for resolving constants and exporting them
 as C or assembly macros."""
 

@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 """ Class for lazy storage and access to overworld images 
 from both extern .png references and intern references from a rom """
 

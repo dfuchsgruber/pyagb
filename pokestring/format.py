@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 SPACE = 0x0
 SCROLLINE = 0xFA
 PARAGRAPH = 0xFB

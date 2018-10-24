@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import tkinter
 import PIL.Image as PImage
 from tkinter import messagebox, filedialog

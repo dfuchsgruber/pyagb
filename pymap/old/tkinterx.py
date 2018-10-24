@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 """ Extension classes for tkinter """
 import tkinter
 import tkinter.simpledialog

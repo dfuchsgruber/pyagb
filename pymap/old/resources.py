@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import tkinter.ttk as ttk
 import tkinter
 from . import project

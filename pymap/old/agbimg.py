@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import png
 import PIL.Image as Image
 

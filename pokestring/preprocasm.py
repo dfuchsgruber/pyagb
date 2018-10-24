@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from pokestring import pstring, format
 import os
 

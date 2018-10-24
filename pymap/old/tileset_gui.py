@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import tkinter
 import tkinter.simpledialog
 from . import tkinterx

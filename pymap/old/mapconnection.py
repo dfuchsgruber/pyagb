@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 OVER, SOUTH, NORTH, WEST, EAST = range(5)
 
 
