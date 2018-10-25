@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """ This module is reponsible for building all map related files 
     directly into a rom file. (Which is not recommended at all

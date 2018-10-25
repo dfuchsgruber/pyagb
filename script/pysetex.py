@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import agb.agbrom
 import agb.img_dump
 import sys
