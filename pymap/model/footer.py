@@ -13,36 +13,36 @@ map_block_type = agb.types.BitfieldType('u16', [
 
 border_line_type = agb.types.ArrayType(
     'map_block',
-    (lambda parents: int(parents[-2]['border_width']))
+    (lambda project, context, parents: int(parents[-2]['border_width']))
 )
 
 border_array_type = agb.types.ArrayType(
     'footer.border_line',
-    (lambda parents: int(parents[-1]['border_height'])) 
+    (lambda project, context, parents: int(parents[-1]['border_height'])) 
 )
 
 border_array_pointer_type = agb.types.PointerType(
     'footer.border_array',
-    (lambda parents: ('border', 2, False))
+    (lambda project, context, parents: ('border', 2, False))
 )
 
 blocks_line_type = agb.types.ArrayType(
     'map_block',
-    (lambda parents: int(parents[-2]['width']))
+    (lambda project, context, parents: int(parents[-2]['width']))
 )
 
 blocks_array_type = agb.types.ArrayType(
     'footer.blocks_line',
-    (lambda parents: int(parents[-1]['height'])) 
+    (lambda project, context, parents: int(parents[-1]['height'])) 
 )
 
 blocks_array_pointer_type = agb.types.PointerType(
     'footer.blocks_array',
-    (lambda parents: ('blocks', 2, False))
+    (lambda project, context, parents: ('blocks', 2, False))
 )
 
 # Define a map footer type
-footer_type = agb.types.PriorizedMembersStructure(
+footer_type = agb.types.Structure(
     [
         ('width', 'u32'),
         ('height', 'u32'),

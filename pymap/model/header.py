@@ -2,12 +2,12 @@ import agb.types
 
 event_header_pointer_type = agb.types.PointerType(
     'event.event_header',
-    (lambda parents: ('events', 2, False))
+    (lambda project, context, parents: ('events', 2, False))
 )
 
 connection_header_pointer_type = agb.types.PointerType(
     'connection.connection_header',
-    (lambda parents: ('connection_header', 2, False))
+    (lambda project, context, parents: ('connection_header', 2, False))
 )
 
 header_type = agb.types.Structure([

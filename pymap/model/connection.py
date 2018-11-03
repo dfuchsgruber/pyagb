@@ -12,12 +12,12 @@ connection_type = agb.types.Structure([
 
 connection_array_type = agb.types.ArrayType(
     'connection.connection',
-    (lambda parents: int(parents[-1]['connection_cnt']))
+    (lambda project, context, parents: int(parents[-1]['connection_cnt']))
 )
 
 connection_array_pointer_type = agb.types.PointerType(
         'connection.connection_array',
-        (lambda parents: ('connections', 2, False))
+        (lambda project, context, parents: ('connections', 2, False))
     )
 
 # Define a type for map connection headers

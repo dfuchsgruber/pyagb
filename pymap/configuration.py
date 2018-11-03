@@ -3,14 +3,25 @@ import json
 # Define a default configuration for pymap
 default_configuration = {
     'pymap2s' : {
+        # Include directive for pymap assemblies
         'include' : {
             'directive' : '.include "{constant}.s"',
-            'header' : [],
-            'footer' : [],
-            'tileset' : []
+        },
+        # Link pymap file types to datatypes
+        'file_types' : {
+            'header' : 'header.header',
+            'footer' : 'footer.footer',
+            'tileset_primary' : 'tileset.tileset_primary',
+            'tileset_secondary' : 'tileset.tileset_secondary'
         }
     },
-    'model' : None
+    # Define additional models that may override default models
+    'model' : [],
+    'json' : {
+        # Define the indent for outputting json files
+        'indent' : '\t'
+    }
+
 }
 
 # Helper function to recursively iterate over the dicts

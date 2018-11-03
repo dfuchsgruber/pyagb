@@ -4,13 +4,14 @@ import json
 import agb.types
 import pymap.model.header, pymap.model.footer, pymap.model.tileset
 
+
 def get_preamble(constants_to_import, project):
     """ Creates the preamble for an assembly file, i.e.
     the include directives.
 
     Parameters:
     -----------
-    constants : list of str
+    constants : set of str
         The name of the constant tables to include in the assembly
     project : pymap.project.Project
         The pymap project.
@@ -23,13 +24,16 @@ def get_preamble(constants_to_import, project):
     config = project.config['pymap2s']['include']
     return '\n'.join(config['directive'].replace('{constant}', constant) for constant in constants_to_import)
 
-def header_to_assembly(header, label, project):
-    """ Creates an assembly based on a map header file.
-    
+
+def datatype_to_assembly(data, datatype, label, project):
+    """ Creates an assembly based on any generic datatype.
+
     Parameters:
     -----------
-    header : dict 
-        The map header to compile.
+    data : object 
+        An instance of the datatype.
+    datatype : str
+        The datatype that is to be compiled.
     label : str
         The label of the map header.
     project : pymap.project.Project
@@ -38,58 +42,14 @@ def header_to_assembly(header, label, project):
     Returns:
     --------
     assembly : str
-        The assembly of the map header.
+        The assembly of the datatype.
     """
-    header_type = project.model['header.header']
-    assembly, additional_blocks = header_type.to_assembly(header, project, [], label=label, alignment=2, global_label=True)
-    blocks = [get_preamble(project.config['pymap2s']['include']['header'], project), assembly] + additional_blocks + ['']
+    datatype = project.model[datatype]
+    constants = datatype.get_constants(data, project, ['get_constants'], [])
+    assembly, additional_blocks = datatype.to_assembly(data, project, ['to_assembly'], [], label=label, alignment=2, global_label=True)
+    blocks = [get_preamble(constants, project), assembly] + additional_blocks + ['']
     return '\n\n'.join(blocks)
 
-def footer_to_assembly(footer, label, project):
-    """ Creates an assembly based on a map footer file.
-    
-    Parameters:
-    -----------
-    footer : dict 
-        The map footer to compile.
-    label : str
-        The label of the footer.
-    project : pymap.project.Project
-        The pymap project associated with the map.
-
-    Returns:
-    --------
-    assembly : str
-        The assembly of the map footer.
-    """
-    footer_type = project.model['footer.footer']
-    assembly, additional_blocks = footer_type.to_assembly(footer, project, [], label=label, alignment=2, global_label=True)
-    blocks = [get_preamble(project.config['pymap2s']['include']['footer'], project), assembly] + additional_blocks + ['']
-    return '\n\n'.join(blocks)
-
-def tileset_to_assembly(tileset, label, project, is_primary):
-    """ Creates an assembly based on a tileset file.
-    
-    Parameters:
-    -----------
-    tileset : dict 
-        The tileset to compile.
-    label : str
-        The label of the tileset.
-    project : pymap.project.Project
-        The pymap project associated with the map.
-    is_primary : bool
-        If the tileset is a primary tileset.
-
-    Returns:
-    --------
-    assembly : str
-        The assembly of the tileset.
-    """
-    tileset_type = project.model['tileset.tileset_primary' if is_primary else 'tileset.tileset_secondary']
-    assembly, additional_blocks = tileset_type.to_assembly(tileset, project, [], label=label, alignment=2, global_label=True)
-    blocks = [get_preamble(project.config['pymap2s']['include']['tileset'], project), assembly] + additional_blocks + ['']
-    return '\n\n'.join(blocks)
 
 def project_to_assembly(project, header_table_label, footer_table_label):
     """ Creates an assembly based on a project file.

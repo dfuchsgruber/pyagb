@@ -83,49 +83,49 @@ signpost_type = agb.types.Structure([
 person_array_type = agb.types.ArrayType(
     'event.person',
     # The size of the persons array is determined by the person_cnt
-    (lambda parents: int(parents[-1]['person_cnt']))
+    (lambda project, context, parents: int(parents[-1]['person_cnt']))
 )
 
 warp_array_type = agb.types.ArrayType(
     'event.warp',
     # The size of the warps array is determined by the person_cnt
-    (lambda parents: int(parents[-1]['warp_cnt']))
+    (lambda project, context, parents: int(parents[-1]['warp_cnt']))
 )
 
 trigger_array_type = agb.types.ArrayType(
     'event.trigger',
     # The size of the triggers array is determined by the person_cnt
-    (lambda parents: int(parents[-1]['trigger_cnt']))
+    (lambda project, context, parents: int(parents[-1]['trigger_cnt']))
 )
 
 signpost_array_type = agb.types.ArrayType(
     'event.signpost',
     # The size of the signposts array is determined by the person_cnt
-    (lambda parents: int(parents[-1]['signpost_cnt']))
+    (lambda project, context, parents: int(parents[-1]['signpost_cnt']))
 )
 
 person_array_pointer_type = agb.types.PointerType(
     'event.person_array',
     # The label is always persons, 2-aligned, and not global
-    (lambda parents: ('persons', 2, False))
+    (lambda project, context, parents: ('persons', 2, False))
 )
 
 warp_array_pointer_type = agb.types.PointerType(
     'event.warp_array',
     # The label is always warps, 2-aligned, and not global
-    (lambda parents: ('warps', 2, False))
+    (lambda project, context, parents: ('warps', 2, False))
 )
 
 trigger_array_pointer_type = agb.types.PointerType(
     'event.trigger_array',
     # The label is always triggers, 2-aligned, and not global
-    (lambda parents: ('triggers', 2, False))
+    (lambda project, context, parents: ('triggers', 2, False))
 )
 
 signpost_array_pointer_type = agb.types.PointerType(
     'event.signpost_array',
     # The label is always signposts, 2-aligned, and not global
-    (lambda parents: ('signposts', 2, False))
+    (lambda project, context, parents: ('signposts', 2, False))
 )
 
 event_header_type = agb.types.Structure([

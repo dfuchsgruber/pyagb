@@ -14,28 +14,28 @@ color_type = agb.types.BitfieldType('u16', [
 
 palette_type = agb.types.ArrayType(
     'color',
-    (lambda parents: 16)
+    (lambda project, context, parents: 16)
 )
 
 palette_array_primary_type = agb.types.ArrayType(
     'palette',
-    (lambda _: PALETTES_PRIMARY)
+    (lambda project, context, parents: PALETTES_PRIMARY)
 )
 
 palette_array_secondary_type = agb.types.ArrayType(
     'palette',
-    (lambda _: PALETTES_SECONDARY)
+    (lambda project, context, parents: PALETTES_SECONDARY)
 )
 
 
 palette_array_primary_pointer_type = agb.types.PointerType(
     'tileset.palette_array_primary',
-    (lambda parents: ('palettes', 2, False))
+    (lambda project, context, parents: ('palettes', 2, False))
 )
 
 palette_array_secondary_pointer_type = agb.types.PointerType(
     'tileset.palette_array_secondary',
-    (lambda parents: ('palettes', 2, False))
+    (lambda project, context, parents: ('palettes', 2, False))
 )
 
 block_type = agb.types.BitfieldType(
@@ -49,27 +49,27 @@ block_type = agb.types.BitfieldType(
 
 block_tilemap_type = agb.types.ArrayType(
     'block',
-    lambda _: 8
+    lambda project, context, parents: 8
 )
 
 block_tilemap_array_primary_type = agb.types.ArrayType(
     'tileset.block_tilemap',
-    (lambda _: MAX_BLOCKS_PRIMARY)
+    (lambda project, context, parents: MAX_BLOCKS_PRIMARY)
 )
 
 block_tilemap_array_secondary_type = agb.types.ArrayType(
     'tileset.block_tilemap',
-    (lambda _: MAX_BLOCKS_SECONDARY)
+    (lambda project, context, parents: MAX_BLOCKS_SECONDARY)
 )
 
 block_tilemap_array_primary_pointer_type = agb.types.PointerType(
     'tileset.block_tilemap_array_primary',
-    (lambda parents: ('blocks', 2, False))
+    (lambda project, context, parents: ('blocks', 2, False))
 )
 
 block_tilemap_array_secondary_pointer_type = agb.types.PointerType(
     'tileset.block_tilemap_array_secondary',
-    (lambda parents: ('blocks', 2, False))
+    (lambda project, context, parents: ('blocks', 2, False))
 )
 
 behaviour_type = agb.types.BitfieldType('u32', [
@@ -85,22 +85,22 @@ behaviour_type = agb.types.BitfieldType('u32', [
 
 behaviour_array_primary_type = agb.types.ArrayType(
     'tileset.behaviour',
-    (lambda _: MAX_BLOCKS_PRIMARY)
+    (lambda project, context, parents: MAX_BLOCKS_PRIMARY)
 )
 
 behaviour_array_secondary_type = agb.types.ArrayType(
     'tileset.behaviour',
-    (lambda _: MAX_BLOCKS_SECONDARY)
+    (lambda project, context, parents: MAX_BLOCKS_SECONDARY)
 )
 
 behaviour_array_primary_pointer_type = agb.types.PointerType(
     'tileset.behaviour_array_primary',
-    (lambda parents: ('behaviours', 2, False))
+    (lambda project, context, parents: ('behaviours', 2, False))
 )
 
 behaviour_array_secondary_pointer_type = agb.types.PointerType(
     'tileset.behaviour_array_secondary',
-    (lambda parents: ('behaviours', 2, False))
+    (lambda project, context, parents: ('behaviours', 2, False))
 )
 
 gfx_pointer_type = backend.BackendPointerType(

@@ -4,142 +4,6 @@ from warnings import warn
 
 class Structure:
     """ Superclass to model any kind of structure """
-    def __init__(self, structure):
-        """ Initializes the structure class from a given structure.
-        
-        Parameters:
-        -----------
-        structure : list of tuples (member, type)
-            member : str
-                The name of the member
-            type : str
-                The name of the type
-        """
-        self.structure = structure
-
-    def from_data(self, rom, offset, project, context, parents):
-        """ Initializes all members as scalars from the rom. 
-        
-        Parameters:
-        -----------
-        rom : agb.agbrom.Agbrom
-            The rom to initialize the structure from
-        offset : int
-            The offset to initialize the structure from
-        project : pymap.project.Project
-            The project to e.g. fetch constant from
-        context : list of str
-            The context in which the data got initialized
-        parents : list
-            The parent values of this value. The last
-            element is the direct parent. The parents are
-            possibly not fully initialized as the values
-            are explored depth-first.
-
-        Returns:
-        --------
-        structure : dict
-            The initialized structure
-        """
-        structure = {}
-        parents = parents + [structure]
-        for attribute, datatype_name in self.structure:
-            datatype = project.model[datatype_name]
-            value = datatype.from_data(rom, offset, project, context + [attribute], parents)
-            structure[attribute] = value
-            offset += datatype.size(value, project, parents)
-        return structure
-
-    def to_assembly(self, structure, project, parents, label=None, alignment=None, global_label=False):
-        """ Returns an assembly representation of a structure.
-
-        structure : dict
-            The structure to convert to an assembly string.
-        project : pymap.project.Project
-            The project to e.g. fetch constant from
-        parents : list
-            The parent values of this value. The last
-            element is the direct parent.
-        label : string or None
-            The label to export (only if not None).
-        alignment : int or None
-            The alignment of the structure if required
-        global_label : bool
-            If the label generated will be exported globally.
-            Only relevant if label is not None.
-            
-        Returns:
-        --------
-        assembly : str
-            The assembly representation.
-        additional_blocks : list of str
-            Additional assembly blocks that resulted in the recursive
-            compiliation of this type.
-        """
-        assemblies, additional_blocks = [], []
-        for attribute, datatype_name in self.structure:
-            datatype = project.model[datatype_name]
-            assembly_datatype, additional_blocks_datatype = datatype.to_assembly(structure[attribute], project, parents + [structure])
-            assemblies.append(assembly_datatype)
-            additional_blocks += additional_blocks_datatype
-        
-        return label_and_align('\n'.join(assemblies), label, alignment, global_label), additional_blocks
-
-    def __call__(self, project, parents):
-        """ Initializes a new structure with default values. 
-        
-        Parameters:
-        -----------
-        project : pymap.project.Project
-            The project to e.g. fetch constant from
-        parents : list
-            The parent values of this value. The last
-            element is the direct parent. The parents are
-            possibly not fully initialized as the values
-            are generated depth-first.
-        
-        Returns:
-        --------
-        structure : dict
-            New structure with default values.
-        """
-        structure = {}
-        for attribute, datatype_name in self.structure:
-            datatype = project.model[datatype_name]
-            structure[attribute] = datatype(project, parents + [structure])
-        return structure
-
-    def size(self, structure, project, parents):
-        """ Returns the size of a specific structure instanze in bytes.
-
-        Parameters:
-        -----------
-        structure : dict
-            The structure of which the size is desired.
-        project : pymap.project.Project
-            The project to e.g. fetch constant from
-        parents : list
-            The parent values of this value. The last
-            element is the direct parent. The parents are
-            possibly not fully initialized as the values
-            are generated depth-first.
-        
-        Returns:
-        --------
-        length : int
-            The size of this type in bytes.
-        """
-        size = 0
-        parents = parents + [structure]
-        for attribute, datatype_name in self.structure:
-            datatype = project.model[datatype_name]
-            size += datatype.size(structure[attribute], project, parents)
-        return size
-
-class PriorizedMembersStructure(Structure):
-    """ Class that represents a structure which has members that will
-    be exported first explicitly (bypassing the problem of uninitialized
-    members when exporting depth-first). """
 
     def __init__(self, structure, priorized_members=[]):
         """ Initialize the members with priorized members. 
@@ -156,7 +20,7 @@ class PriorizedMembersStructure(Structure):
             The members to export first (the first index will be exported first,
             the second afterwards and so on...)
         """
-        super().__init__(structure)
+        self.structure = structure
         self.priorized_members = priorized_members
 
     def from_data(self, rom, offset, project, context, parents):
@@ -209,13 +73,15 @@ class PriorizedMembersStructure(Structure):
             offset += datatype.size(structure[attribute], project, parents)
         return structure
 
-    def __call__(self, project, parents):
+    def __call__(self, project, context, parents):
         """ Initializes a new structure with default values. 
         
         Parameters:
         -----------
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -234,14 +100,112 @@ class PriorizedMembersStructure(Structure):
             for attribute, datatype_name in self.structure:
                 datatype = project.model[datatype_name]
                 if attribute == priorized_attribute:
-                    structure[attribute] = datatype(parents)
+                    structure[attribute] = datatype(project, context + [attribute], parents)
 
         # Initialize other members
         for attribute, datatype_name in self.structure:
             if attribute not in self.priorized_members:
                 datatype = project.model[datatype_name]
-                structure[attribute] = datatype(parents + [structure])
+                structure[attribute] = datatype(project, context + [attribute], parents + [structure])
         return structure
+
+
+    def to_assembly(self, structure, project, context, parents, label=None, alignment=None, global_label=False):
+        """ Returns an assembly representation of a structure.
+
+        structure : dict
+            The structure to convert to an assembly string.
+        project : pymap.project.Project
+            The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent.
+        label : string or None
+            The label to export (only if not None).
+        alignment : int or None
+            The alignment of the structure if required
+        global_label : bool
+            If the label generated will be exported globally.
+            Only relevant if label is not None.
+            
+        Returns:
+        --------
+        assembly : str
+            The assembly representation.
+        additional_blocks : list of str
+            Additional assembly blocks that resulted in the recursive
+            compiliation of this type.
+        """
+        assemblies, additional_blocks = [], []
+        for attribute, datatype_name in self.structure:
+            datatype = project.model[datatype_name]
+            assembly_datatype, additional_blocks_datatype = datatype.to_assembly(structure[attribute], project, context + [attribute], parents + [structure])
+            assemblies.append(assembly_datatype)
+            additional_blocks += additional_blocks_datatype
+        
+        return label_and_align('\n'.join(assemblies), label, alignment, global_label), additional_blocks
+
+    def size(self, structure, project, context, parents):
+        """ Returns the size of a specific structure instanze in bytes.
+
+        Parameters:
+        -----------
+        structure : dict
+            The structure of which the size is desired.
+        project : pymap.project.Project
+            The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        length : int
+            The size of this type in bytes.
+        """
+        size = 0
+        parents = parents + [structure]
+        for attribute, datatype_name in self.structure:
+            datatype = project.model[datatype_name]
+            size += datatype.size(structure[attribute], project, context + [attribute], parents)
+        return size
+    
+    def get_constants(self, structure, project, context, parents):
+        """ Returns a set of all constants that are used by this type and
+        potential subtypes.
+        
+        Parameters:
+        -----------
+        structure : dict
+            The structure of which the size is desired.
+        project : pymap.project.Project
+            The project to e.g. fetch constants from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        constants : set of str
+            A set of all required constants.
+        """
+        constants = set()
+        parents = parents + [structure]
+        for attribute, datatype_name in self.structure:
+            datatype = project.model[datatype_name]
+            constants.update(datatype.get_constants(structure[attribute], project, context + [attribute], parents))
+        return constants
+    
 
 
 
@@ -291,7 +255,7 @@ class ScalarType:
         value = associate_with_constant(value, proj, self.constant)
         return value
 
-    def to_assembly(self, value, project, parents, label=None, alignment=None, global_label=False):
+    def to_assembly(self, value, project, context, parents, label=None, alignment=None, global_label=False):
         """ Returns an assembly instruction line to export this scalar type.
         
         Parameters:
@@ -300,6 +264,8 @@ class ScalarType:
             The value to export
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -323,13 +289,15 @@ class ScalarType:
         """
         return label_and_align(scalar_to_assembly[self.fmt](value), label, alignment, global_label), []
 
-    def __call__(self, project, parents):
+    def __call__(self, project, context, parents):
         """ Returns a new empty value (0). 
         
         Parameters:
         -----------
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -342,7 +310,7 @@ class ScalarType:
             Zero value (0)."""
         return 0
 
-    def size(self, value, project, parents):
+    def size(self, value, project, context, parents):
         """ Returns the size of a specific structure instanze in bytes.
 
         Parameters:
@@ -351,6 +319,8 @@ class ScalarType:
             The value of the scalar type
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -363,6 +333,34 @@ class ScalarType:
             The size of this type in bytes.
         """
         return scalar_to_length[self.fmt]
+
+    def get_constants(self, value, project, context, parents):
+        """ Returns a set of all constants that are used by this type and
+        potential subtypes.
+        
+        Parameters:
+        -----------
+        value : int or str
+            The value of the scalar type
+        project : pymap.project.Project
+            The project to e.g. fetch constants from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        constants : set of str
+            A set of all required constants.
+        """
+        if self.constant:
+            return set([self.constant])
+        else:
+            return set()
 
 
 class BitfieldType(ScalarType):
@@ -424,7 +422,7 @@ class BitfieldType(ScalarType):
             bit_idx += size
         return value
 
-    def to_assembly(self, values, project, parents, label=None, alignment=None, global_label=False):
+    def to_assembly(self, values, project, context, parents, label=None, alignment=None, global_label=False):
         """ Returns an assembly instruction line to export this scalar type.
         
         Parameters:
@@ -433,6 +431,8 @@ class BitfieldType(ScalarType):
             The values to export
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -466,13 +466,15 @@ class BitfieldType(ScalarType):
         assembly = scalar_to_assembly[self.fmt](' | '.join(shifted))
         return label_and_align(assembly, label, alignment, global_label), []
 
-    def __call__(self, project, parents):
+    def __call__(self, project, context, parents):
         """ Initializes a new empty bitfield.
         
         Parameters:
         -----------
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -485,6 +487,33 @@ class BitfieldType(ScalarType):
             The empty bitfield (zeros).
         """
         return [0] * len(self.structure)
+
+    def get_constants(self, values, project, context, parents):
+        """ Returns a set of all constants that are used by this type and
+        potential subtypes.
+        
+        Parameters:
+        -----------
+        values : list of string or int
+            The values to export
+        project : pymap.project.Project
+            The project to e.g. fetch constants from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        constants : set of str
+            A set of all required constants.
+        """
+        return set([
+            constant for member, constant, size in self.structure if constant is not None
+        ])
 
 class UnionType:
     """ Class for union type. """
@@ -506,6 +535,10 @@ class UnionType:
             
             Parameters:
             -----------
+            project : pymap.project.Project
+                The pymap project.
+            context : list
+                Context from parent elements.
             parents : list
                 The parent values of this value. The last
                 element is the direct parent. The parents are
@@ -545,12 +578,12 @@ class UnionType:
             Dict that maps from the subtype names to their value instanciation.
         """
         values = {}
-        if self.name_get(parents) not in self.subtypes:
-            raise RuntimeError(f'Active subtype of union {self.name_get(parents)} not part of union type.')
+        if self.name_get(project, context, parents) not in self.subtypes:
+            raise RuntimeError(f'Active subtype of union {self.name_get(project, context, parents)} not part of union type.')
 
         for name in self.subtypes:
             subtype = project.model[self.subtypes[name]]
-            if name == self.name_get(parents):
+            if name == self.name_get(project, context, parents):
                 value = subtype.from_data(rom, offset, project, context + [name], parents + [values])
                 values[name] = value
             else:
@@ -558,7 +591,7 @@ class UnionType:
 
         return values
 
-    def to_assembly(self, values, project, parents, label=None, alignment=None, global_label=None):
+    def to_assembly(self, values, project, context, parents, label=None, alignment=None, global_label=None):
         """ Creates an assembly representation of the union type.
         
         Parameters:
@@ -567,6 +600,8 @@ class UnionType:
             Dict that maps from the subtype names to their value instanciaton.
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -588,17 +623,19 @@ class UnionType:
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        active_subtype_name = self.name_get(parents)
+        active_subtype_name = self.name_get(project, context, parents)
         active_subtype = project.model[self.subtypes[active_subtype_name]]
-        return active_subtype.to_assembly(values[active_subtype_name], project, parents + [values], label=label, alignment=alignment, global_label=global_label)
+        return active_subtype.to_assembly(values[active_subtype_name], project, context + [active_subtype_name], parents + [values], label=label, alignment=alignment, global_label=global_label)
 
-    def __call__(self, project, parents):
+    def __call__(self, project, context, parents):
         """ Initializes a new empty union type. 
         
         Parameters:
         -----------
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -610,9 +647,12 @@ class UnionType:
         value : dict
             Dict that maps from each subtype to the default initializaiton.
         """
-        return {name : project.model[self.subtypes[name]](project, parents) for name in self.subtypes}
+        value = {}
+        for name in self.subtypes:
+            value[name] = project.model[self.subtypes[names]](project, context + [name], parents + [value])
+        return value
 
-    def size(self, values, project, parents):
+    def size(self, values, project, context, parents):
         """ Returns the size of a specific structure instanze in bytes.
 
         Parameters:
@@ -621,6 +661,8 @@ class UnionType:
             Dict that maps from the subtype names to their value instanciaton.
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -632,9 +674,36 @@ class UnionType:
         length : int
             The size of this type in bytes.
         """
-        subtype_name = self.name_get(parents)
+        subtype_name = self.name_get(project, context, parents)
         subtype = project.model[self.subtypes[subtype_name]]
-        return subtype.size(values[subtype_name], project, parents + [values])
+        return subtype.size(values[subtype_name], project, context + [subtype_name], parents + [values])
+
+    def get_constants(self, values, project, context, parents):
+        """ Returns a set of all constants that are used by this type and
+        potential subtypes.
+        
+        Parameters:
+        -----------
+        values : dict
+            Dict that maps from the subtype names to their value instanciaton.
+        project : pymap.project.Project
+            The project to e.g. fetch constants from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        constants : set of str
+            A set of all required constants.
+        """
+        subtype_name = self.name_get(project, context, parents)
+        subtype = project.model[self.subtypes[subtype_name]]
+        return subtype.get_constants(values[subtype_name], project, context + [subtype_name], parents + [values])
         
 class ArrayType:
     """ Type for arrays. """
@@ -653,6 +722,10 @@ class ArrayType:
             of types is depth-first.
             Parameters:
             -----------
+            project : pymap.project
+                The pymap project.
+            context : list
+                Context from parent elements.
             parents : list
                 The parent values of this value. The last
                 element is the direct parent. The parents are
@@ -691,17 +764,17 @@ class ArrayType:
         values : list
             A list of values in the array.
         """
-        num_elements = self.size_get(parents)
+        num_elements = self.size_get(project, context, parents)
         values = []
         datatype = project.model[self.datatype]
         for i in range(num_elements):
-            value = datatype.from_data(rom, offset, project, context + [str(i)], parents + [values])
+            value = datatype.from_data(rom, offset, project, context + [i], parents + [values])
             values.append(value)
-            offset += datatype.size(value, project, parents + [values])
+            offset += datatype.size(value, project, context + [i], parents + [values])
         return values
     
     
-    def to_assembly(self, values, project, parents, label=None, alignment=None, global_label=None):
+    def to_assembly(self, values, project, context, parents, label=None, alignment=None, global_label=None):
         """ Creates an assembly representation of the union type.
         
         Parameters:
@@ -710,6 +783,8 @@ class ArrayType:
             The values of the array
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -734,20 +809,22 @@ class ArrayType:
         blocks = []
         additional_blocks = []
         datatype = project.model[self.datatype]
-        for i in range(self.size_get(parents)):
-            block, additional = datatype.to_assembly(values[i], project, parents + [values])
+        for i in range(self.size_get(project, context, parents)):
+            block, additional = datatype.to_assembly(values[i], project, context + [i], parents + [values])
             blocks.append(block)
             additional_blocks += additional
         assembly = '\n'.join(blocks)
         return label_and_align(assembly, label, alignment, global_label), additional_blocks
 
-    def __call__(self, project, parents):
+    def __call__(self, project, context, parents):
         """ Initializes a new array. 
         
         Parameters:
         -----------
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -761,11 +838,11 @@ class ArrayType:
         """
         values = []
         datatype = project.model[self.datatype]
-        for _ in range(self.size_get(parents)):
-            values.append(datatype(project, parents + [values]))
+        for i in range(self.size_get(project, context, parents)):
+            values.append(datatype(project, context + [i], parents + [values]))
         return values
 
-    def size(self, values, project, parents):
+    def size(self, values, project, context, parents):
         """ Returns the size of a specific structure instanze in bytes.
 
         Parameters:
@@ -774,6 +851,8 @@ class ArrayType:
             Elements of the array type.
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -785,14 +864,227 @@ class ArrayType:
         length : int
             The size of this type in bytes.
         """
-        num_elements = self.size_get(parents)
+        num_elements = self.size_get(project, context, parents)
         size = 0
         parents = parents + [values]
         datatype = project.model[self.datatype]
         for i in range(num_elements):
             # Sum each element individually (this is more clean...)
-            size += datatype.size(values[i], project, parents)
+            size += datatype.size(values[i], project, context + [i], parents)
         return size
+
+    def get_constants(self, values, project, context, parents):
+        """ Returns a set of all constants that are used by this type and
+        potential subtypes.
+        
+        Parameters:
+        -----------
+        values : list
+            Elements of the array type.
+        project : pymap.project.Project
+            The project to e.g. fetch constants from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        constants : set of str
+            A set of all required constants.
+        """
+        num_elements = self.size_get(project, context, parents)
+        constants = set()
+        parents = parents + [values]
+        datatype = project.model[self.datatype]
+        # Only using the first element would be faster, but this approach
+        # is more clean and versatile.
+        for i in range(num_elements):
+            constants.update(datatype.get_constants(values[i], project, context + [i], parents))
+        return constants
+
+class VariableLengthArrayType:
+    """ Class for arrays with a variable length. It is terminated by some particular tail instance."""
+
+    def __init__(self, datatype, tail):
+        """ Initializes the array type of variable length.
+        
+        Parameters:
+        -----------
+        datatype : str
+            The datatype the pointer is pointing to.
+        tail : object
+            An instanciation of the datatype that serves as tail for the array.   
+        """
+        self.datatype = datatype
+        self.tail = tail
+
+    def from_data(self, rom, offset, project, context, parents):
+        """ Retrieves the array type from a rom and tries to associate the constant value.
+        
+        Parameters:
+        -----------
+        rom : agb.agbrom.Agbrom
+            The rom to retrieve the data from.
+        offset : int
+            The offset to retrieve the data from.
+        proj : pymap.project.Project
+            The pymap project to access e.g. constants.
+        context : list of str
+            The context in which the data got initialized.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
+        
+        Returns:
+        --------
+        values : list
+            A list of values in the array.
+        """
+        values = []
+        parents = parents + [values]
+        datatype = project.model[self.datatype]
+        while True:
+            value = datatype.from_data(rom, offset, project, context + [i], parents)
+            if value == tail:
+                break
+            values.append(value)
+        return values
+    
+    
+    def to_assembly(self, values, project, context, parents, label=None, alignment=None, global_label=None):
+        """ Creates an assembly representation of the union type.
+        
+        Parameters:
+        -----------
+        values : list
+            The values of the array
+        project : pymap.project.Project
+            The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are explored depth-first.
+        label : string or None
+            The label to export (only if not None).
+        alignment : int or None
+            The alignment of the structure if required
+        global_label : bool
+            If the label generated will be exported globally.
+            Only relevant if label is not None.
+
+        Returns:
+        --------
+        assembly : str
+            The assembly representation of the array.
+        additional_blocks : list of str
+            Additional assembly blocks that resulted in the recursive
+            compiliation of this type.
+        """
+        blocks = []
+        additional_blocks = []
+        parents = parents + [values]
+        datatype = project.model[self.datatype]
+        for i, value in enumerate(values + [self.tail]):
+            block, additional = datatype.to_assembly(value, project, context + [i], parents)
+            blocks.append(block)
+            additional_blocks += additional
+        assembly = '\n'.join(blocks)
+        return label_and_align(assembly, label, alignment, global_label), additional_blocks
+
+    def __call__(self, project, context, parents):
+        """ Initializes a new array. 
+        
+        Parameters:
+        -----------
+        project : pymap.project.Project
+            The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+
+        Returns:
+        --------
+        values : list
+            List with default initialized elements.
+        """
+        return []
+
+    def size(self, values, project, context, parents):
+        """ Returns the size of a specific structure instanze in bytes.
+
+        Parameters:
+        -----------
+        values : list
+            Elements of the array type.
+        project : pymap.project.Project
+            The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        length : int
+            The size of this type in bytes.
+        """
+        size = 0
+        parents = parents + [values]
+        datatype = project.model[self.datatype]
+        for i, value in enumerate(values + [self.tail]):
+            # Sum each element individually (this is more clean...)
+            size += datatype.size(value, project, context + [i], parents)
+        return size
+
+    def get_constants(self, values, project, context, parents):
+        """ Returns a set of all constants that are used by this type and
+        potential subtypes.
+        
+        Parameters:
+        -----------
+        values : list
+            Elements of the array type.
+        project : pymap.project.Project
+            The project to e.g. fetch constants from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        constants : set of str
+            A set of all required constants.
+        """
+        constants = set()
+        parents = parents + [values]
+        datatype = project.model[self.datatype]
+        # Only using the first element would be faster, but this approach
+        # is more clean and versatile.
+        for i, value in enumerate(values + [self.tail]):
+            constants.update(datatype.get_constants(value, project, context + [i], parents))
+        return constants
+
+    
 
 class PointerType(ScalarType):
     """ Class to models pointers. """
@@ -809,6 +1101,10 @@ class PointerType(ScalarType):
             
             Parameters:
             -----------
+            project : pymap.project.Project
+                The map project
+            context : list
+                Context from parent elements.
             parents : list
                 The parent values of this value. The last
                 element is the direct parent. The parents are
@@ -853,11 +1149,14 @@ class PointerType(ScalarType):
             The data the pointer is pointing to.
         """
         data_offset =  super().from_data(rom, offset, project, context, parents)
+        if data_offset is None:
+            # Nullpointer
+            return None
         # Retrieve the data
         datatype = project.model[self.datatype]
         return datatype.from_data(rom, data_offset, project, context, parents)
     
-    def to_assembly(self, data, project, parents, label=None, alignment=None, global_label=None):
+    def to_assembly(self, data, project, context, parents, label=None, alignment=None, global_label=None):
         """ Creates an assembly representation of the pointer type.
         
         Parameters:
@@ -866,6 +1165,8 @@ class PointerType(ScalarType):
             The data the pointer is pointing to.
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -887,23 +1188,29 @@ class PointerType(ScalarType):
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        data_label, data_alignment, data_global_label = self.label_get(parents)
-        assembly, additional_blocks = super().to_assembly(data_label, project, parents, label=label, alignment=alignment, global_label=global_label)
+        if data is None:
+            # Nullpointer
+            return super().to_assembly(data, project, context, parents, label=label, alignment=alignment, global_label=global_label)
+        
+        data_label, data_alignment, data_global_label = self.label_get(project, context, parents)
+        assembly, additional_blocks = super().to_assembly(data_label, project, context, parents, label=label, alignment=alignment, global_label=global_label)
         # Create assembly for the datatype that the pointer refers to
         datatype = project.model[self.datatype]
-        data_assembly, data_additional_blocks = datatype.to_assembly(data, project, parents, label=data_label, alignment=data_alignment, global_label=data_global_label)
+        data_assembly, data_additional_blocks = datatype.to_assembly(data, project, context, parents, label=data_label, alignment=data_alignment, global_label=data_global_label)
         # The data assembly is an additional block as well
         additional_blocks.append(data_assembly)
         additional_blocks += data_additional_blocks
         return assembly, additional_blocks
 
-    def __call__(self, project, parents):
+    def __call__(self, project, context, parents):
         """ Initializes a new array. 
         
         Parameters:
         -----------
         project : pymap.project.Project
             The project to e.g. fetch constant from
+        context : list
+            Context from parent elements.
         parents : list
             The parent values of this value. The last
             element is the direct parent. The parents are
@@ -916,8 +1223,36 @@ class PointerType(ScalarType):
             Default intialized object.
         """
         datatype = project.model[self.datatype]
-        return datatype(project, parents)
+        return datatype(project, context, parents)
 
+
+    def get_constants(self, data, project, context, parents):
+        """ Returns a set of all constants that are used by this type and
+        potential subtypes.
+        
+        Parameters:
+        -----------
+        data : object
+            The data the pointer is pointing to.
+        project : pymap.project.Project
+            The project to e.g. fetch constants from
+        context : list
+            Context from parent elements.
+        parents : list
+            The parent values of this value. The last
+            element is the direct parent. The parents are
+            possibly not fully initialized as the values
+            are generated depth-first.
+        
+        Returns:
+        --------
+        constants : set of str
+            A set of all required constants.
+        """
+        datatype = project.model[self.datatype]
+        if data is None:
+            return set()
+        return datatype.get_constants(data, project, context, parents)
 
 # Define dict of lambdas to retrieve scalar types
 scalar_from_data = {
@@ -938,7 +1273,7 @@ scalar_to_assembly = {
     's16' : (lambda value : f'.hword ({value} & 0xFFFF)'),
     'u32' : (lambda value : f'.word {value}'),
     's32' : (lambda value : f'.word {value}'),
-    'pointer' : (lambda value : f'.word {value}')
+    'pointer' : (lambda value : f'.word {(value if value is not None else 0)}')
 }
 
 # Define the lenght of scalars

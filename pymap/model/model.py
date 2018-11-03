@@ -28,13 +28,13 @@ for model in default_models:
     for typename, datatype in model.items():
         default_model[typename] = datatype
 
-def get_model(models_file_path):
+def get_model(models_file_paths):
     """ Gets the models for pymap.
     
     Parameters:
     -----------
-    models_file : str or None
-        Path to a python script that creates new types for
+    model_files : list of str
+        List of path to a python scripts that create new types for
         the data model. All new types must be available in
         a variable 'models' which is a dict that maps
         type names to their respective instances.
@@ -45,14 +45,17 @@ def get_model(models_file_path):
         Maps from strings to type classes.
     """
     model = default_model.copy()
-    if models_file_path:
+    for models_file_path in models_file_paths:
+        # Remove models from previous files
+        if 'models_to_export' in locals():
+            del locals()['models_to_export']
         with open(models_file_path) as f:
             exec(f.read())
             # Try to get models
             try:
                 models = locals()['models_to_export']
             except:
-                raise RuntimeError(f'{models_file} does not provide a \'models\' variable')
+                raise RuntimeError(f'{models_file_path} does not provide a \'models_to_export\' variable')
             for key, value in models.items():
                 model[key] = value
     return model 

@@ -76,4 +76,4 @@ class Project:
             'gfxs' : self.gfxs
         }
         with open(file_path, 'w+') as f:
-            json.dump(representation, f, indent='\t')
+            json.dump(representation, f, indent=self.config['json']['indent'])
