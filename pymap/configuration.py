@@ -20,6 +20,10 @@ default_configuration = {
     'json' : {
         # Define the indent for outputting json files
         'indent' : '\t'
+    },
+    'rom' : {
+        # The offset where the rom will be loaded into RAM
+        'offset' : 0x08000000
     }
 
 }

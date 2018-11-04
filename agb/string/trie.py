@@ -52,12 +52,15 @@ class PrefixTriemap:
         depth : int
             The size of the longest prefix matched.
         """
+        if self.depth > 100:
+            raise Exception(pattern)
         if len(pattern) > 0:
-            # Try to match a longer prefix
-            child = self.children[pattern[0]]
-            sequence, depth = child[pattern[1:]]
-            if sequence is not None:
-                return sequence, depth
+            # Try to match a longer prefix without creating new children
+            if pattern[0] in self.children:
+                child = self.children[pattern[0]]
+                sequence, depth = child[pattern[1:]]
+                if sequence is not None:
+                    return sequence, depth
         
         # Either the pattern is empty or no longer prefix could be matched.
         return self.value, self.depth

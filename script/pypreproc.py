@@ -3,88 +3,33 @@
 import os.path, sys, getopt
 from pokestring import preprocasm, preprocc
 
-if __name__ == "__main__":
-     # Setup argparser
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "ht:o:", ["help"])
-    except getopt.GetoptError:
-        sys.exit(2)
+import agb.string.compile
+from functools import partial
+import argparse
 
-    filetype = None
-    output = None
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Preprocesses an assembly or C(++) file.')
+    parser.add_argument('input', help='Path to the input file.')
+    parser.add_argument('charmap', help='Path to the character map.')
+    parser.add_argument('-o', dest='output', help='Path to the output file.')
+    parser.add_argument('--filetype', dest='file_type', help='Filetype, either c or asm. Default: infered', default=None)
+    parser.add_argument('--tail', dest='tail', help='Comma seperated list of integers representing a sequence terminating a string. Example: \'0x0,0xFF\'. Default: \'0xFF\'', default='0xFF')
+    parser.add_argument('--macro', dest='macro', help='C(++) macro to enclose strings in. Example usage of MACRO: \'MACRO("...", "...")\'. Default: PSTRING ', default='PSTRING')
+    args = parser.parse_args()
 
-    # Parse opts
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            print("""Usage pypreproc.py [opts] input charmap [macro]
-
-Arguments:
-    input           :   Input file path
-    charmap         :   Charmap file path
-    [macro]         :   Macro which strings must be contained
-                        in. Required for filetype 'c'
-
-Options:
-    -t {filetype}   :   Filetype ('c' or 'asm') [infered]
-    -o {path}       :   Output file
-
-Supported assembly directives:
-    1. Translates a string into .byte section
-        Example: .string "foo"
-    2. Translates a normal string and pads it with zeros
-        Example: .stringpad <length> "foo"
-    3. Translates a string and automatically inserts
-    linebreaks / linescrolls where needed. If no more
-    lines fit in the textbox a scrolling is inserted
-    as linebreak. Linebreaks are only performed at
-    spaces (sequences mapping to 0x0).
-        Example: .autostring <linewidth> <lines per box> "foo"
-    
-Supported c / cpp directives:
-    MACRO("foo", "bar", ...)
-
-    All strings that are given as macro parameters will be
-    translated into an char array independent of any language.
-    The macro itself therefore must resolve the language
-    selection.
-
-    
-
-            """)
-            exit(0)
-        elif opt in ("-t"):
-            filetype = arg
-        elif opt in ("-o"):
-            output = arg
+    file_type = args.file_type
+    if file_type is None:
+        if args.input.endswith('.s') or args.input.endswith('.asm'):
+            file_type = 'asm'
+        elif args.input.endswith('.c') or args.input.endswith('.cpp'):
+            file_type = 'c'
         else:
-            raise Exception("Unkown option {0}!".format(opt))
-    
-    if len(args) < 1:
-        raise Exception("No input specified (see --help).")
-    if len(args) < 2:
-        raise Exception("No charmap file specified (see --help).")
-    
-    input = args[0]
-    charmap = args[1]
-    
-    if not output:
-        raise Exception("No output specified (see --help).")
-    
-    if not filetype:
-        # Infer filetype
-        _, extension = os.path.splitext(input)
-        if extension in (".s", ".asm"):
-            filetype = "asm"
-        elif extension in (".c", ".cpp"):
-            filetype = "c"
-        else:
-            raise Exception("Could not infere filetype from \
-            extension {0}.".format(extension))
-    
-    if filetype == "asm":
-        preprocasm.preprocess_assembly(input, charmap, output)
-    else:
-        if len(args) < 3:
-            raise Exception("No macro specified (see --help).")
-        macro = args[2]
-        preprocc.preprocess_c(input, charmap, output, macro)
+            raise RuntimeError(f'Unable to infer file type from path {file_type}')
+    tail = list(map(partial(int, base=0), args.tail.split(',')))
+
+    if file_type in ('asm', 's'):
+        agb.string.compile.preprocess_assembly(args.input, args.charmap, args.output, tail=tail)
+    elif file_type in ('c', 'cpp'):
+        agb.string.compile.preprocess_cpp(args.input, args.charmap, args.output, args.macro, tail)
+    else:    
+        raise RuntimeError(f'Unkown file type {file_type}')
