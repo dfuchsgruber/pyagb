@@ -68,5 +68,5 @@ default_model = {
     'footer.blocks_line' : blocks_line_type,
     'footer.blocks_array' : blocks_array_type,
     'footer.blocks_array_pointer' : blocks_array_pointer_type,
-    'footer.footer' : footer_type
+    'footer' : footer_type
 }

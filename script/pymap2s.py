@@ -30,12 +30,7 @@ if __name__ == '__main__':
         # Compile any datatype
         with open(args.input) as f:
             input = json.load(f)
-        filetype = input['type']
-        if filetype not in project.config['pymap2s']['file_types']:
-            raise RuntimeError(f'File type {filetype} not associated with any agb data type.')
-        else:
-            datatype = project.config['pymap2s']['file_types'][filetype]
-        assembly = pymap.compile.datatype_to_assembly(input['data'], datatype, input['label'], project)
+        assembly = pymap.compile.datatype_to_assembly(input['data'], input['type'], input['label'], project)
         
     with open(args.output, 'w+') as f:
         f.write(assembly)

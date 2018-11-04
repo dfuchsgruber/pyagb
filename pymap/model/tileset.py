@@ -156,7 +156,7 @@ default_model = {
     'tileset.behaviour_array_secondary' : behaviour_array_secondary_type,
     'tileset.behaviour_array_primary_pointer' : behaviour_array_primary_pointer_type,
     'tileset.behaviour_array_secondary_pointer' : behaviour_array_secondary_pointer_type,
-    'tileset.tileset_primary' : tileset_primary_type,
-    'tileset.tileset_secondary' : tileset_secondary_type,
+    'tileset_primary' : tileset_primary_type,
+    'tileset_secondary' : tileset_secondary_type,
     'tileset.gfx_pointer' : gfx_pointer_type
 }

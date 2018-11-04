@@ -1261,7 +1261,7 @@ class PointerType(ScalarType):
 class StringType:
     """ Type class for strings. """
 
-    def __init__(self, charmap, fixed_size=None, tail=[0xFF], boxsize=None):
+    def __init__(self, fixed_size=None, box_size=None):
         """ Initializes a string type.
         
         Parameters:
@@ -1274,9 +1274,6 @@ class StringType:
             string has variable size.
             Note that this argument is incompatible with the box_size
             argument.
-        tail : iterable
-            A sequence of bytes terminating the string.
-            Default : [255]
         box_size : tuple or None
             A tuple width, height indicating the width of the box the
             string is displayed in. The string will be broken
@@ -1285,7 +1282,6 @@ class StringType:
             Note that this argument is incompatible with the fixed_size
             argument.
         """
-        self.agbstring = agb.string.agbstring.Agbstring(charmap, tail=tail)
         self.fixed_size = fixed_size
         self.box_size = box_size
 
@@ -1313,7 +1309,7 @@ class StringType:
         string : str
             The string in the rom.
         """
-        string, _ = self.agbstring.hex_to_str(rom, offset)
+        string, _ = project.coder.hex_to_str(rom, offset)
         return string
 
     def to_assembly(self, string, project, context, parents, label=None, alignment=None, global_label=None):
@@ -1348,12 +1344,16 @@ class StringType:
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
+        directives = project.config['string']['as']['directives']
         if self.fixed_size is not None:
-            return f'{agb.string.compile.DIRECTIVE_PADDED} {self.fixed_size} "{string}"', []
+            assembly = f'{directives["padded"]} {self.fixed_size} "{string}"'
         elif self.box_size is not None:
             width, height = self.box_size
-            return f'{agb.string.compile.DIRECTIVE_AUTO} {width} {height} "{string}"', []
-        return f'{agb.string.compile.DIRECTIVE_STD} "{string}"', []
+            assembly = f'{directives["auto"]} {width} {height} "{string}"'
+        else:
+            assembly = f'{directives["std"]} "{string}"'
+        return label_and_align(assembly, label, alignment, global_label), []
+        
     
     def __call__(self, project, context, parents):
         """ Initializes a new string. 
@@ -1401,7 +1401,7 @@ class StringType:
         """
         if self.fixed_size is not None:
             return self.fixed_size
-        return len(self.agbstring.str_to_hex(string))
+        return len(project.coder.str_to_hex(string))
 
     def get_constants(self, string, project, context, parents):
         """ Returns a set of all constants that are used by this type and
@@ -1430,15 +1430,15 @@ class StringType:
 
 # Define dict of lambdas to retrieve scalar types
 scalar_from_data = {
-    'u8' : (lambda rom, offset, project: struct.unpack_from('<B', rom, offset=offset)),
-    's8' : (lambda rom, offset, _: struct.unpack_from('<b', rom, offset=offset)),
-    'u16' : (lambda rom, offset, _: struct.unpack_from('<H', rom, offset=offset)),
-    's16' : (lambda rom, offset, _: struct.unpack_from('<h', rom, offset=offset)),
-    'u32' : (lambda rom, offset, _: struct.unpack_from('<I', rom, offset=offset)),
-    's32' : (lambda rom, offset, _: struct.unpack_from('<i', rom, offset=offset)),
+    'u8' : (lambda rom, offset, project: struct.unpack_from('<B', rom, offset=offset)[0]),
+    's8' : (lambda rom, offset, _: struct.unpack_from('<b', rom, offset=offset)[0]),
+    'u16' : (lambda rom, offset, _: struct.unpack_from('<H', rom, offset=offset)[0]),
+    's16' : (lambda rom, offset, _: struct.unpack_from('<h', rom, offset=offset)[0]),
+    'u32' : (lambda rom, offset, _: struct.unpack_from('<I', rom, offset=offset)[0]),
+    's32' : (lambda rom, offset, _: struct.unpack_from('<i', rom, offset=offset)[0]),
     'pointer' : (lambda rom, offset, project: (
-        struct.unpack_from('<I', rom, offset=offset) - project['rom']['offset'] if
-        struct.unpack_from('<I', rom, offset=offset) != 0 else None
+        struct.unpack_from('<I', rom, offset=offset)[0] - project['rom']['offset'] if
+        struct.unpack_from('<I', rom, offset=offset)[0] != 0 else None
     ))
 }
 

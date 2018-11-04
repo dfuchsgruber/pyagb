@@ -1,20 +1,6 @@
 import os
 from . import agbstring, format
-
-# Compile a string plainly into bytes 
-# Example:
-# .string "..."
-DIRECTIVE_STD = ".string"
-
-# Compile a string and break it automatically to fit a box
-# Example:
-# .autostring WIDTH HEIGHT "..."
-DIRECTIVE_AUTO = ".autostring"
-
-# Compile a string and pad it to a certain length in bytes
-# Example
-# .stringpad SIZE "..."
-DIRECTIVE_PADDED = ".stringpad"
+from warnings import warn
 
 def process_string(string, coder):
     """ Extracts and encodes a string embedded into '' .
@@ -33,29 +19,15 @@ def process_string(string, coder):
         raise RuntimeError(f'Expected string {string} to be embedded into \"\"')
     return coder.str_to_hex(string[1:-1])
 
-def preprocess_assembly_line(line, coder, delimiters=(0x0,), 
-    scroll=0xFA, paragraph=0xFB, newline=0xFE, buffers=(0xFD, 0xFC),
-    max_buffer_size=10):
+def preprocess_assembly_line(line, project):
     """ Preprocesses an assembly line. 
     
     Paramters:
     ----------
     line : str
         The line to preprocess.
-    coder : agbstring.Agbstring
-        The encoder / decoder for strings.
-    delimiters : iterable
-        Characters that can be replaced by linebreaks in order to split words.
-    scroll : int
-        The character to scroll a line.
-    paragraph : int
-        The character to clear the box.
-    newline : int
-        The character to force a line break.
-    buffers : iterable
-        The characters to access a string buffer.
-    max_buffer_size : int
-        The maximal number of characters that a buffer can hold.
+    project : pymap.project.Project
+        The pymap project.
 
     Returns:
     --------
@@ -66,60 +38,47 @@ def preprocess_assembly_line(line, coder, delimiters=(0x0,),
     if len(tokens) == 0:
         return line
     # Check for directives
-    if tokens[0] == DIRECTIVE_STD:
+    if tokens[0] == project.config['string']['as']['directives']['std']:
         string = line[line.index(tokens[1]):] # Keep multiple spaces
-        sequence = process_string(string, coder)
-    elif tokens[0] == DIRECTIVE_AUTO:
+        sequence = process_string(string, project.coder)
+    elif tokens[0] == project.config['string']['as']['directives']['auto']:
         string = line[line.index(tokens[3]):] # Keep multiple spaces
         width = int(tokens[1], base=0)
         height = int(tokens[2], base=0)
-        sequence = format.fit_box(process_string(string, coder), width, height, delimiters=delimiters, 
-            scroll=scroll, paragraph=paragraph, newline=newline, buffers=buffers, max_buffer_size=max_buffer_size, coder=coder)
-    elif tokens[0] == DIRECTIVE_PADDED:
+        characters = project.config['string']['characters']
+        sequence = format.fit_box(process_string(string, project.coder), width, height, delimiters=characters['delimiters'], 
+            scroll=characters['scroll'], paragraph=characters['paragraph'], newline=characters['newline'], buffers=characters['buffers'],
+            max_buffer_size=characters['max_buffer_size'], coder=project.coder)
+    elif tokens[0] == project.config['string']['as']['directives']['padded']:
         string = line[line.index(tokens[2]):] # Keep multiple spaces
         size = int(tokens[1], 0)
-        sequence = process_string(string, coder)
+        sequence = process_string(string, project.coder)
         if len(sequence) > size:
-            warn(f'Sequence of size {len(sequence)} extends maximal size of {size}. Truncating.')
+            warn(f'Sequence {string} of size {len(sequence)} extends maximal size of {size}. Truncating.')
         else:
             sequence += [0] * (size - len(sequence))
+    else:
+        return line
     joined = ', '.join(map(str, sequence))
     return f'.byte {joined}'
 
-def preprocess_assembly(input, charmap, output, tail=[0xFF], delimiters=(0x0,), 
-    scroll=0xFA, paragraph=0xFB, newline=0xFE, buffers=(0xFD, 0xFC),
-    max_buffer_size=10):
+def preprocess_assembly(input, project, output):
     """ Preprocesses an assembly file. 
     
     Parameters:
     -----------
     input : str
-        The input to preprocess.
-    charmap : str
-        Path to the character map.
+        Path to the input.
+    project : pymap.project.Project
+        The map project.
     output : str
         Path to the output file.
-    tail : list
-        Bytes that terminate a string.
-    delimiters : iterable
-        Characters that can be replaced by linebreaks in order to split words.
-    scroll : int
-        The character to scroll a line.
-    paragraph : int
-        The character to clear the box.
-    newline : int
-        The character to force a line break.
-    buffers : iterable
-        The characters to access a string buffer.
-    max_buffer_size : int
-        The maximal number of characters that a buffer can hold.
     """
-    coder = agbstring.Agbstring(charmap, tail=tail)
     with open(input, 'r', encoding='utf-8') as f:
         assembly = f.read()
 
     # Preprocess assembly linewise
-    processed = [preprocess_assembly_line(line, coder) for line in split_continued_lines(assembly)]
+    processed = [preprocess_assembly_line(line, project) for line in split_continued_lines(assembly)] + ['']
 
     with open(output, "w+", encoding="utf-8") as f:
         f.write(os.linesep.join(processed))
@@ -144,25 +103,23 @@ def split_continued_lines(input):
             line = line[:-1] + next(input).rstrip(os.linesep)
         yield line
 
-def preprocess_cpp(input, charmap, outfile, macro, tail=[0xFF]):
+def preprocess_cpp(input, project, outfile):
     """ Preprocesses a C(++) file.
     
     Parameters:
     -----------
     input : str
-        The input to preprocess.
-    charmap : str
-        Path to the character map.
+        Path to the input.
+    project : pymap.project.Project
+        The map project.
     outfile : str
         Path to the output file.
-    macro : str
-        The macro that encloses all strings.
-    tail : list
-        Bytes that terminate a string.
     """
-    coder = agbstring.Agbstring(charmap, tail=tail)
     with open(input, 'r', encoding='utf-8') as f:
         source = f.read()
+    tail = project.config['string']['tail']
+    macro = project.config['string']['c']['macro']
+
     sementically_irrelevant_characters = ('\t', ' ', '\\', os.linesep)
 
     offset = 0
@@ -199,24 +156,32 @@ def preprocess_cpp(input, charmap, outfile, macro, tail=[0xFF]):
             if source[offset] != '"':
                 raise Exception(f'Expected quotes (start of string) but got {source[offset]}')
             offset += 1
-            
-            # Collect characters until the string is closed
-            while offset < len(source):
-                offset += 1
-                if source[offset - 1] == '"':
-                    break
-                else:
-                    string += source[offset - 1]
-            num_skipped_chars = skip_sementically_irrelevant_characters(source, offset, sementically_irrelevant_characters)
-            if offset + num_skipped_chars >= len(source):
-                raise Exception(f'Unexpected eof while expecting quotes (start of string)')
-            offset += num_skipped_chars
-            if source[offset] == ')':
+
+            # Parse and concatenate arbitraryly many "..." sequences
+            while True:
+                # Collect characters until the string is closed
+                while offset < len(source):
+                    offset += 1
+                    if source[offset - 1] == '"':
+                        break
+                    else:
+                        string += source[offset - 1]
+                if offset >= len(source):
+                    raise Exception(f'Unexpected eof while expecting quotes (start of string)')                
+                num_skipped_chars = skip_sementically_irrelevant_characters(source, offset, sementically_irrelevant_characters)
+                if offset + num_skipped_chars >= len(source):
+                    raise Exception(f'Unexpected eof while expecting ( ')
+                offset += num_skipped_chars
+                if source[offset] == ')':
                     # No more "..." to parse
                     offset += 1
-            else:
-                raise Exception(f'Expected quotes (end of string) but got {source[offset]}')
-            output += '{' + ','.join(map(str, coder.str_to_hex(string))) + '})'
+                    break
+                elif source[offset] == '"':
+                    # Start next "..." sequence
+                    offset += 1
+                else:
+                    raise Exception(f'Expected ( but got \'{source[offset]}\'')
+            output += '{' + ','.join(map(str, project.coder.str_to_hex(string))) + '})'
                 
     with open(outfile, 'w+', encoding='utf-8') as f:
         f.write(output)

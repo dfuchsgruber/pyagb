@@ -5,6 +5,7 @@ from . import constants, configuration
 import pymap.model.model
 from pathlib import Path
 from agb import types
+import agb.string.agbstring
 
 class Project:
     """ Represents the central project structure and handles maps, tilesets, gfx... """
@@ -31,6 +32,13 @@ class Project:
 
         # Initialize models
         self.model = pymap.model.model.get_model(self.config['model'])
+
+        # Initiaize the string decoder / encoder
+        charmap = self.config['string']['charmap']
+        if charmap is not None:
+            self.coder = agb.string.agbstring.Agbstring(charmap, tail=self.config['string']['tail'])
+        else:
+            self.coder = None
 
     def from_file(self, file_path):
         """ Initializes the project from a json file. Should not

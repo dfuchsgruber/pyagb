@@ -6,13 +6,6 @@ default_configuration = {
         # Include directive for pymap assemblies
         'include' : {
             'directive' : '.include "{constant}.s"',
-        },
-        # Link pymap file types to datatypes
-        'file_types' : {
-            'header' : 'header.header',
-            'footer' : 'footer.footer',
-            'tileset_primary' : 'tileset.tileset_primary',
-            'tileset_secondary' : 'tileset.tileset_secondary'
         }
     },
     # Define additional models that may override default models
@@ -24,8 +17,46 @@ default_configuration = {
     'rom' : {
         # The offset where the rom will be loaded into RAM
         'offset' : 0x08000000
+    },
+    'string' : {
+        # Define a character mapping. If None, no encoder / decoder can be used.
+        'charmap' : None,
+        # A sequence that terminates strings.
+        'tail' : [
+            0xFF
+        ],
+        'as' : {
+            # Directive for string assemblies
+            'directives' : {
+                # Compile a string plainly into bytes 
+                # Example:
+                # .string "..."
+                'std' : '.string',
+                # Compile a string and break it automatically to fit a box
+                # Example:
+                # .autostring WIDTH HEIGHT "..."
+                'auto' : '.autostring',
+                # Compile a string and pad it to a certain length in bytes
+                # Example
+                # .stringpad SIZE "..."
+                'padded' : '.stringpad'
+            }
+        },
+        'c' : {
+            # Macro to enclose c strings
+            'macro' : 'PSTRING'
+        },
+        # Define special characters such as newline, etc.
+        'characters' : {
+            'newline' : 0xFE,
+            'scroll' : 0xFA,
+            'paragraph' : 0xFB,
+            'buffers' : [0xFD, 0xFC],
+            'delimiters' : [0x0],
+            'max_buffer_size' : 10
+        }
+        
     }
-
 }
 
 # Helper function to recursively iterate over the dicts

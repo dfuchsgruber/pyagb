@@ -46,29 +46,12 @@ signpost_item_type = agb.types.BitfieldType('u32', [
     ('amount', None, 8)
 ])
 
-def signpost_structure_get(parents):
-    """ Returns the structure of a signpost based on its type field.
-    
-    Parameters:
-    -----------
-    parents : list
-        The parents of the signpost.
-    
-    Returns:
-    --------
-    structure : 'item' or 'script'
-        The structure of the signpost.
-    """
-    signpost_type = parents[-1]['type']
-    if signpost_type < 5:
-        return 'script'
-    else:
-        return 'item'
-
 signpost_value_type = agb.types.UnionType({
-    'item' : 'event.signpost_item',
-    'script' : 'ow_script_pointer'
-}, signpost_structure_get)
+        'item' : 'event.signpost_item',
+        'script' : 'ow_script_pointer'
+    },
+    lambda project, context, parents: 'script' if parents[-1]['type'] < 5 else 'item'
+)
 
 signpost_type = agb.types.Structure([
     ('x', 's16'),

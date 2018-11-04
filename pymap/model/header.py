@@ -32,5 +32,5 @@ header_type = agb.types.Structure([
 default_model = {
     'header.event_header_pointer' : event_header_pointer_type,
     'header.connection_header_pointer' : connection_header_pointer_type,
-    'header.header' : header_type
+    'header' : header_type
 }
