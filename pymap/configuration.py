@@ -12,7 +12,9 @@ default_configuration = {
     'model' : [],
     'json' : {
         # Define the indent for outputting json files
-        'indent' : '\t'
+        'indent' : '\t',
+        # Define the default encoding for json files
+        'encoding' : 'utf-8'
     },
     'rom' : {
         # The offset where the rom will be loaded into RAM
