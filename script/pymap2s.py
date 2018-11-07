@@ -28,7 +28,7 @@ if __name__ == '__main__':
         assembly = pymap.compile.project_to_assembly(project, args.header_table_label, args.footer_table_label)
     else:
         # Compile any datatype
-        with open(args.input) as f:
+        with open(args.input, encoding=project.config['json']['encoding']) as f:
             input = json.load(f)
         assembly = pymap.compile.datatype_to_assembly(input['data'], input['type'], input['label'], project)
         

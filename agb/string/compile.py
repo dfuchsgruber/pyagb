@@ -55,6 +55,7 @@ def preprocess_assembly_line(line, project):
         sequence = process_string(string, project.coder)
         if len(sequence) > size:
             warn(f'Sequence {string} of size {len(sequence)} extends maximal size of {size}. Truncating.')
+            sequence = sequence[:size]
         else:
             sequence += [0] * (size - len(sequence))
     else:
