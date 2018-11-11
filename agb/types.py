@@ -412,16 +412,16 @@ class BitfieldType(ScalarType):
         
         Returns:
         --------
-        value : list of int or str
+        value : dict
             The values at the given offset in rom associated with a constant string if possible.
         """
         bit_idx = 0
         scalar_value = scalar_from_data[self.fmt](rom, offset, proj)
-        value = []
+        value = {}
         for member, constant, size in self.structure:
             mask = (1 << size) - 1
             member_value = associate_with_constant((scalar_value >> bit_idx) & mask, proj, constant)
-            value.append(member_value)
+            value[member] = member_value
             bit_idx += size
         return value
 
@@ -457,12 +457,10 @@ class BitfieldType(ScalarType):
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        if not len(values) == len(self.structure):
-            raise RuntimeError(f'More values for bitfield provided {len(values)} than structure supports {len(self.structure)}')
         shifted = []
         bit_idx = 0
-        for value, triplet in zip(values, self.structure):
-            member, _, size = triplet # Unpack the member information
+        for member, _, size in self.structure:
+            value = values[member]
             mask = (1 << size) - 1
             shifted.append(f'(({value} & {mask}) << {bit_idx})')
             bit_idx += size
@@ -489,7 +487,7 @@ class BitfieldType(ScalarType):
         value : list of int or str
             The empty bitfield (zeros).
         """
-        return [0] * len(self.structure)
+        return {member : 0 for member, constant, size in self.structure}
 
     def get_constants(self, values, project, context, parents):
         """ Returns a set of all constants that are used by this type and
@@ -652,7 +650,7 @@ class UnionType:
         """
         value = {}
         for name in self.subtypes:
-            value[name] = project.model[self.subtypes[names]](project, context + [name], parents + [value])
+            value[name] = project.model[self.subtypes[name]](project, context + [name], parents + [value])
         return value
 
     def size(self, values, project, context, parents):
@@ -1083,7 +1081,7 @@ class VariableLengthArrayType:
         datatype = project.model[self.datatype]
         # Only using the first element would be faster, but this approach
         # is more clean and versatile.
-        for i, value in enumerate(values + [self.tail]):
+        for i, value in enumerate(values):
             constants.update(datatype.get_constants(value, project, context + [i], parents))
         return constants
 
