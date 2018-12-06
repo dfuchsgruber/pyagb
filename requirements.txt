@@ -2,3 +2,6 @@ numpy
 pyclibrary
 Pillow
 pypng
+pyqt5
+pyqtgraph
+

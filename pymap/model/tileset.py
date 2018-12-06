@@ -12,20 +12,11 @@ color_type = agb.types.BitfieldType('u16', [
     ('green', None, 5)
 ])
 
-palette_type = agb.types.ArrayType(
-    'color',
-    (lambda project, context, parents: 16)
-)
+palette_type = agb.types.FixedSizeArrayType('color', lambda *args: 16 )
 
-palette_array_primary_type = agb.types.ArrayType(
-    'palette',
-    (lambda project, context, parents: PALETTES_PRIMARY)
-)
+palette_array_primary_type = agb.types.FixedSizeArrayType('palette', lambda *args: PALETTES_PRIMARY)
 
-palette_array_secondary_type = agb.types.ArrayType(
-    'palette',
-    (lambda project, context, parents: PALETTES_SECONDARY)
-)
+palette_array_secondary_type = agb.types.FixedSizeArrayType('palette', lambda *args: PALETTES_SECONDARY)
 
 
 palette_array_primary_pointer_type = agb.types.PointerType(
@@ -47,20 +38,12 @@ block_type = agb.types.BitfieldType(
     ]
 )
 
-block_tilemap_type = agb.types.ArrayType(
-    'block',
-    lambda project, context, parents: 8
-)
+block_tilemap_type = agb.types.FixedSizeArrayType('block', lambda *args: 8)
 
-block_tilemap_array_primary_type = agb.types.ArrayType(
-    'tileset.block_tilemap',
-    (lambda project, context, parents: MAX_BLOCKS_PRIMARY)
-)
 
-block_tilemap_array_secondary_type = agb.types.ArrayType(
-    'tileset.block_tilemap',
-    (lambda project, context, parents: MAX_BLOCKS_SECONDARY)
-)
+block_tilemap_array_primary_type = agb.types.FixedSizeArrayType('tileset.block_tilemap', lambda *args: MAX_BLOCKS_PRIMARY)
+
+block_tilemap_array_secondary_type = agb.types.FixedSizeArrayType('tileset.block_tilemap', lambda *args: MAX_BLOCKS_SECONDARY)
 
 block_tilemap_array_primary_pointer_type = agb.types.PointerType(
     'tileset.block_tilemap_array_primary',
@@ -83,15 +66,10 @@ behaviour_type = agb.types.BitfieldType('u32', [
     ('field_7', None, 1)
 ])
 
-behaviour_array_primary_type = agb.types.ArrayType(
-    'tileset.behaviour',
-    (lambda project, context, parents: MAX_BLOCKS_PRIMARY)
-)
+behaviour_array_primary_type = agb.types.FixedSizeArrayType('tileset.behaviour', lambda *args: MAX_BLOCKS_PRIMARY)
 
-behaviour_array_secondary_type = agb.types.ArrayType(
-    'tileset.behaviour',
-    (lambda project, context, parents: MAX_BLOCKS_SECONDARY)
-)
+behaviour_array_secondary_type = agb.types.FixedSizeArrayType('tileset.behaviour', lambda *args: MAX_BLOCKS_SECONDARY)
+
 
 behaviour_array_primary_pointer_type = agb.types.PointerType(
     'tileset.behaviour_array_primary',

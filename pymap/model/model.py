@@ -4,14 +4,14 @@ import pymap.model.event, pymap.model.footer, pymap.model.header, pymap.model.ti
 
 # Basic scalar types
 default_model = {
-    'u8' : agb.types.u8,
-    's8' : agb.types.s8,
-    's16' : agb.types.s16,
-    'u16' : agb.types.u16,
-    'u32' : agb.types.u32,
-    's32' : agb.types.s32,
-    'int' : agb.types.s32,
-    'pointer' : agb.types.pointer,
+    'u8' : agb.types.ScalarType('u8'),
+    's8' : agb.types.ScalarType('s8'),
+    's16' : agb.types.ScalarType('s16'),
+    'u16' : agb.types.ScalarType('u16'),
+    'u32' : agb.types.ScalarType('u32'),
+    's32' : agb.types.ScalarType('s32'),
+    'int' : agb.types.ScalarType('s32'),
+    'pointer' : agb.types.ScalarType('pointer'),
 }
 
 # Import models from other model files

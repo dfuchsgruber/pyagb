@@ -10,9 +10,9 @@ connection_type = agb.types.Structure([
     ('field_B', 'u8')
 ])
 
-connection_array_type = agb.types.ArrayType(
+connection_array_type = agb.types.VariableSizeArrayType(
     'connection.connection',
-    (lambda project, context, parents: int(parents[-1]['connection_cnt']))
+    (1, ['connection_cnt'])
 )
 
 connection_array_pointer_type = agb.types.PointerType(

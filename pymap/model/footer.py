@@ -11,14 +11,14 @@ map_block_type = agb.types.BitfieldType('u16', [
     ('level', None, 6)
 ])
 
-border_line_type = agb.types.ArrayType(
+border_line_type = agb.types.VariableSizeArrayType(
     'map_block',
-    (lambda project, context, parents: int(parents[-2]['border_width']))
+    (2, ['border_width'])
 )
 
-border_array_type = agb.types.ArrayType(
+border_array_type = agb.types.VariableSizeArrayType(
     'footer.border_line',
-    (lambda project, context, parents: int(parents[-1]['border_height'])) 
+    (2, ['border_height'])
 )
 
 border_array_pointer_type = agb.types.PointerType(
@@ -26,14 +26,14 @@ border_array_pointer_type = agb.types.PointerType(
     (lambda project, context, parents: ('border', 2, False))
 )
 
-blocks_line_type = agb.types.ArrayType(
+blocks_line_type = agb.types.VariableSizeArrayType(
     'map_block',
-    (lambda project, context, parents: int(parents[-2]['width']))
+    (2, ['width'])
 )
 
-blocks_array_type = agb.types.ArrayType(
+blocks_array_type = agb.types.VariableSizeArrayType(
     'footer.blocks_line',
-    (lambda project, context, parents: int(parents[-1]['height'])) 
+    (2, ['height'])
 )
 
 blocks_array_pointer_type = agb.types.PointerType(

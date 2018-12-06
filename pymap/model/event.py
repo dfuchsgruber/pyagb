@@ -1,4 +1,5 @@
 import agb.types
+from functools import partial
 
 person_type = agb.types.Structure([
     ('target_index', 'u8'),
@@ -63,28 +64,24 @@ signpost_type = agb.types.Structure([
     ('value', 'event.signpost_value')
 ])
 
-person_array_type = agb.types.ArrayType(
+person_array_type = agb.types.VariableSizeArrayType(
     'event.person',
-    # The size of the persons array is determined by the person_cnt
-    (lambda project, context, parents: int(parents[-1]['person_cnt']))
+    (1, ['person_cnt'])
 )
 
-warp_array_type = agb.types.ArrayType(
+warp_array_type = agb.types.VariableSizeArrayType(
     'event.warp',
-    # The size of the warps array is determined by the person_cnt
-    (lambda project, context, parents: int(parents[-1]['warp_cnt']))
+    (1, ['warp_cnt'])
 )
 
-trigger_array_type = agb.types.ArrayType(
+trigger_array_type = agb.types.VariableSizeArrayType(
     'event.trigger',
-    # The size of the triggers array is determined by the person_cnt
-    (lambda project, context, parents: int(parents[-1]['trigger_cnt']))
+    (1, ['trigger_cnt'])
 )
 
-signpost_array_type = agb.types.ArrayType(
+signpost_array_type = agb.types.VariableSizeArrayType(
     'event.signpost',
-    # The size of the signposts array is determined by the person_cnt
-    (lambda project, context, parents: int(parents[-1]['signpost_cnt']))
+    (1, ['signpost_cnt'])
 )
 
 person_array_pointer_type = agb.types.PointerType(
