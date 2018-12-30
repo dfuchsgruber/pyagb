@@ -101,13 +101,16 @@ class Image:
 
 
 
-    def to_pil_image(self, palette):
+    def to_pil_image(self, palette, transparent=0):
         """ Creates a Pilow image based on the image resource.
         
         Parameters:
         -----------
         palette : list or byte-like
             Sequence where each groups of 3 represent the R,G,B values
+        transparent : int or None
+            The color index of the palette which resembles transparency, i.e. alpha value of zero.
+            If None, no alpha is applied to the image.
         
         Returns:
         --------
@@ -117,8 +120,14 @@ class Image:
         img = PIL.Image.new('P', (self.width, self.height))
         img.putdata(self.data.T.flatten())
         img.putpalette(palette)
+        img = img.convert('RGBA')
+        if transparent is not None:
+            alpha_color = palette[transparent * 3 : (transparent + 1) * 3]
+            img.putdata([
+                (c[0], c[1], c[2], 0) if c[0] == alpha_color[0] and c[1] == alpha_color[1] and c[2] == alpha_color[2] else c
+                for c in img.getdata()
+            ])
         return img
-
 
 def from_file(file_path):
     """ Creates an Image instance from a png file.

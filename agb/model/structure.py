@@ -3,7 +3,7 @@ from agb.model.type import Type, associate_with_constant, label_and_align
 class Structure(Type):
     """ Superclass to model any kind of structure """
 
-    def __init__(self, structure, priorized_members=[]):
+    def __init__(self, structure, priorized_members=[], hidden_members=set()):
         """ Initialize the members with priorized members. 
         
         Parameters:
@@ -17,9 +17,12 @@ class Structure(Type):
         priorized_members : list of str
             The members to export first (the first index will be exported first,
             the second afterwards and so on...)
+        hidden_members : set
+            The members to hide when displaying the structure in a parameter tree.
         """
         self.structure = structure
         self.priorized_members = priorized_members
+        self.hidden_members = hidden_members
 
     def from_data(self, rom, offset, project, context, parents):
         """ Retrieves the structure from a rom.

@@ -10,8 +10,7 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
     """ Inherit from the standard list parameter item class but make the widget editable. """
 
     def __init__(self, param, depth):
-        self.constant = param.constant
-        self.project = param.project
+        self.constants = param.constants
         super().__init__(param, depth)
 
     def makeWidget(self):
@@ -24,7 +23,7 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
         w.value = w.currentText
         w.setEditable(True)
         self.widget = w  
-        w.addItems(list(self.project.constants[self.constant].keys()))
+        w.addItems(self.constants)
         return w
 
     def setValue(self, val):
@@ -79,6 +78,7 @@ class ConstantsTypeParameter(parameterTypes.ListParameter):
     def __init__(self, name, project, constant, **kwargs):
         self.constant = constant
         self.project = project
+        self.constants = list(self.project.constants[self.constant].keys())
         super().__init__(name=name, **kwargs)
 
 
@@ -159,7 +159,7 @@ class StructureTypeParameter(parameterTypes.GroupParameter):
         for name, type_name in self.datatype.structure:
             # print(f'Adding {name} of {type_name}')
             child = type_to_parameter(project, type_name)(name, project, type_name, value[name], context + [name], self)
-            self.addChild(child)
+            if name not in self.datatype.hidden_members: self.addChild(child)
 
     def model_value(self):
         """ Gets the value of this parameter according to the data model. 
@@ -205,7 +205,7 @@ class BitfieldTypeParameter(parameterTypes.GroupParameter):
                 child.setValue(value[name])
             else:
                 child = ScalarTypeParameterWithoutConstants(name, self.project, datatype_name, value[name], self.context + [name], self)
-            self.addChild(child)
+            if name not in self.datatype.hidden_members: self.addChild(child)
 
     def model_value(self):
         """ Gets the value of this parameter according to the data model. 

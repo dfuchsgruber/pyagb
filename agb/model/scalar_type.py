@@ -155,6 +155,7 @@ class ScalarType(Type):
             return set()
 
 
+
 # Define dict of lambdas to retrieve scalar types
 scalar_from_data = {
     'u8' : (lambda rom, offset, project: struct.unpack_from('<B', rom, offset=offset)[0]),

@@ -56,8 +56,26 @@ default_configuration = {
             'buffers' : [0xFD, 0xFC],
             'delimiters' : [0x0],
             'max_buffer_size' : 10
+        }  
+    },
+    'pymap' : {
+        # Configure how to handle a tileset dictionary structure
+        'tileset' : {
+            # Define how to access a certain palette given a tileset. If ['foo', 'bar'] is given
+            # Then tileset['foo']['bar'] is expected to yield an array of palettes that can be indexed
+            # with an integer
+            'palettes_path' : ['palettes'],
+            'gfx_path' : ['gfx'],
+            'blocks_path' : ['blocks'],
+        },
+        'footer' : {
+            'map_width_path' : ['width'],
+            'map_height_path' : ['height'],
+            'map_blocks_path' : ['blocks'],
+            'border_width_path' : ['border_width'],
+            'border_height_path' : ['border_height'],
+            'border_path' : ['border'],
         }
-        
     }
 }
 

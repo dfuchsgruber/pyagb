@@ -56,7 +56,10 @@ footer_type = agb.types.Structure(
         ('field_1A', 'u16')
     ], 
     # Export the width and height of the blocks and border beforehand
-    priorized_members=['width', 'height', 'border_width', 'border_height']
+    priorized_members=['width', 'height', 'border_width', 'border_height'],
+    hidden_members=set([
+        'border', 'blocks', 'tileset_primary', 'tileset_secondary'
+    ])
 )
 
 # These model declarations will be exported

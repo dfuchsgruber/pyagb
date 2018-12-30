@@ -6,7 +6,7 @@ import pymap.project
 import json
 from pprint import pprint
 
-from pymap.gui.model import *
+from pymap.gui.tree import *
 
 os.chdir('/media/d/romhacking/Violet_Sources')
 

@@ -4,7 +4,7 @@ from agb.model.type import label_and_align, associate_with_constant
 class BitfieldType(ScalarType):
     """ Class for bitfield types. """
     
-    def __init__(self, fmt, structure):
+    def __init__(self, fmt, structure, hidden_members=set()):
         """ Initializes the bitfield type. 
         
         Parameters:
@@ -22,9 +22,12 @@ class BitfieldType(ScalarType):
                 The number of bits this member spans
             Note that the size of the entire bitfield is infered from the structure
             attribute and padded to fit 8, 16 or 32 bit.
+        hidden_members : set
+            The members to hide when displaying the bitfield in a parameter tree.
         """
         super().__init__(fmt, constant=None)
         self.structure = structure
+        self.hidden_members = hidden_members
 
     def from_data(self, rom, offset, proj, context, parents):
         """ Retrieves the constant type from a rom and tries to associate the constant value.

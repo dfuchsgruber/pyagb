@@ -13,6 +13,6 @@ setup(name='pyagb',
     'script/pysetex.py', 'script/pymapbatchex.py',
     'script/pymapconstex.py', 'script/pyowscriptex.py',
     'script/pypreproc.py', 'script/bin2s.py'],
-    install_requires = ['numpy', 'Pillow', 'PyPng', 'pyqt5', 'pyqtgraph'],
+    install_requires = ['numpy', 'Pillow', 'PyPng', 'pyqt5', 'pyqtgraph', 'appdirs'],
     include_package_data=True
 )

@@ -25,7 +25,10 @@ header_type = agb.types.Structure([
     ('show_name', 'u8'),
     ('field_1A', 'u8'),
     ('battle_style', 'u8')
+], hidden_members=set([
+    'events', 'connections', 'footer'
 ])
+)
 
 # These model declarations will be exported
 

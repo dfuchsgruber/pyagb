@@ -4,4 +4,4 @@ Pillow
 pypng
 pyqt5
 pyqtgraph
-
+appdirs

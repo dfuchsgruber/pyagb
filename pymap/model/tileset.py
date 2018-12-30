@@ -111,7 +111,9 @@ tileset_secondary_type = agb.types.Structure([
     ('blocks', 'tileset.block_tilemap_array_secondary_pointer'),
     ('animation_initialize', 'u32'),
     ('behaviours', 'tileset.behaviour_array_secondary_pointer')
-])
+], hidden_members=set([
+    'gfx', 'behaviours', 'blocks'
+]))
 
 
 # These model declarations will be exported
