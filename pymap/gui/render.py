@@ -3,6 +3,8 @@
 import agb.image
 from PIL import Image
 from warnings import warn
+from properties import get_member_by_path
+import numpy as np
 
 def get_border(footer, blocks, project):
     """ Computes the image of the border.
@@ -21,9 +23,9 @@ def get_border(footer, blocks, project):
     border_img : PIL.Image
         An image of the border.
     """
-    width = int(get_attribute_by_path(footer, project.config['pymap']['footer']['border_width_path']))
-    height = int(get_attribute_by_path(footer, project.config['pymap']['footer']['border_height_path']))
-    border_blocks = get_attribute_by_path(footer, project.config['pymap']['footer']['border_path'])
+    width = int(get_member_by_path(footer, project.config['pymap']['footer']['border_width_path']))
+    height = int(get_member_by_path(footer, project.config['pymap']['footer']['border_height_path']))
+    border_blocks = get_member_by_path(footer, project.config['pymap']['footer']['border_path'])
     border_img = Image.new('RGBA', (width * 16, height * 16))
     for y, block_line in enumerate(border_blocks):
         for x, block_data in enumerate(block_line):
@@ -31,8 +33,31 @@ def get_border(footer, blocks, project):
             border_img.paste(blocks[block_idx], (16 * x, 16 * y), blocks[block_idx])
     return border_img
 
+def draw_block_map(blocks, block_map):
+    """ Computes the image of an entire block map.
+    
+    Parameters:
+    -----------
+    blocks : list
+        A list of 16x16 blocks.
+    block_map : np.array, shape [H, W]
+        The blocks in a 2d array.
 
-def get_map(footer, blocks, project):
+    Returns:
+    --------
+    map_img : PIL.Image
+        An image of the entire map, size (16*H, 16*W).
+    """
+    height, width = block_map.shape
+    map_img = Image.new('RGBA', (width * 16, height * 16))
+    for idx, block_data in np.ndenumerate(block_map):
+        y, x = idx
+        block_idx = block_data['block_idx']
+        map_img.paste(blocks[block_idx], (16 * x, 16 * y), blocks[block_idx])
+    return map_img
+
+# Depcreated
+def get_map(footer, blocks):
     """ Computes the image of an entire map.
     
     Parameters:
@@ -41,17 +66,15 @@ def get_map(footer, blocks, project):
         The map footer.
     blocks : list
         A list of 16x16 blocks.
-    project : pymap.project.Project
-        The pymap project.
 
     Returns:
     --------
     map_img : PIL.Image
         An image of the entire map.
     """
-    width = int(get_attribute_by_path(footer, project.config['pymap']['footer']['map_width_path']))
-    height = int(get_attribute_by_path(footer, project.config['pymap']['footer']['map_height_path']))
-    map_blocks = get_attribute_by_path(footer, project.config['pymap']['footer']['map_blocks_path'])
+    width = int(get_member_by_path(footer, project.config['pymap']['footer']['map_width_path']))
+    height = int(get_member_by_path(footer, project.config['pymap']['footer']['map_height_path']))
+    map_blocks = get_member_by_path(footer, project.config['pymap']['footer']['map_blocks_path'])
     map_img = Image.new('RGBA', (width * 16, height * 16))
     for y, block_line in enumerate(map_blocks):
         for x, block_data in enumerate(block_line):
@@ -78,9 +101,8 @@ def get_blocks(tileset_primary, tileset_secondary, tiles, project):
     blocks : list
         A list of 16x16 block images.
     """
-    blocks_path = project.config['pymap']['tileset']['blocks_path']
-    blocks_primary = get_attribute_by_path(tileset_primary, blocks_path)
-    blocks_secondary = get_attribute_by_path(tileset_secondary, blocks_path)
+    blocks_primary = get_member_by_path(tileset_primary, project.config['pymap']['tileset_primary']['blocks_path'])
+    blocks_secondary = get_member_by_path(tileset_secondary, project.config['pymap']['tileset_secondary']['blocks_path'])
     return [get_block(block, tiles, project) for block in blocks_primary + blocks_secondary]
 
 def get_block(block, tiles, project):
@@ -172,14 +194,16 @@ def get_tiles(tileset_primary, tileset_secondary, project):
     """
 
     # Load images
-    gfx_path = project.config['pymap']['tileset']['gfx_path']
-    gfx_primary = get_attribute_by_path(tileset_primary, gfx_path)
-    gfx_secondary = get_attribute_by_path(tileset_secondary, gfx_path)
-    gfx_primary, _ = agb.image.from_file(project.gfxs[gfx_primary])
-    gfx_secondary, _ = agb.image.from_file(project.gfxs[gfx_secondary])
+    gfx_primary = get_member_by_path(tileset_primary, project.config['pymap']['tileset_primary']['gfx_path'])
+    gfx_secondary = get_member_by_path(tileset_secondary, project.config['pymap']['tileset_secondary']['gfx_path'])
+    gfx_primary, _ = agb.image.from_file(project.gfxs_primary[gfx_primary])
+    gfx_secondary, _ = agb.image.from_file(project.gfxs_secondary[gfx_secondary])
 
     # Pack colors for both tilesets
-    palettes = pack_colors(tileset_primary, project) + pack_colors(tileset_secondary, project)
+    palettes_primary = get_member_by_path(tileset_primary, project.config['pymap']['tileset_primary']['palettes_path'])
+    palettes_secondary = get_member_by_path(tileset_secondary, project.config['pymap']['tileset_secondary']['palettes_path'])
+
+    palettes = pack_colors(palettes_primary, project) + pack_colors(palettes_secondary, project)
     return [
         split_into_tiles(gfx_primary.to_pil_image(palette, transparent=0)) + split_into_tiles(gfx_secondary.to_pil_image(palette, transparent=0)) for palette in palettes
     ]
@@ -194,13 +218,13 @@ def split_into_tiles(image):
     return tiles
 
 
-def pack_colors(tileset, project):
+def pack_colors(palettes, project):
     """ Packs all members of a palette structure.
     
     Parameters:
     -----------
-    tileset : dict
-        The tileset of which to pack a palette from.
+    palettes : list
+        A palette array.
     project : pymap.project.Project
         The pymap project.
     
@@ -209,8 +233,6 @@ def pack_colors(tileset, project):
     packed : list
         A list of length #palettes that holds packed rgb values (lists of size 48) for the palette.
     """
-    palette_path = project.config['pymap']['tileset']['palettes_path']
-    palettes = get_attribute_by_path(tileset, palette_path)
     packed = []
     for palette in palettes:
         # Retrieve rgb values separately
@@ -221,10 +243,3 @@ def pack_colors(tileset, project):
                 packed_palette.append(color[channel] << 3)
         packed.append(packed_palette)
     return packed
-
-
-def get_attribute_by_path(value, path):
-    """ Returns an attribute of a structure by its path. """
-    for edge in path:
-        value = value[edge]
-    return value

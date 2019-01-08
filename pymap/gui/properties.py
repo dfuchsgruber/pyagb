@@ -649,3 +649,25 @@ def type_to_parameter(project, datatype_name):
         return UnionTypeParameter
     else:
         raise RuntimeError(f'Unsupported datatype class {type(datatype)} of {datatype}')
+
+def get_member_by_path(value, path):
+    """ Returns an attribute of a structure by its path. """
+    for edge in path:
+        value = value[edge]
+    return value
+
+def set_member_by_path(target, value, path):
+    """ Sets the value of a structure by its path. 
+    
+    Parameters:
+    -----------
+    target : dict
+        The structure that holds the requested value
+    value : str
+        The value to apply
+    path : list
+        A path to access the attribute
+    """
+    for edge in path[:-1]:
+        target = target[edge]
+    target[path[-1]] = value 

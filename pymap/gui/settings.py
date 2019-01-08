@@ -10,7 +10,10 @@ config_file = os.path.join(dir, 'settings.json')
 
 default_settings = {
     'resource_tree.header_listing' : resource_tree.SORT_BY_NAMESPACE,
-    'recent.project' : '.'
+    'recent.project' : '.',
+    'recent.header' : '.',
+    'recent.footer' : '.',
+    'recent.tileset' : '.',
 }
 
 class Settings(collections.MutableMapping):
@@ -52,8 +55,13 @@ class Settings(collections.MutableMapping):
                 json.dump(default_settings, f)
             return default_settings
         else:
+            settings = default_settings.copy()
             with open(config_file) as f:
-                return json.load(f)
+                override_settings = json.load(f)
+                for key in override_settings:
+                    settings[key] = override_settings[key]
+            return settings
+
 
     def _save_settings(self):
         """ Saves current settings for pymap. 

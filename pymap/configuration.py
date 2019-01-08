@@ -60,13 +60,23 @@ default_configuration = {
     },
     'pymap' : {
         # Configure how to handle a tileset dictionary structure
-        'tileset' : {
+        'tileset_primary' : {
             # Define how to access a certain palette given a tileset. If ['foo', 'bar'] is given
             # Then tileset['foo']['bar'] is expected to yield an array of palettes that can be indexed
             # with an integer
             'palettes_path' : ['palettes'],
             'gfx_path' : ['gfx'],
             'blocks_path' : ['blocks'],
+            'datatype' : 'tileset_primary',
+        },
+        'tileset_secondary' : {
+            # Define how to access a certain palette given a tileset. If ['foo', 'bar'] is given
+            # Then tileset['foo']['bar'] is expected to yield an array of palettes that can be indexed
+            # with an integer
+            'palettes_path' : ['palettes'],
+            'gfx_path' : ['gfx'],
+            'blocks_path' : ['blocks'],
+            'datatype' : 'tileset_secondary',
         },
         'footer' : {
             'map_width_path' : ['width'],
@@ -75,8 +85,27 @@ default_configuration = {
             'border_width_path' : ['border_width'],
             'border_height_path' : ['border_height'],
             'border_path' : ['border'],
+            'tileset_primary_path' : ['tileset_primary'],
+            'tileset_secondary_path' : ['tileset_secondary'],
+            # Define the datatype of the map footer
+            'datatype' : 'footer',
+        },
+        'header' : {
+            # Define a constant name for the namespaces or None if arbitrary strings should be allowed
+            'namespace_constants' : None,
+            # Define the datatype of the map header
+            'datatype' : 'header',
+            'namespace_path' : ['namespace'],
+            'footer_path' : ['footer'],
+            'footer_idx_path' : ['footer_idx'],
+        },
+        'display' : {
+            # Show how many border blocks will be padded to the map display (x, y)
+            'border_padding' : [7, 5],
+            # R,G,B,Alpha value of the borders 
+            'border_color' : [0, 0, 0, 0.3],
         }
-    }
+    },
 }
 
 # Helper function to recursively iterate over the dicts

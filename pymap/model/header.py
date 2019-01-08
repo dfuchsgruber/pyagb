@@ -26,7 +26,7 @@ header_type = agb.types.Structure([
     ('field_1A', 'u8'),
     ('battle_style', 'u8')
 ], hidden_members=set([
-    'events', 'connections', 'footer'
+    'events', 'connections', 'footer', 'footer_idx', 'namespace'
 ])
 )
 

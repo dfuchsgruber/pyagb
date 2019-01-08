@@ -3,3 +3,4 @@ include script/pymapbuild.ld
 include pymap/template/config
 include pymap/template/constants
 include pymap/template/owimgassocs
+include pymap/gui/icon/.*

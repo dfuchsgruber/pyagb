@@ -23,8 +23,10 @@ class Project:
             # Initialize empty project
             self.headers = {}
             self.footers = {}
-            self.tilesets = {}
-            self.gfxs = {}
+            self.tilesets_primary = {}
+            self.tilesets_secondary = {}
+            self.gfxs_primary = {}
+            self.gfxs_secondary = {}
             self.constants = constants.Constants({})
             self.config = configuration.default_configuration.copy()
         else:
@@ -55,8 +57,10 @@ class Project:
 
         self.headers = content['headers']
         self.footers = content['footers']
-        self.tilesets = content['tilesets']
-        self.gfxs = content['gfxs']
+        self.tilesets_primary = content['tilesets_primary']
+        self.tilesets_secondary = content['tilesets_secondary']
+        self.gfxs_primary = content['gfxs_primary']
+        self.gfxs_secondary = content['gfxs_secondary']
 
         # Initialize the constants
         with open(file_path + '.constants') as f:
@@ -80,8 +84,78 @@ class Project:
         representation = {
             'headers' : self.headers,
             'footers' : self.footers,
-            'tilesets' : self.tilesets,
-            'gfxs' : self.gfxs
+            'tilesets_primary' : self.tilesets_primary,
+            'tilesets_secondary' : self.tilesets_secondary,
+            'gfxs_primary' : self.gfxs_primary,
+            'gfxs_secondary' : self.gfxs_secondary,
         }
         with open(file_path, 'w+') as f:
             json.dump(representation, f, indent=self.config['json']['indent'])
+
+
+    def unused_banks(self):
+        """ Returns a list of all unused map banks. 
+        
+        Returns:
+        --------
+        unused_banks : list
+            A list of strs, sorted, that holds all unused and therefore free map banks.
+        """
+        unused_banks = list(range(256))
+        for bank in self.headers:
+            unused_banks.remove(int(bank))
+        return list(map(str, unused_banks))
+
+    def unused_map_idx(self, bank):
+        """ Returns a list of all unused map indices in a map bank.
+        
+        Parameters:
+        -----------
+        bank : str
+            The map bank to scan idx in.
+        
+        Returns:
+        --------
+        unused_idx : list
+            A list of strs, sorted, that holds all unused and therefore free map indices in this bank.
+        """
+        unused_idx = list(range(256))
+        for idx in self.headers[bank]:
+            unused_idx.remove(int(idx))
+        return list(map(str, unused_idx))
+
+    def available_namespaces(self):
+        """ Returns all available namespaces. If there is a constant table associated with namespaces,
+        the choices are restricted to the constant table. Otherwise all maps are scanned and their namespaces
+        are returned.
+
+        Returns:
+        --------
+        namespaces : list
+            A list of strs, that holds all namespaces.
+        constantized : bool
+            If the namespaces are restricted to a set of constants.
+        """
+        namespace_constants = self.config['pymap']['header']['namespace_constants']
+        if namespace_constants is None:
+            return list(self.constants[namespace_constants]), True
+        else:
+            # Scan the entire project
+            namespaces = set()
+            for bank in self.headers:
+                for map_idx in self.headers[bank]:
+                    namespaces.add(self.headers[bank][map_idx][2])
+            return list(namespaces), False
+
+    def unused_footer_idx(self):
+        """ Returns a list of all unused footer indexes sorted. 
+        
+        Returns:
+        --------
+        unused_idx : list
+            A list of strs, sorted, that holds all unused footer idx.
+        """
+        unused_idx = set(range(1, 0x10000))
+        for footer in self.footers:
+            unused_idx.remove(self.footers[footer][0])
+        return list(map(str, sorted(list(unused_idx))))
