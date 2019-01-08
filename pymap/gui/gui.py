@@ -7,7 +7,7 @@ import sys, os
 import json
 import numpy as np
 import appdirs
-import resource_tree, map_widget, properties, render
+import resource_tree, map_widget, properties, render, history
 import pymap.project
 from settings import Settings
 
@@ -19,6 +19,7 @@ class PymapGui(QMainWindow):
         super().__init__(parent)
         self.settings = Settings()
         self.project = None
+        self.project_path = None
         self.header = None
         self.header_label = None
         self.footer = None
@@ -27,8 +28,7 @@ class PymapGui(QMainWindow):
         self.tileset_primary_label = None
         self.tileset_secondary = None
         self.tileset_secondary_label = None
-        self.history = []
-        self.history_idx = 0
+        self.history = history.History(self)
 
         # Central storage for blocks and tiles, subwidget access it via parent references
         self.blocks = None
@@ -84,10 +84,10 @@ class PymapGui(QMainWindow):
         # 'Edit' menu
         self.edit_menu = self.menuBar().addMenu('&Edit')
         self.edit_menu_undo_action = self.edit_menu.addAction('Undo')
-        self.edit_menu_undo_action.triggered.connect(self._undo)
+        self.edit_menu_undo_action.triggered.connect(self.history.undo)
         self.edit_menu_undo_action.setShortcut('Ctrl+Z')
         self.edit_menu_redo_action = self.edit_menu.addAction('Redo')
-        self.edit_menu_redo_action.triggered.connect(self._redo)
+        self.edit_menu_redo_action.triggered.connect(self.history.redo)
         self.edit_menu_redo_action.setShortcut('Ctrl+Y')
         # 'View' menu
         self.view_menu = self.menuBar().addMenu('&View')
@@ -102,12 +102,12 @@ class PymapGui(QMainWindow):
         path, suffix = QFileDialog.getOpenFileName(self, 'Open project', self.settings['recent.project'], 'Pymap projects (*.pmp)')
         if len(path):
             os.chdir(os.path.dirname(path))
+            self.project_path = path
             self.settings['recent.project'] = path
             self.project = pymap.project.Project(path)
             self.resource_tree.load_project()
             self.map_widget.load_project()
-            self.history = []
-            self.history_idx = 0
+            self.history.clear()
 
     def clear_header(self):
         """ Unassigns the current header, footer, tilesets. """
@@ -119,6 +119,7 @@ class PymapGui(QMainWindow):
     def open_header(self, bank, map_idx):
         """ Opens a new map header and displays it. """
         if self.project is None: return
+        os.chdir(os.path.dirname(self.project_path))
         label, path, namespace = self.project.headers[bank][map_idx]
         with open(path, encoding=self.project.config['json']['encoding']) as f:
             content = json.load(f)
@@ -126,13 +127,14 @@ class PymapGui(QMainWindow):
         assert(content['label'] == label)
         self.header = content['data']
         self.header_label = label
-        # Trigger opening of the footer
+        # Trigger opening of the fooster
         footer_label = properties.get_member_by_path(self.header, self.project.config['pymap']['header']['footer_path'])
         self.open_footer(footer_label)
 
     def open_footer(self, label):
         """ Opens a new footer and assigns it to the current header. """
         if self.project is None or self.header is None: return
+        os.chdir(os.path.dirname(self.project_path))
         footer_idx, path = self.project.footers[label]
         with open(path, encoding=self.project.config['json']['encoding']) as f:
             content = json.load(f)
@@ -154,6 +156,7 @@ class PymapGui(QMainWindow):
     def open_tilesets(self, label_primary=None, label_secondary=None):
         """ Opens and assigns a new primary tileset and secondary tileset to the current footer. """
         if self.project is None or self.header is None or self.footer is None: return
+        os.chdir(os.path.dirname(self.project_path))
         if label_primary is None: label_primary = properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['tileset_primary_path'])
         if label_secondary is None: label_secondary = properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['tileset_secondary_path'])
         # If the footer is assigned a null reference, do not render
@@ -199,36 +202,7 @@ class PymapGui(QMainWindow):
         # Truncate blocks to fit the map
         window = map_blocks[y : y + blocks.shape[0], x : x + blocks.shape[1]].copy()
         blocks = blocks[:window.shape[0], :window.shape[1]].copy()
-        self._do((HISTORY_SET_BLOCKS, (x, y, blocks, window)))
-
-    def _do(self, action, aggregate=False):
-        """ Executes an action and puts it as tail to the current history. """
-        self.history = self.history[ : self.history_idx]
-        self.history.append(action)
-        self._redo()
-
-    def _redo(self):
-        """ Executes the last undone element in the history. """
-        if self.history_idx in range(len(self.history)):
-            action_type, parameters = self.history[self.history_idx]
-            self.history_idx += 1
-            if action_type == HISTORY_SET_BLOCKS:
-                # Perform a set blocks action
-                x, y, blocks_new, _ = parameters
-                properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['map_blocks_path'])[y : y + blocks_new.shape[0], x : x + blocks_new.shape[1]] = blocks_new
-                self.map_widget.update_map(x, y, blocks_new)
-
-    def _undo(self):
-        """ Redos the last element in the history. """
-        if self.history_idx > 0:
-            self.history_idx -= 1
-            action_type, parameters = self.history[self.history_idx]
-            if action_type == HISTORY_SET_BLOCKS:
-                # Undo a set blocks action
-                x, y, _, blocks_old = parameters
-                properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['map_blocks_path'])[y : y + blocks_old.shape[0], x : x + blocks_old.shape[1]] = blocks_old
-                self.map_widget.update_map(x, y, blocks_old)
-                
+        self.history.do(history.ActionSetBlocks(x, y, blocks, window))
 
 
 

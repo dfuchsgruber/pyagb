@@ -246,7 +246,10 @@ class BlocksScene(QGraphicsScene):
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
         block_idx = 8 * y + x
-        self.map_widget.info_label.setText(f'Block : {hex(block_idx)}')
+        if x < 0 or x >= 8 or y < 0 or y >= 128:
+            return self.map_widget.info_label.setText(f'')
+        else:
+            self.map_widget.info_label.setText(f'Block : {hex(block_idx)}')
         if self.selection_box is not None:
             x0, x1, y0, y1 = self.selection_box
             if x1 != x + 1 or y1 != y + 1:
@@ -287,6 +290,7 @@ class MapScene(QGraphicsScene):
         border_width, border_height = self.map_widget.get_border_padding()
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
+        if x < 0 or x >= 2 * border_width + map_width or y < 0 or y >= 2 * border_height + map_height: return
         #print(x, y, border_width, border_height, map_width, map_height, self.map_widget.blocks.shape)
         if x in range(border_width, border_width + map_width) and y in range(border_height, border_height + map_height):
             block = self.map_widget.blocks[y, x]
@@ -304,14 +308,19 @@ class MapScene(QGraphicsScene):
             x0, x1, y0, y1 = self.selection_box
             if x1 != x + 1 or y1 != y + 1:
                 # Redraw the selection
+                #print(x, y)
                 self.selection_box = x0, x + 1, y0, y + 1
                 self.map_widget.set_selection(select_blocks(self.map_widget.blocks, *self.selection_box))
 
     def mousePressEvent(self, event):
         """ Event handler for pressing the mouse. """
         if self.map_widget.main_gui.project is None or self.map_widget.main_gui.header is None: return
+        map_width = properties.get_member_by_path(self.map_widget.main_gui.footer, self.map_widget.main_gui.project.config['pymap']['footer']['map_width_path'])
+        map_height = properties.get_member_by_path(self.map_widget.main_gui.footer, self.map_widget.main_gui.project.config['pymap']['footer']['map_height_path'])
+        border_width, border_height = self.map_widget.get_border_padding()
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
+        if x < 0 or x >= 2 * border_width + map_width or y < 0 or y >= 2 * border_height + map_height: return
         if event.button() == Qt.RightButton:
             self.selection_box = x, x + 1, y, y + 1
             self.map_widget.set_selection(self.map_widget.blocks[y:y + 1, x:x + 1])
@@ -325,6 +334,7 @@ class MapScene(QGraphicsScene):
             self.selection_box = None
         if event.button() == Qt.LeftButton:
             self.last_draw = None
+            self.map_widget.main_gui.history.close()
 
 # Static block map for the blocks widget
 BLOCK_MAP = np.array([{'block_idx' : idx, 'level' : 0} for idx in range(0x400)]).reshape((-1, 8))
