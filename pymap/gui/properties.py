@@ -156,10 +156,10 @@ class StructureTypeParameter(parameterTypes.GroupParameter):
         self.model_parent = model_parent
         super().__init__(name=name, **kwargs)
         # Add all children
-        for name, type_name in self.datatype.structure:
-            # print(f'Adding {name} of {type_name}')
-            child = type_to_parameter(project, type_name)(name, project, type_name, value[name], context + [name], self)
-            if name not in self.datatype.hidden_members: self.addChild(child)
+        for name, type_name, _ in sorted(self.datatype.structure, key=lambda x: x[2]):
+            if name not in self.datatype.hidden_members:
+                child = type_to_parameter(project, type_name)(name, project, type_name, value[name], context + [name], self)
+                self.addChild(child)
 
     def model_value(self):
         """ Gets the value of this parameter according to the data model. 
@@ -169,7 +169,7 @@ class StructureTypeParameter(parameterTypes.GroupParameter):
         value : dict
             The value of the parameter.
         """
-        return { name : self.child(name).model_value() for name, _ in self.datatype.structure }
+        return { name : self.child(name).model_value() for name, _, _ in self.datatype.structure if name not in self.datatype.hidden_members}
 
 
 class BitfieldTypeParameter(parameterTypes.GroupParameter):

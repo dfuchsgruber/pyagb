@@ -2,12 +2,12 @@ import agb.types
 
 # Define a type for map connections
 connection_type = agb.types.Structure([
-    ('direction', 'u32'),
-    ('displacement', 's32'),
-    ('bank', 'u8'),
-    ('map_idx', 'u8'),
-    ('field_A', 'u8'),
-    ('field_B', 'u8')
+    ('direction', 'u32', 0),
+    ('displacement', 's32', 0),
+    ('bank', 'u8', 0),
+    ('map_idx', 'u8', 0),
+    ('field_A', 'u8', 0),
+    ('field_B', 'u8', 0)
 ])
 
 connection_array_type = agb.types.VariableSizeArrayType(

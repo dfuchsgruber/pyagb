@@ -89,28 +89,30 @@ gfx_pointer_type = backend.BackendPointerType(
 
 # Define a primary tileset type
 tileset_primary_type = agb.types.Structure([
-    ('gfx_compressed', 'u8'),
-    ('palette_displaced', 'u8'),
-    ('field_2', 'u8'),
-    ('field_3', 'u8'),
-    ('gfx', 'tileset.gfx_pointer'),
-    ('palettes', 'tileset.palette_array_primary_pointer'),
-    ('blocks', 'tileset.block_tilemap_array_primary_pointer'),
-    ('animation_initialize', 'u32'),
-    ('behaviours', 'tileset.behaviour_array_primary_pointer')
-])
+    ('gfx_compressed', 'u8', 0),
+    ('palette_displaced', 'u8', 0),
+    ('field_2', 'u8', 0),
+    ('field_3', 'u8', 0),
+    ('gfx', 'tileset.gfx_pointer', 0),
+    ('palettes', 'tileset.palette_array_primary_pointer', 0),
+    ('blocks', 'tileset.block_tilemap_array_primary_pointer', 0),
+    ('animation_initialize', 'u32', 0),
+    ('behaviours', 'tileset.behaviour_array_primary_pointer', 0)
+], hidden_members=set([
+    'gfx', 'behaviours', 'blocks'
+]))
 
 # Define a secondary tileset type
 tileset_secondary_type = agb.types.Structure([
-    ('gfx_compressed', 'u8'),
-    ('palette_displaced', 'u8'),
-    ('field_2', 'u8'),
-    ('field_3', 'u8'),
-    ('gfx', 'tileset.gfx_pointer'),
-    ('palettes', 'tileset.palette_array_secondary_pointer'),
-    ('blocks', 'tileset.block_tilemap_array_secondary_pointer'),
-    ('animation_initialize', 'u32'),
-    ('behaviours', 'tileset.behaviour_array_secondary_pointer')
+    ('gfx_compressed', 'u8', 0),
+    ('palette_displaced', 'u8', 0),
+    ('field_2', 'u8', 0),
+    ('field_3', 'u8', 0),
+    ('gfx', 'tileset.gfx_pointer', 0),
+    ('palettes', 'tileset.palette_array_secondary_pointer', 0),
+    ('blocks', 'tileset.block_tilemap_array_secondary_pointer', 0),
+    ('animation_initialize', 'u32', 0),
+    ('behaviours', 'tileset.behaviour_array_secondary_pointer', 0)
 ], hidden_members=set([
     'gfx', 'behaviours', 'blocks'
 ]))

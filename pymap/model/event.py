@@ -2,43 +2,43 @@ import agb.types
 from functools import partial
 
 person_type = agb.types.Structure([
-    ('target_index', 'u8'),
-    ('picture', 'u8'),
-    ('field_2', 'u8'),
-    ('field_3', 'u8'),
-    ('x', 's16'),
-    ('y', 's16'),
-    ('level', 'u8'),
-    ('behaviour', 'u8'),
-    ('behaviour_range', 'u8'),
-    ('field_B', 'u8'),
-    ('is_trainer', 'u8'),
-    ('field_D', 'u8'),
-    ('alert_radius', 'u16'),
-    ('script', 'ow_script_pointer'),
-    ('flag', 'u16'),
-    ('field_16', 'u16')
+    ('target_index', 'u8', 0),
+    ('picture', 'u8', 0),
+    ('field_2', 'u8', 0),
+    ('field_3', 'u8', 0),
+    ('x', 's16', 0),
+    ('y', 's16', 0),
+    ('level', 'u8', 0),
+    ('behaviour', 'u8', 0),
+    ('behaviour_range', 'u8', 0),
+    ('field_B', 'u8', 0),
+    ('is_trainer', 'u8', 0),
+    ('field_D', 'u8', 0),
+    ('alert_radius', 'u16', 0),
+    ('script', 'ow_script_pointer', 0),
+    ('flag', 'u16', 0),
+    ('field_16', 'u16', 0)
 ])
 
 trigger_type = agb.types.Structure([
-    ('x', 's16'),
-    ('y', 's16'),
-    ('level', 'u8'),
-    ('field_5', 'u8'),
-    ('var', 'u16'),
-    ('value', 'u16'),
-    ('field_A', 'u8'),
-    ('field_B', 'u8'),
-    ('script', 'ow_script_pointer')
+    ('x', 's16', 0),
+    ('y', 's16', 0),
+    ('level', 'u8', 0),
+    ('field_5', 'u8', 0),
+    ('var', 'u16', 0),
+    ('value', 'u16', 0),
+    ('field_A', 'u8', 0),
+    ('field_B', 'u8', 0),
+    ('script', 'ow_script_pointer', 0)
 ])
 
 warp_type = agb.types.Structure([
-    ('x', 's16'),
-    ('y', 's16'),
-    ('level', 'u8'),
-    ('target_warp_idx', 'u8'),
-    ('target_map', 'u8'),
-    ('target_bank', 'u8')
+    ('x', 's16', 0),
+    ('y', 's16', 0),
+    ('level', 'u8', 0),
+    ('target_warp_idx', 'u8', 0),
+    ('target_map', 'u8', 0),
+    ('target_bank', 'u8', 0)
 ])
 
 signpost_item_type = agb.types.BitfieldType('u32', [
@@ -55,13 +55,13 @@ signpost_value_type = agb.types.UnionType({
 )
 
 signpost_type = agb.types.Structure([
-    ('x', 's16'),
-    ('y', 's16'),
-    ('level', 'u8'),
-    ('type', 'u8'),
-    ('field_6', 'u8'),
-    ('field_7', 'u8'),
-    ('value', 'event.signpost_value')
+    ('x', 's16', 0),
+    ('y', 's16', 0),
+    ('level', 'u8', 0),
+    ('type', 'u8', 0),
+    ('field_6', 'u8', 0),
+    ('field_7', 'u8', 0),
+    ('value', 'event.signpost_value', 0)
 ])
 
 person_array_type = agb.types.VariableSizeArrayType(
@@ -109,14 +109,14 @@ signpost_array_pointer_type = agb.types.PointerType(
 )
 
 event_header_type = agb.types.Structure([
-    ('person_cnt', 'u8'),
-    ('warp_cnt', 'u8'),
-    ('trigger_cnt', 'u8'),
-    ('signpost_cnt', 'u8'),
-    ('persons', 'event.person_array_pointer'),
-    ('warps', 'event.warp_array_pointer'),
-    ('triggers', 'event.trigger_array_pointer'),
-    ('signposts', 'event.signpost_array_pointer')
+    ('person_cnt', 'u8', 0),
+    ('warp_cnt', 'u8', 0),
+    ('trigger_cnt', 'u8', 0),
+    ('signpost_cnt', 'u8', 0),
+    ('persons', 'event.person_array_pointer', 0),
+    ('warps', 'event.warp_array_pointer', 0),
+    ('triggers', 'event.trigger_array_pointer', 0),
+    ('signposts', 'event.signpost_array_pointer', 0)
 ])
 
 # These model declarations will be exported

@@ -89,6 +89,11 @@ default_configuration = {
             'tileset_secondary_path' : ['tileset_secondary'],
             # Define the datatype of the map footer
             'datatype' : 'footer',
+            # Define max width of the map
+            'map_width_max' : 127,
+            'map_height_max' : 127,
+            'border_width_max' : 7,
+            'border_height_max' : 5,
         },
         'header' : {
             # Define a constant name for the namespaces or None if arbitrary strings should be allowed
@@ -98,6 +103,41 @@ default_configuration = {
             'namespace_path' : ['namespace'],
             'footer_path' : ['footer'],
             'footer_idx_path' : ['footer_idx'],
+            # Define different event types
+            'events' : [
+                {
+                    'name' : 'Person',
+                    'datatype' : 'event.person',
+                    'size_path' : ['events', 'person_cnt'],
+                    'events_path' : ['events', 'persons'],
+                    # Define the path for the position of an event
+                    'x_path' : ['x'], 'y_path' : ['y'],
+                },
+                {
+                    'name' : 'Warp',
+                    'datatype' : 'event.warp',
+                    'size_path' : ['events', 'warp_cnt'],
+                    'events_path' : ['events', 'warps'],
+                    # Define the path for the position of an event
+                    'x_path' : ['x'], 'y_path' : ['y'],
+                },
+                {
+                    'name' : 'Sign',
+                    'datatype' : 'event.signpost',
+                    'size_path' : ['events', 'signpost_cnt'],
+                    'events_path' : ['events', 'signposts'],
+                    # Define the path for the position of an event
+                    'x_path' : ['x'], 'y_path' : ['y'],
+                },
+                {
+                    'name' : 'Trigger',
+                    'datatype' : 'event.trigger',
+                    'size_path' : ['events', 'trigger_cnt'],
+                    'events_path' : ['events', 'triggers'],
+                    # Define the path for the position of an event
+                    'x_path' : ['x'], 'y_path' : ['y'],
+                }
+            ]
         },
         'display' : {
             # Show how many border blocks will be padded to the map display (x, y)

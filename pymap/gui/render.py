@@ -29,7 +29,7 @@ def get_border(footer, blocks, project):
     border_img = Image.new('RGBA', (width * 16, height * 16))
     for y, block_line in enumerate(border_blocks):
         for x, block_data in enumerate(block_line):
-            block_idx = block_data['block_idx']
+            block_idx = block_data[0]
             border_img.paste(blocks[block_idx], (16 * x, 16 * y), blocks[block_idx])
     return border_img
 
@@ -40,7 +40,7 @@ def draw_block_map(blocks, block_map):
     -----------
     blocks : list
         A list of 16x16 blocks.
-    block_map : np.array, shape [H, W]
+    block_map : np.array, shape [H, W, 2]
         The blocks in a 2d array.
 
     Returns:
@@ -48,11 +48,9 @@ def draw_block_map(blocks, block_map):
     map_img : PIL.Image
         An image of the entire map, size (16*H, 16*W).
     """
-    height, width = block_map.shape
+    height, width, _ = block_map.shape
     map_img = Image.new('RGBA', (width * 16, height * 16))
-    for idx, block_data in np.ndenumerate(block_map):
-        y, x = idx
-        block_idx = block_data['block_idx']
+    for (y, x), block_idx in np.ndenumerate(block_map[:, :, 0]):
         map_img.paste(blocks[block_idx], (16 * x, 16 * y), blocks[block_idx])
     return map_img
 
@@ -78,7 +76,7 @@ def get_map(footer, blocks):
     map_img = Image.new('RGBA', (width * 16, height * 16))
     for y, block_line in enumerate(map_blocks):
         for x, block_data in enumerate(block_line):
-            block_idx = block_data['block_idx']
+            block_idx = block_data[0]
             map_img.paste(blocks[block_idx], (16 * x, 16 * y), blocks[block_idx])
     return map_img
 

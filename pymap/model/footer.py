@@ -18,7 +18,7 @@ border_line_type = agb.types.VariableSizeArrayType(
 
 border_array_type = agb.types.VariableSizeArrayType(
     'footer.border_line',
-    (2, ['border_height'])
+    (1, ['border_height'])
 )
 
 border_array_pointer_type = agb.types.PointerType(
@@ -33,7 +33,7 @@ blocks_line_type = agb.types.VariableSizeArrayType(
 
 blocks_array_type = agb.types.VariableSizeArrayType(
     'footer.blocks_line',
-    (2, ['height'])
+    (1, ['height'])
 )
 
 blocks_array_pointer_type = agb.types.PointerType(
@@ -44,21 +44,21 @@ blocks_array_pointer_type = agb.types.PointerType(
 # Define a map footer type
 footer_type = agb.types.Structure(
     [
-        ('width', 'u32'),
-        ('height', 'u32'),
+        # The map will be indexed [y][x]
+        ('width', 'u32', 0),
+        ('height', 'u32', 0),
         # The borders will be indexed [y][x]
-        ('border', 'footer.border_array_pointer'),
-        ('blocks', 'footer.blocks_array_pointer'),
-        ('tileset_primary', 'tileset_pointer'),
-        ('tileset_secondary', 'tileset_pointer'),
-        ('border_width', 'u8'),
-        ('border_height', 'u8'),
-        ('field_1A', 'u16')
+        ('border', 'footer.border_array_pointer', 1),
+        ('blocks', 'footer.blocks_array_pointer', 1),
+        ('tileset_primary', 'tileset_pointer', 1),
+        ('tileset_secondary', 'tileset_pointer', 1),
+        ('border_width', 'u8', 0),
+        ('border_height', 'u8', 0),
+        ('field_1A', 'u16', 1)
     ], 
     # Export the width and height of the blocks and border beforehand
-    priorized_members=['width', 'height', 'border_width', 'border_height'],
     hidden_members=set([
-        'border', 'blocks', 'tileset_primary', 'tileset_secondary'
+        'border', 'blocks', 'tileset_primary', 'tileset_secondary', 'width', 'height', 'border_width', 'border_height'
     ])
 )
 

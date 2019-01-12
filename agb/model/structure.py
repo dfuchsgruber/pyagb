@@ -3,7 +3,7 @@ from agb.model.type import Type, associate_with_constant, label_and_align
 class Structure(Type):
     """ Superclass to model any kind of structure """
 
-    def __init__(self, structure, priorized_members=[], hidden_members=set()):
+    def __init__(self, structure, hidden_members=set()):
         """ Initialize the members with priorized members. 
         
         Parameters:
@@ -13,15 +13,13 @@ class Structure(Type):
                 The name of the member
             type : str
                 The name of the type
+            priority : int
+                Members with lower priority will get processed first
         
-        priorized_members : list of str
-            The members to export first (the first index will be exported first,
-            the second afterwards and so on...)
         hidden_members : set
             The members to hide when displaying the structure in a parameter tree.
         """
         self.structure = structure
-        self.priorized_members = priorized_members
         self.hidden_members = hidden_members
 
     def from_data(self, rom, offset, project, context, parents):
@@ -50,28 +48,23 @@ class Structure(Type):
         """
         structure = {}
         parents = parents + [structure]
-        # Export priorized members first
-        for priorized_attribute in self.priorized_members:
-            offset_priorized = offset
-            for attribute, datatype_name in self.structure:
-                datatype = project.model[datatype_name]
-                if attribute == priorized_attribute:
-                    # Export the member beforehand
-                    value = datatype.from_data(rom, offset_priorized, project, context + [attribute], parents)
-                    structure[attribute] = value
-                else:
-                    # Use an empty initiaization as stub
-                    value = None
-                offset_priorized += datatype.size(value, project, parents)
+
+        export_closures = {} # Store functions that will export the members here
         
-        # Export the other attributes with a fully initialized structure
-        for attribute, datatype_name in self.structure:
+        # Create callbacks in the order of members
+        for attribute, datatype_name, _ in self.structure:
             datatype = project.model[datatype_name]
-            if attribute not in self.priorized_members:
-                # Export other attribute
+            def export_member():
+                # Helper function that will export the member
                 value = datatype.from_data(rom, offset, project, context + [attribute], parents)
                 structure[attribute] = value
+            export_closures[attribute] = export_member
             offset += datatype.size(structure[attribute], project, parents)
+        
+        # Export members w.r.t. to their priority
+        for attribute, datatype_name, _ in sorted(self.structure, key=lambda x: x[2]):
+            export_closures[attribute]()
+
         return structure
 
     def __call__(self, project, context, parents):
@@ -97,17 +90,8 @@ class Structure(Type):
         structure = {}
         parents = parents + [structure]
         # Initialize priorized members first
-        for priorized_attribute in self.priorized_members:
-            for attribute, datatype_name in self.structure:
-                datatype = project.model[datatype_name]
-                if attribute == priorized_attribute:
-                    structure[attribute] = datatype(project, context + [attribute], parents)
-
-        # Initialize other members
-        for attribute, datatype_name in self.structure:
-            if attribute not in self.priorized_members:
-                datatype = project.model[datatype_name]
-                structure[attribute] = datatype(project, context + [attribute], parents + [structure])
+        for attribute, datatype_name, _ in sorted(self.structure, key=lambda x: x[2]):
+            structure[attribute] = datatype(project, context + [attribute], parents)
         return structure
 
 
@@ -140,7 +124,7 @@ class Structure(Type):
             compiliation of this type.
         """
         assemblies, additional_blocks = [], []
-        for attribute, datatype_name in self.structure:
+        for attribute, datatype_name, _ in self.structure:
             datatype = project.model[datatype_name]
             assembly_datatype, additional_blocks_datatype = datatype.to_assembly(structure[attribute], project, context + [attribute], parents + [structure])
             assemblies.append(assembly_datatype)
@@ -172,7 +156,7 @@ class Structure(Type):
         """
         size = 0
         parents = parents + [structure]
-        for attribute, datatype_name in self.structure:
+        for attribute, datatype_name, _ in self.structure:
             datatype = project.model[datatype_name]
             size += datatype.size(structure[attribute], project, context + [attribute], parents)
         return size
@@ -202,7 +186,7 @@ class Structure(Type):
         """
         constants = set()
         parents = parents + [structure]
-        for attribute, datatype_name in self.structure:
+        for attribute, datatype_name, _ in self.structure:
             datatype = project.model[datatype_name]
             constants.update(datatype.get_constants(structure[attribute], project, context + [attribute], parents))
         return constants

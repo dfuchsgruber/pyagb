@@ -1,8 +1,10 @@
 from abc import ABC
 import properties
+from warnings import warn
+from deepdiff import DeepDiff
+import numpy as np
 
-DEFAULT_HISTORY_CAPACITY = 0x10000
-ACTION_SET_BLOCKS = 0
+DEFAULT_HISTORY_CAPACITY = np.inf
 
 class History:
     """ Module to encapsulate the history mechanisms of the gui. """
@@ -55,13 +57,71 @@ class History:
         """ Clears the entire history. """
         self.action_sets = []
         self.current_idx = 0 # Points to the next redoable action
+        self.save()
 
+    def save(self):
+        """ Changes the last saved state to the current state. """
+        self.saved_idx = self.current_idx
 
-class ActionSetBlocks:
+    def is_unsaved(self):
+        """ Checks if the history's current state is unsaved. """
+        return self.saved_idx != self.current_idx
+
+class ActionResize:
+    """ Resizes a set of blocks. """
+
+    def __init__(self, height_new, width_new, values_old):
+        self.height_old, self.width_old = values_old.shape[0], values_old.shape[1]
+        self.height_new, self.width_new = height_new, width_new
+        height, width = max(self.height_new, self.height_old), max(self.width_new, self.width_old)
+        self.buffer = np.zeros((height, width, 2), dtype=int)
+        self.buffer[ : self.height_old, : self.width_old, :] = values_old.copy()
+
+    def _old_blocks(self):
+        """ Returns a copy of the old blocks. """
+        return self.buffer[ : self.height_old, : self.width_old, :].copy()
     
-    action_type = ACTION_SET_BLOCKS
+    def _new_blocks(self):
+        """ Returns a copy of the new blocks. """
+        return self.buffer[ : self.height_new, : self.width_new, :].copy()
 
-    """ Action for setting blocks. """
+class ActionResizeMap(ActionResize):
+    """ Action for resizing the map blocks. """
+
+    def _change_size(self, main_gui, blocks):
+        properties.set_member_by_path(main_gui.footer, blocks.shape[0], main_gui.project.config['pymap']['footer']['map_height_path'])
+        properties.set_member_by_path(main_gui.footer, blocks.shape[1], main_gui.project.config['pymap']['footer']['map_width_path'])
+        properties.set_member_by_path(main_gui.footer, blocks, main_gui.project.config['pymap']['footer']['map_blocks_path'])
+        main_gui.map_widget.load_header()
+
+    def do(self, main_gui):
+        """ Resizes the map blocks. """
+        self._change_size(main_gui, self._new_blocks())
+
+    def undo(self, main_gui):
+        """ Undoes resizing of the map blocks. """
+        self._change_size(main_gui, self._old_blocks())
+
+class ActionResizeBorder(ActionResize):
+    """ Action for resizing the map border. """
+
+    def _change_size(self, main_gui, blocks):
+        properties.set_member_by_path(main_gui.footer, blocks.shape[0], main_gui.project.config['pymap']['footer']['border_height_path'])
+        properties.set_member_by_path(main_gui.footer, blocks.shape[1], main_gui.project.config['pymap']['footer']['border_width_path'])
+        properties.set_member_by_path(main_gui.footer, blocks, main_gui.project.config['pymap']['footer']['border_path'])
+        main_gui.map_widget.load_header()
+
+    def do(self, main_gui):
+        """ Resizes the map blocks. """
+        self._change_size(main_gui, self._new_blocks())
+
+    def undo(self, main_gui):
+        """ Undoes resizing of the map blocks. """
+        self._change_size(main_gui, self._old_blocks())
+
+class ActionSetBorder:
+    """ Action for setting border blocks. """
+
     def __init__(self, x, y, blocks_new, blocks_old):
         self.x = x
         self.y = y
@@ -72,9 +132,36 @@ class ActionSetBlocks:
         # Helper method for setting a set of blocks
         properties.get_member_by_path(
             main_gui.footer, 
+            main_gui.project.config['pymap']['footer']['border_path'])[
+                self.y : self.y + blocks.shape[0], self.x : self.x + blocks.shape[1], 0] = blocks[:, :, 0]
+        main_gui.map_widget.load_map()
+        main_gui.map_widget.load_border()
+
+    def do(self, main_gui):
+        """ Performs the setting of border blocks. """
+        self._set_blocks(self.blocks_new, main_gui)
+    
+    def undo(self, main_gui):
+        """ Undos setting of border blocks. """
+        self._set_blocks(self.blocks_old, main_gui)
+
+class ActionSetBlocks:
+    """ Action for setting blocks. """
+
+    def __init__(self, x, y, layers, blocks_new, blocks_old):
+        self.x = x
+        self.y = y
+        self.layers = layers
+        self.blocks_new = blocks_new
+        self.blocks_old = blocks_old
+
+    def _set_blocks(self, blocks, main_gui):
+        # Helper method for setting a set of blocks
+        properties.get_member_by_path(
+            main_gui.footer, 
             main_gui.project.config['pymap']['footer']['map_blocks_path'])[
-                self.y : self.y + blocks.shape[0], self.x : self.x + blocks.shape[1]] = blocks
-        main_gui.map_widget.update_map(self.x, self.y, blocks)
+                self.y : self.y + blocks.shape[0], self.x : self.x + blocks.shape[1], self.layers] = blocks[:, :, self.layers]
+        main_gui.map_widget.update_map(self.x, self.y, self.layers, blocks)
 
     def do(self, main_gui):
         """ Performs the setting of blocks. """
@@ -83,3 +170,50 @@ class ActionSetBlocks:
     def undo(self, main_gui):
         """ Undos setting of blocks. """
         self._set_blocks(self.blocks_old, main_gui)
+
+class ActionReplaceBlocks:
+    """ Action for replacing a set of blocks with another. """
+
+    def __init__(self, idx, layer, value_new, value_old):
+        self.idx = idx
+        self.layer = layer
+        self.value_new = value_new
+        self.value_old = value_old
+
+    def do(self, main_gui):
+        """ Performs the flood fill. """
+        map_blocks = properties.get_member_by_path(
+            main_gui.footer, 
+            main_gui.project.config['pymap']['footer']['map_blocks_path'])
+        map_blocks[:, :, self.layer][self.idx] = self.value_new
+        main_gui.map_widget.load_map()
+
+    def undo(self, main_gui):
+        """ Performs the flood fill. """
+        map_blocks = properties.get_member_by_path(
+            main_gui.footer, 
+            main_gui.project.config['pymap']['footer']['map_blocks_path'])
+        map_blocks[:, :, self.layer][self.idx] = self.value_old
+        main_gui.map_widget.load_map()
+
+class StateHistory:
+    """ Pseudo-History class that does not acutally contain a history but encapsulates functionality of
+    triggering save prompts based on a state. """
+
+    def __init__(self, get_state):
+        self.get_state = get_state # Function to get the current state
+        self.reset()
+
+    def do(self): pass
+
+    def undo(self): pass
+    
+    def redo(self): pass
+
+    def reset(self):
+        self.state = self.get_state()
+
+    def is_unsaved(self):
+        diff = DeepDiff(self.get_state(), self.state)
+        return 'value_changes' in diff or 'type_changes' in diff
+    

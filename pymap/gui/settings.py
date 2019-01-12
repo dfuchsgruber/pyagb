@@ -14,6 +14,7 @@ default_settings = {
     'recent.header' : '.',
     'recent.footer' : '.',
     'recent.tileset' : '.',
+    'map_widget.level_opacity' : 30,
 }
 
 class Settings(collections.MutableMapping):

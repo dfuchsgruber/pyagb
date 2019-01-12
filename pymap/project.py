@@ -152,10 +152,10 @@ class Project:
         
         Returns:
         --------
-        unused_idx : list
-            A list of strs, sorted, that holds all unused footer idx.
+        unused_idx : set
+            A set of ints, sorted, that holds all unused footer idx.
         """
         unused_idx = set(range(1, 0x10000))
         for footer in self.footers:
             unused_idx.remove(self.footers[footer][0])
-        return list(map(str, sorted(list(unused_idx))))
+        return unused_idx

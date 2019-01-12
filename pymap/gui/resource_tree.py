@@ -227,7 +227,7 @@ class ResourceParameterTree(QTreeWidget):
     def create_footer(self, *args, footer_idx=None, tileset_primary=None, tileset_secondary=None, label=None, path=None):
         """ Prompts a dialog to create a new map footer. """
         # Check if there is space in the footer table
-        available_idx = self.main_gui.project.unused_footer_idx()
+        available_idx = list(map(str, sorted(list(self.main_gui.project.unused_footer_idx()))))
         if not available_idx:
             return QMessageBox.critical(self, 'Unable To Create Footer', 'There are no available footer index. Remove another footer to add a new one first.')
         # Check if there are primary tilesets to use
