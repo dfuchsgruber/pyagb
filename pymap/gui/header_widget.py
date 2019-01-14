@@ -7,7 +7,7 @@ import pyqtgraph.parametertree.ParameterTree as ParameterTree
 from deepdiff import DeepDiff
 from copy import deepcopy
 
-class FooterWidget(ParameterTree):
+class HeaderWidget(ParameterTree):
     """ Class for meta-properties of the map footer (more or less if anyone desires to use those.)"""
 
     def __init__(self, main_gui, parent=None):
@@ -21,14 +21,15 @@ class FooterWidget(ParameterTree):
 
     def load_project(self, *args):
         """ Update project related widgets. """
-        self.load_footer()
+        self.load_header()
 
-    def load_footer(self):
-        """ Loads a new footer. """
+    def load_header(self):
+        """ Loads a new header. """
         self.clear()
-        if self.main_gui.project is not None and self.main_gui.header is not None and self.main_gui.footer is not None:
-            footer_datatype = self.main_gui.project.config['pymap']['footer']['datatype']
-            self.root = properties.type_to_parameter(self.main_gui.project, footer_datatype)(self.main_gui.footer_label, self.main_gui.project, footer_datatype, self.main_gui.footer, [], None)
+        if self.main_gui.project is not None and self.main_gui.header is not None:
+            header_datatype = self.main_gui.project.config['pymap']['header']['datatype']
+            header_label = self.main_gui.project.headers[self.main_gui.header_bank][self.main_gui.header_map_idx][0]
+            self.root = properties.type_to_parameter(self.main_gui.project, header_datatype)(header_label, self.main_gui.project, header_datatype, self.main_gui.header, [], None)
             self.addParameters(self.root)
             self.root.sigTreeStateChanged.connect(self.tree_changed)
         else:
@@ -37,13 +38,12 @@ class FooterWidget(ParameterTree):
     def update(self):
         """ Updates all values in the tree according to the current footer. """
         self.root.blockSignals(True)
-        self.root.update(self.main_gui.footer)
+        self.root.update(self.main_gui.header)
         self.root.blockSignals(False)
 
     def tree_changed(self, changes):
-        print(changes)
-        diffs = DeepDiff(self.main_gui.footer, self.root.model_value())
-        root = self.main_gui.footer
+        root = self.main_gui.header
+        diffs = DeepDiff(root, self.root.model_value())
         statements_redo = []
         statements_undo = []
         for change in ('type_changes', 'values_changed'):
@@ -53,7 +53,7 @@ class FooterWidget(ParameterTree):
                     value_old = diffs[change][path]['old_value']
                     statements_redo.append(f'{path} = \'{value_new}\'')
                     statements_undo.append(f'{path} = \'{value_old}\'')
-        self.undo_stack.push(history.ChangeFooterProperty(self, statements_redo, statements_undo))
+        self.undo_stack.push(history.ChangeHeaderProperty(self, statements_redo, statements_undo))
                     # exec(f'{path} = \'{value}\'')
                     # print(f'{path} = {value}')
 

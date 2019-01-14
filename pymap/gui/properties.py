@@ -1,9 +1,19 @@
 import pyqtgraph.parametertree.parameterTypes as parameterTypes
 from agb.types import *
 from pymap.model.backend import BackendPointerType
-from pyqtgraph.Qt import QtGui
+from pyqtgraph.Qt import *
 from warnings import warn
 from functools import partial
+
+
+class ConstantComboBox(QtGui.QComboBox):
+    """ Subclass this thing in order to manually filter out undo events. """
+
+    def event(self, event):
+        if event.type() == QtCore.QEvent.KeyPress:
+            if event.matches(QtGui.QKeySequence.Undo) or event.matches(QtGui.QKeySequence.Redo):
+                return False
+        return super().event(event)
 
 # Parameter item for parameters associated with constants
 class ConstantParameterItem(parameterTypes.WidgetParameterItem):
@@ -16,12 +26,13 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
     def makeWidget(self):
         opts = self.param.opts
         t = opts['type']
-        w = QtGui.QComboBox()
+        w = ConstantComboBox()
         w.setMaximumHeight(20)  ## set to match height of spin box and line edit
         w.sigChanged = w.editTextChanged
         w.setValue = self.setValue
         w.value = w.currentText
         w.setEditable(True)
+        w.setContextMenuPolicy(0) # No context menu
         self.widget = w  
         w.addItems(self.constants)
         return w
@@ -31,55 +42,15 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
         self.widget.setEditText(str(val))
 
 
-# Scalar parameter that is not associated with constants
-class ScalarTypeParameterWithoutConstants(parameterTypes.SimpleParameter):
-
-    def __init__(self, name, project, datatype_name, value, context, model_parent, **kwargs):
-        """ Initializes the ScalarType Parameter class.
-        
-        Parameters:
-        -----------
-        name : str
-            The name of the parameter
-        project : pymap.project.Project
-            The underlying pymap project.
-        datatype_name : str
-            The name of the datatype associated with the parameter.
-        values : int or str
-            The value of the scalar type.
-        context : list
-            The context.
-        model_parent : parameterTypes.Parameter
-            The parent of the parameter according to the data model.
-        """
-        self.datatype = project.model[datatype_name]
-        if self.datatype.constant is not None:
-            raise RuntimeError(f'Expected no constant table associated with type {name}.')
-        self.project = project
-        self.context = context
-        self.model_parent = model_parent
-        super().__init__(name=name, value=value, type='str', **kwargs)
-
-
-    def model_value(self):
-        """ Gets the value of this parameter according to the data model. 
-        
-        Returns:
-        --------
-        value : str
-            The value of the parameter.
-        """
-        return self.value()
 # Base class for scalar types associated with constants as well as children of bitfields with constants
 class ConstantsTypeParameter(parameterTypes.ListParameter):
 
     itemClass = ConstantParameterItem
 
-    def __init__(self, name, project, constant, **kwargs):
-        self.constant = constant
+    def __init__(self, name, project, constants, **kwargs):
         self.project = project
-        self.constants = list(self.project.constants[self.constant].keys())
-        super().__init__(name=name, **kwargs)
+        self.constants = constants
+        super().__init__(name=name, values=constants, **kwargs)
 
 
     def model_value(self):
@@ -92,10 +63,12 @@ class ConstantsTypeParameter(parameterTypes.ListParameter):
         """
         return self.value()
 
-# Scalar parameter that is associated with constants
-class ScalarTypeParameterWithConstants(ConstantsTypeParameter):
+    def update(self, value):
+        """ Updates this parameter. """
+        self.setValue(value)
 
-    itemClass = ConstantParameterItem
+# Scalar parameter that is associated with constants
+class ScalarTypeParameter(ConstantsTypeParameter):
 
     # Parameter for the tree that builds upon a scalar type
     def __init__(self, name, project, datatype_name, value, context, model_parent, **kwargs):
@@ -120,11 +93,12 @@ class ScalarTypeParameterWithConstants(ConstantsTypeParameter):
         self.project = project
         self.context = context
         self.model_parent = model_parent
-        if self.datatype.constant is None:
-            raise RuntimeError(f'Expected a constant table associated with type {name}.')
         # Make constants appear in the combo box
-        values = [value for value in self.project.constants[self.datatype.constant]]
-        super().__init__(name, self.project, self.datatype.constant, values=values, **kwargs)
+        if getattr(self.datatype, 'constant', None) is not None:
+            constants = [value for value in self.project.constants[self.datatype.constant]]
+        else:
+            constants = []
+        super().__init__(name, self.project, constants, **kwargs)
         self.setValue(value)
 
 
@@ -171,6 +145,12 @@ class StructureTypeParameter(parameterTypes.GroupParameter):
         """
         return { name : self.child(name).model_value() for name, _, _ in self.datatype.structure if name not in self.datatype.hidden_members}
 
+    def update(self, value):
+        """ Recursively updates the values of all children. """
+        for name, type_name, _ in sorted(self.datatype.structure, key=lambda x: x[2]):
+            if name not in self.datatype.hidden_members:
+                self.child(name).update(value[name])
+
 
 class BitfieldTypeParameter(parameterTypes.GroupParameter):
 
@@ -200,11 +180,10 @@ class BitfieldTypeParameter(parameterTypes.GroupParameter):
         # Add all children
         for name, constant, size in self.datatype.structure:
             if constant is not None:
-                constant_values = [value for value in self.project.constants[constant]]
-                child = ConstantsTypeParameter(name, self.project, constant, values=constant_values)
+                child = ConstantsTypeParameter(name, self.project, list(self.project.constants[constant]))
                 child.setValue(value[name])
             else:
-                child = ScalarTypeParameterWithoutConstants(name, self.project, datatype_name, value[name], self.context + [name], self)
+                child = ScalarTypeParameter(name, self.project, datatype_name, value[name], self.context + [name], self)
             if name not in self.datatype.hidden_members: self.addChild(child)
 
     def model_value(self):
@@ -216,6 +195,11 @@ class BitfieldTypeParameter(parameterTypes.GroupParameter):
             The value of the parameter.
         """
         return { name : self.child(name).model_value() for name, _, _ in self.datatype.structure }
+
+    def update(self, value):
+        """ Recursively updates the values of all children. """
+        for name, constant, size in self.datatype.structure:
+            self.child(name).update(value[name])
 
 
 class ArrayTypeParameter(parameterTypes.GroupParameter):
@@ -295,6 +279,11 @@ class ArrayTypeParameter(parameterTypes.GroupParameter):
             The value of the parameter.
         """
         return list(map(lambda child: child.model_value(), self.values))
+
+    def update(self, values):
+        """ Updates the values in the array. """
+        for child, value in zip(self.values, value):
+            child.update(value)
 
 class FixedSizeArrayTypeParameter(ArrayTypeParameter):
 
@@ -502,24 +491,37 @@ class PointerParameter(parameterTypes.GroupParameter):
 
     def treeStateChanged(self, param, changes):
         super().treeStateChanged(param, changes)
-        # Check if we still have a child
-        try:
-            self.child(PointerParameter.referred)
-        except:
+        if not self.hasChild():
             # We do not have a child anymore, add the add-button
             self._add_add()
 
     def remove(self):
         """ Removes the instance of the referred value. """
-        try:
+        if self.hasChild():
             self.child(PointerParameter.referred).remove()
-        except Exception:
-            pass
         # Remove the delete button if present
         try:
             self.child(PointerParameter.remove_reference).remove()
         except Exception:
             pass
+
+    def hasChild(self):
+        """ Checks if this parameter currently refers to a child. """
+        try:
+            self.child(PointerParameter.referred)
+            return True
+        except:
+            return False
+
+    def update(self, value):
+        """ Updates the pointer reference. """
+        if value is None:
+            self.remove()
+        else:
+            if self.hasChild():
+                self.child(PointerParameter.referred).update(value)
+            else:
+                self.add_new(referred=value)
 
 
     def model_value(self):
@@ -591,6 +593,11 @@ class UnionTypeParameter(parameterTypes.GroupParameter):
         """
         return {name : self.values[name].model_value() for name in self.values}
 
+    def update(self, value):
+        """ Updates all children of this parameter. """
+        for name in self.values:
+            self.child(name).update(values[name])
+
         
 def model_parents(root):
     """ Returns the parent values of a parameter in the serializable model format instead of a tree.
@@ -632,11 +639,7 @@ def type_to_parameter(project, datatype_name):
     elif isinstance(datatype, BitfieldType):
         return BitfieldTypeParameter
     elif isinstance(datatype, ScalarType):
-        # Check if constants are associated with it
-        if datatype.constant is None:
-            return ScalarTypeParameterWithoutConstants
-        else:
-            return ScalarTypeParameterWithConstants
+        return ScalarTypeParameter
     elif isinstance(datatype, Structure):
         return StructureTypeParameter
     elif isinstance(datatype, FixedSizeArrayType):

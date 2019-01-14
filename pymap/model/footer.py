@@ -54,7 +54,7 @@ footer_type = agb.types.Structure(
         ('tileset_secondary', 'tileset_pointer', 1),
         ('border_width', 'u8', 0),
         ('border_height', 'u8', 0),
-        ('field_1A', 'u16', 1)
+        ('field_1A', 'map_battle_style', 1)
     ], 
     # Export the width and height of the blocks and border beforehand
     hidden_members=set([

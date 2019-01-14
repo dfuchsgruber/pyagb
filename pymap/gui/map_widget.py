@@ -23,9 +23,8 @@ class MapWidget(QWidget):
         self.blocks = None
         self.selection = None
         self.layers = np.array(0)
-        self.history = history.History(main_gui)
+        self.undo_stack = QUndoStack()
         
-
         # (Re-)Build the ui
         self.layout = QGridLayout()
         self.setLayout(self.layout)
@@ -91,7 +90,7 @@ class MapWidget(QWidget):
         blocks_container = QVBoxLayout()
         blocks_widget.setLayout(blocks_container)
         self.layout.addWidget(self.tabs, 1, 6, 5, 1)
-        self.layout.setColumnStretch(1, 5)
+        self.layout.setColumnStretch(1, 4)
         self.layout.setColumnStretch(6, 1)
 
         group_tileset = QGroupBox('Tileset')
@@ -104,8 +103,8 @@ class MapWidget(QWidget):
         tileset_layout.addWidget(self.combo_box_tileset_primary, 1, 2)
         self.combo_box_tileset_secondary = QComboBox()
         tileset_layout.addWidget(self.combo_box_tileset_secondary, 2, 2)
-        self.combo_box_tileset_primary.currentTextChanged.connect(lambda label: self.main_gui.open_tilesets(label_primary=label))
-        self.combo_box_tileset_secondary.currentTextChanged.connect(lambda label: self.main_gui.open_tilesets(label_secondary=label))
+        self.combo_box_tileset_primary.currentTextChanged.connect(lambda label: self.main_gui.change_tileset(label, True))
+        self.combo_box_tileset_secondary.currentTextChanged.connect(lambda label: self.main_gui.change_tileset(label, False))
         group_tileset.setLayout(tileset_layout)
 
         group_dimensions = QGroupBox('Dimensions')
@@ -239,7 +238,8 @@ class MapWidget(QWidget):
 
     def load_project(self, *args):
         """ Update project related widgets. """
-        if self.main_gui.project is None: returnself.combo_box_tileset_primary.blockSignals(True)
+        if self.main_gui.project is None: return
+        self.combo_box_tileset_primary.blockSignals(True)
         self.combo_box_tileset_primary.clear()
         self.combo_box_tileset_primary.blockSignals(False)
         self.combo_box_tileset_secondary.blockSignals(True)
@@ -247,7 +247,7 @@ class MapWidget(QWidget):
         self.combo_box_tileset_secondary.blockSignals(False)
         self.combo_box_tileset_primary.addItems(list(self.main_gui.project.tilesets_primary.keys()))
         self.combo_box_tileset_secondary.addItems(list(self.main_gui.project.tilesets_secondary.keys()))
-
+        self.load_header()
 
     def load_header(self, *args):
         """ Updates the entire header related widgets. """ 
@@ -335,10 +335,10 @@ class MapWidget(QWidget):
 
         # Apply shading to border parts by adding opaque rectangles
         border_color = QColor.fromRgbF(*(self.main_gui.project.config['pymap']['display']['border_color']))
-        north = self.map_scene.addRect(0, 0, (2 * padded_width + map_width) * 16, padded_height * 16, pen = QPen(0), brush = QBrush(border_color))
-        south = self.map_scene.addRect(0, (padded_height + map_height) * 16, (2 * padded_width + map_width) * 16, padded_height * 16, pen = QPen(0), brush = QBrush(border_color))
-        west = self.map_scene.addRect(0, 16 * padded_height, 16 * padded_width, 16 * map_height, pen = QPen(0), brush = QBrush(border_color))
-        east = self.map_scene.addRect(16 * (padded_width + map_width), 16 * padded_height, 16 * padded_width, 16 * map_height, pen = QPen(0), brush = QBrush(border_color))
+        self.north_border = self.map_scene.addRect(0, 0, (2 * padded_width + map_width) * 16, padded_height * 16, pen = QPen(0), brush = QBrush(border_color))
+        self.south_border = self.map_scene.addRect(0, (padded_height + map_height) * 16, (2 * padded_width + map_width) * 16, padded_height * 16, pen = QPen(0), brush = QBrush(border_color))
+        self.west_border = self.map_scene.addRect(0, 16 * padded_height, 16 * padded_width, 16 * map_height, pen = QPen(0), brush = QBrush(border_color))
+        self.east_border = self.map_scene.addRect(16 * (padded_width + map_width), 16 * padded_height, 16 * padded_width, 16 * map_height, pen = QPen(0), brush = QBrush(border_color))
         self.map_scene.setSceneRect(0, 0, 16 * (2 * padded_width + map_width), 16 * (2 * padded_height + map_height))
 
     def update_map(self, x, y, layers, blocks):
@@ -598,6 +598,7 @@ class MapScene(QGraphicsScene):
                     self.map_widget.main_gui.replace_blocks(x - border_width, y - border_height, layer, selection[0, 0, layer])
             else:
                 self.last_draw = -1, -1 # This triggers the drawing routine
+                self.map_widget.undo_stack.beginMacro('Drawing Blocks')
                 self.mouseMoveEvent(event)
         elif event.button() == Qt.MiddleButton:
             # Flood fill is only allowed for 1-block selections
@@ -614,7 +615,8 @@ class MapScene(QGraphicsScene):
             self.selection_box = None
         if event.button() == Qt.LeftButton:
             self.last_draw = None
-            self.map_widget.history.close()
+            #self.map_widget.history.close()
+            self.map_widget.undo_stack.endMacro()
 
 # Static block map for the blocks widget
 BLOCK_MAP = np.array([[idx, 0] for idx in range(0x400)]).reshape((-1, 8, 2))

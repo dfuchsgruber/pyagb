@@ -99,13 +99,13 @@ class ResourceParameterTree(QTreeWidget):
             action.setIcon(QIcon(icon_paths['plus']))
         elif context == TILESET_PRIMARY:
             action = menu.addAction('Assign to Footer')
-            action.triggered.connect(lambda _: self.main_gui.open_tilesets(label_primary=item.context_data))
+            action.triggered.connect(lambda _: self.main_gui.change_tileset(item.context_data, True))
             action = menu.addAction('Remove')
             action.triggered.connect(partial(self.remove_tileset, primary=True, label=item.context_data))
             action.setIcon(QIcon(icon_paths['remove']))
         elif context == TILESET_SECONDARY:
             action = menu.addAction('Assign to Footer')
-            action.triggered.connect(lambda _: self.main_gui.open_tilesets(label_secondary=item.context_data))
+            action.triggered.connect(lambda _: self.main_gui.change_tileset(item.context_data, False))
             action = menu.addAction('Remove')
             action.triggered.connect(partial(self.remove_tileset, primary=False, label=item.context_data))
             action.setIcon(QIcon(icon_paths['remove']))
@@ -141,6 +141,10 @@ class ResourceParameterTree(QTreeWidget):
         """ Removes a bank from the project with prompt. """
         pressed = QMessageBox.question(self, 'Confirm bank removal', f'Do you really want to remove bank {bank} from the project entirely?')
         if pressed == QMessageBox.Yes:
+            for map_idx in self.main_gui.project.headers[bank]:
+                label, _, _ = self.main_gui.project.headers[bank][map_idx]
+                if label == self.main_gui.header_label:
+                    self.main_gui.clear_header()
             del self.main_gui.project.headers[bank]
             self.load_headers()
 
@@ -288,10 +292,14 @@ class ResourceParameterTree(QTreeWidget):
             for bank in self.main_gui.project.headers:
                 for map_idx in self.main_gui.project.headers[bank]:
                     label, path, namespace = self.main_gui.project.headers[bank][map_idx]
-                    with open(path, encoding=self.main_gui.project.config['json']['encoding']) as f:
-                        header = json.load(f)
-                        if footer == get_member_by_path(header['data'], self.main_gui.project.config['pymap']['header']['footer_path']):
+                    if label == self.main_gui.header_label:
+                        if self.main_gui.footer_label == footer:
                             headers.append((bank, map_idx))
+                    else:
+                        with open(path, encoding=self.main_gui.project.config['json']['encoding']) as f:
+                            header = json.load(f)
+                            if footer == get_member_by_path(header['data'], self.main_gui.project.config['pymap']['header']['footer_path']):
+                                headers.append((bank, map_idx))
             if len(headers) > 0:
                 headers_readable = [f'[{header[0]}, {header[1].zfill(2)}] {self.main_gui.project.headers[header[0]][header[1]][0]}' for header in headers]
                 return QMessageBox.critical(self, 'Confirm footer removal', f'The following headers refer to footer {footer}: {", ".join(headers_readable)}. Assign different footers to those headers first.')
@@ -347,11 +355,15 @@ class ResourceParameterTree(QTreeWidget):
             # Scan through all footers and collect footers that refer to this primary / secondary tileset
             footers = []
             for footer_label in self.main_gui.project.footers:
-                footer_idx, path = self.main_gui.project.footers[footer_label]
-                with open(path, encoding=self.main_gui.project.config['json']['encoding']) as f:
-                    footer = json.load(f)
-                if label == get_member_by_path(footer['data'], self.main_gui.project.config['pymap']['footer']['tileset_primary_path' if primary else 'tileset_secondary_path']):
-                    footers.append(footer_label)
+                if footer_label == self.main_gui.footer_label:
+                    if (label == self.main_gui.tileset_primary_label and primary) or (label == self.main_gui.tileset_secondary_label and not primary):
+                        footers.append(footer_label)
+                else:
+                    footer_idx, path = self.main_gui.project.footers[footer_label]
+                    with open(path, encoding=self.main_gui.project.config['json']['encoding']) as f:
+                        footer = json.load(f)
+                    if label == get_member_by_path(footer['data'], self.main_gui.project.config['pymap']['footer']['tileset_primary_path' if primary else 'tileset_secondary_path']):
+                        footers.append(footer_label)
             if len(footers) > 0:
                 return QMessageBox.critical(self, 'Tileset Removal', f'The following footers refer to the tileset {label}: {", ".join(footers)}. Assign different tilesets to those footers first.')
             if primary:
