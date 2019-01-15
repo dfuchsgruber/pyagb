@@ -120,6 +120,26 @@ class EventTab(QWidget):
             self.idx_combobox.setCurrentIndex(current_idx)
             self.idx_combobox.blockSignals(False)
             self.event_properties.load_event()
+            # Load events
+            events = properties.get_member_by_path(self.event_widget.main_gui.header, self.event_type['events_path'])
+            padded_x, padded_y = self.event_widget.main_gui.map_widget.get_border_padding()
+            font = QFont('Ubuntu')
+            font.setBold(True)
+            font.setPixelSize(14)
+            for event in events:
+                x = 16 * (int(properties.get_member_by_path(event, self.event_type['x_path'])) + padded_x)
+                y = 16 * (int(properties.get_member_by_path(event, self.event_type['y_path'])) + padded_y)
+                # TODO support show_pictures
+                color = QColor.fromRgbF(*(self.event_type['box_color']))
+                if True:
+                    rect = self.event_widget.map_scene.addRect(x, y, 16, 16, pen = QPen(0), brush = QBrush(color))
+                    text = self.event_widget.map_scene.addText(self.event_type['name'][0])
+                    text.setPos(x, y-5)
+                    text.setFont(font)
+                    text.setDefaultTextColor(QColor.fromRgbF(*(self.event_type['text_color'])))
+                    
+            
+
 
 
 class EventProperties(ParameterTree):
@@ -179,6 +199,11 @@ class MapScene(QGraphicsScene):
         self.event_widget = event_widget
         self.selection_box = None
         self.last_draw = None # Store the position where a draw happend recently so there are not multiple draw events per block
+        self.event_groups = {} # Items for each event type
+
+    def clear(self):
+        super().clear()
+        self.event_groups = {}
 
     def mouseMoveEvent(self, event):
         """ Event handler for hover events on the map image. """
@@ -201,3 +226,23 @@ class MapScene(QGraphicsScene):
     def mouseReleaseEvent(self, event):
         """ Event handler for releasing the mouse. """
         pass
+
+def event_to_picture(event, event_type, show_pictures):
+    """ Transforms an event to a picture.
+    
+    Parameters:
+    -----------
+    event : dict
+        The event to draw.
+    event_type : str
+        The event type. 
+    show_pictures : bool
+        Whether the show images option is set. 
+    
+    Returns:
+    --------
+    picture : QPixmap or None
+        Pixmap of the event or None if the event is not be shown as picture.
+    """
+    # TODO:
+    return None

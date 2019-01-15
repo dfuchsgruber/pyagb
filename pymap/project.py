@@ -2,6 +2,7 @@
 
 import json
 from . import constants, configuration
+import os
 import pymap.model.model
 from pathlib import Path
 from agb import types
@@ -30,6 +31,7 @@ class Project:
             self.constants = constants.Constants({})
             self.config = configuration.default_configuration.copy()
         else:
+            os.chdir(os.path.dirname(file_path))
             self.from_file(file_path)
 
         # Initialize models

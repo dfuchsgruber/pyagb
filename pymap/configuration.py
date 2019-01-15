@@ -110,6 +110,8 @@ default_configuration = {
                     'datatype' : 'event.person',
                     'size_path' : ['events', 'person_cnt'],
                     'events_path' : ['events', 'persons'],
+                    'box_color' : [0.4, 0.7, 0.4, 0.7],
+                    'text_color' : [1.0, 1.0, 1.0, 0.7],
                     # Define the path for the position of an event
                     'x_path' : ['x'], 'y_path' : ['y'],
                 },
@@ -118,6 +120,8 @@ default_configuration = {
                     'datatype' : 'event.warp',
                     'size_path' : ['events', 'warp_cnt'],
                     'events_path' : ['events', 'warps'],
+                    'box_color' : [0.6, 0.35, 0.85, 0.7],
+                    'text_color' : [1.0, 1.0, 1.0, 0.7],
                     # Define the path for the position of an event
                     'x_path' : ['x'], 'y_path' : ['y'],
                 },
@@ -126,6 +130,8 @@ default_configuration = {
                     'datatype' : 'event.signpost',
                     'size_path' : ['events', 'signpost_cnt'],
                     'events_path' : ['events', 'signposts'],
+                    'box_color' : [0.8, 0.35, 0.3, 0.7],
+                    'text_color' : [1.0, 1.0, 1.0, 0.7],
                     # Define the path for the position of an event
                     'x_path' : ['x'], 'y_path' : ['y'],
                 },
@@ -134,6 +140,8 @@ default_configuration = {
                     'datatype' : 'event.trigger',
                     'size_path' : ['events', 'trigger_cnt'],
                     'events_path' : ['events', 'triggers'],
+                    'box_color' : [0.3, 0.45, 0.75, 0.7],
+                    'text_color' : [1.0, 1.0, 1.0, 0.7],
                     # Define the path for the position of an event
                     'x_path' : ['x'], 'y_path' : ['y'],
                 }
@@ -143,7 +151,7 @@ default_configuration = {
             # Show how many border blocks will be padded to the map display (x, y)
             'border_padding' : [7, 5],
             # R,G,B,Alpha value of the borders 
-            'border_color' : [0, 0, 0, 0.3],
+            'border_color' : [0.0, 0.0, 0.0, 0.3],
         }
     },
 }

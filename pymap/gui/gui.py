@@ -13,8 +13,6 @@ import resource_tree, map_widget, footer_widget, properties, render, history, he
 import pymap.project
 from settings import Settings
 
-HISTORY_SET_BLOCKS = 0
-
 class PymapGui(QMainWindow):
 
     def __init__(self, parent=None):
@@ -113,7 +111,7 @@ class PymapGui(QMainWindow):
     def tab_changed(self):
         """ Callback method for when a tab is changed. """
         if self.central_widget.currentWidget() is self.event_widget:
-            self.event_widget.load_map() # The updates to the map are lazy: Only update the map when the tab is opened.
+            self.event_widget.load_header() # The updates to the map are lazy: Only update the map when the tab is opened.
 
     def save_all(self):
         """ Saves project, header, footer and tilesets. """
