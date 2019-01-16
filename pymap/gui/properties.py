@@ -596,7 +596,7 @@ class UnionTypeParameter(parameterTypes.GroupParameter):
     def update(self, value):
         """ Updates all children of this parameter. """
         for name in self.values:
-            self.child(name).update(values[name])
+            self.child(self.datatype.subtypes[name]).update(value[name])
 
         
 def model_parents(root):
@@ -674,3 +674,26 @@ def set_member_by_path(target, value, path):
     for edge in path[:-1]:
         target = target[edge]
     target[path[-1]] = value 
+
+def get_parents_by_path(value, path):
+    """ Builds the parents of an instance based on its path. 
+    Note that the requested data instance is not needed to be present
+    for this method to work. Just all its parent have to be.
+    
+    Parameters:
+    -----------
+    value : dict
+        The origin structure that contains a data instance.
+    path : list
+        A path to access the data instance.
+        
+    Returns:
+    --------
+    parents : list
+        The model parents of this data instance.
+    """
+    parents = [value]
+    for member in path[:-1]:
+        value = value[member]
+        parents.append(value)
+    return parents

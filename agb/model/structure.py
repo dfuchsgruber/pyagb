@@ -91,7 +91,7 @@ class Structure(Type):
         parents = parents + [structure]
         # Initialize priorized members first
         for attribute, datatype_name, _ in sorted(self.structure, key=lambda x: x[2]):
-            structure[attribute] = datatype(project, context + [attribute], parents)
+            structure[attribute] = project.model[datatype_name](project, context + [attribute], parents)
         return structure
 
 

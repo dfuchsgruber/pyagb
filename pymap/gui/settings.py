@@ -15,6 +15,7 @@ default_settings = {
     'recent.footer' : '.',
     'recent.tileset' : '.',
     'map_widget.level_opacity' : 30,
+    'event_widget.show_pictures' : True,
 }
 
 class Settings(collections.MutableMapping):

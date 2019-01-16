@@ -22,6 +22,7 @@ class Project:
         """
         if file_path is None:
             # Initialize empty project
+            self.path = None
             self.headers = {}
             self.footers = {}
             self.tilesets_primary = {}
@@ -33,6 +34,7 @@ class Project:
         else:
             os.chdir(os.path.dirname(file_path))
             self.from_file(file_path)
+            self.path = file_path
 
         # Initialize models
         self.model = pymap.model.model.get_model(self.config['model'])
@@ -93,6 +95,7 @@ class Project:
         }
         with open(file_path, 'w+') as f:
             json.dump(representation, f, indent=self.config['json']['indent'])
+        self.path = file_path
 
 
     def unused_banks(self):

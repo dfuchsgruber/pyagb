@@ -105,6 +105,8 @@ class PymapGui(QMainWindow):
         view_menu_resource_action = view_menu.addAction('Toggle Header Listing')
         view_menu_resource_action.setShortcut('Ctrl+L')
         view_menu_resource_action.triggered.connect(self.resource_tree_toggle_header_listing)
+        view_menu_event_action = view_menu.addAction('Toggle Event Pictures')
+        view_menu_event_action.triggered.connect(self.event_widget_toggle_pictures)
 
         self.setCentralWidget(self.central_widget)
 
@@ -150,11 +152,12 @@ class PymapGui(QMainWindow):
         """ Opens a new map header and displays it. """
         if self.project is None: return
         # Check if the history of the map or header needs to be saved
-        if self.header is not None and (not self.header_widget.undo_stack.isClean()): # TODO: Event stack
+        if self.header is not None and (not self.header_widget.undo_stack.isClean() or not self.event_widget.undo_stack.isClean()): # TODO: Connection stack
             pressed = QMessageBox.question(self, 'Save Header Changes', f'Header {self.project.headers[self.header_bank][self.header_map_idx][0]} has changed. Do you want to save changes?')
             if pressed == QMessageBox.Yes: self.save_header()
             if pressed != QMessageBox.Yes and pressed != QMessageBox.No: return # Stay on map 
-        self.header_widget.undo_stack.clear() # TODO: Event stack
+        self.header_widget.undo_stack.clear() # TODO: Connection stack
+        self.event_widget.undo_stack.clear()
         os.chdir(os.path.dirname(self.project_path))
         label, path, namespace = self.project.headers[bank][map_idx]
         with open(path, encoding=self.project.config['json']['encoding']) as f:
@@ -255,7 +258,8 @@ class PymapGui(QMainWindow):
                 indent=self.project.config['json']['indent'])
         # Adapt history
         self.header_widget.undo_stack.setClean()
-        # TODO: Event stack
+        self.event_widget.undo_stack.setClean()
+        # TODO: Connection stack
 
         
     def _update(self):
@@ -274,6 +278,12 @@ class PymapGui(QMainWindow):
             resource_tree.SORT_BY_NAMESPACE
         )
         self.resource_tree.load_headers()
+
+    def event_widget_toggle_pictures(self):
+        """ Toggles if events are associated with pictures (potentially slower performance-wise) or not. """
+        if self.project is None: return
+        self.settings['event_widget.show_pictures'] = not self.settings['event_widget.show_pictures']
+        self.event_widget.load_header()
 
     def set_border(self, x, y, blocks):
         """ Sets the blocks of the border and adds an action to the history.  """
