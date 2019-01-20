@@ -145,19 +145,48 @@ default_configuration = {
                     # Define the path for the position of an event
                     'x_path' : ['x'], 'y_path' : ['y'],
                 }
-            ]
+            ],
+            'connections' : {
+                'connections_path' : ['connections', 'connections'],
+                'connections_size_path' : ['connections', 'connection_cnt'],
+                # Define all type of recognized connection values that are to represented visually on the border
+                'connection_types' : {
+                    1 : 'south',
+                    2 : 'north',
+                    3 : 'west',
+                    4 : 'east',
+                },
+                'connection_type_path' : ['direction'],
+                'connection_offset_path' : ['displacement'],
+                'connection_bank_path' : ['bank'],
+                'connection_map_idx_path' : ['map_idx'],
+                'datatype' : 'connection.connection' 
+            }
+            
+        },
+        'project' : {
+            # Automatically save project on changes to labels or added resources. This prevents inconsistencies.
+            'autosave' : True
         },
         'display' : {
             # Show how many border blocks will be padded to the map display (x, y)
             'border_padding' : [7, 5],
             # R,G,B,Alpha value of the borders 
-            'border_color' : [0.0, 0.0, 0.0, 0.3],
+            'border_color' : [0.0, 0.0, 0.0, 0.4],
             # Define a python script that provides a function to associate events with an Pilow image
             # The event image backend should contain a function:
             # def event_to_image(event, event_type, project)
             # that either returns None if no association was found or a triplet (PilImage, horizontal_displacement, vertical_displacement)
             # that indicates which image to use and how it is displaced w.r.t. to the upper left corner of its block
             'event_to_image_backend' : None,
+            # R,G,B,Alpha value of the connection maps 
+            'connection_color' : [1.0, 1.0, 1.0, 0.2],
+            # R,G,B,Alpha value of the currently active connection map
+            'connection_active_color' : [1.0, 0.2, 0.2, 0.15],
+            # R,G,B,Alpha value of the connections maps border boxes
+            'connection_border_color' : [1.0, 1.0, 1.0, 1.0],
+            # R,G,B,Alpha value of the currently active connections map border boxes
+            'connection_active_border_color' : [1.0, 0.0, 0.0, 1.0],
         }
     },
 }

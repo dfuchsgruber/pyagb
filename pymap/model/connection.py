@@ -22,8 +22,8 @@ connection_array_pointer_type = agb.types.PointerType(
 
 # Define a type for map connection headers
 connection_header_type = agb.types.Structure([
-    ('connection_cnt', 'u32'),
-    ('connections', 'connection.connection_array_pointer')
+    ('connection_cnt', 'u32', 0),
+    ('connections', 'connection.connection_array_pointer', 0)
 ])
 
 # These model declarations will be exported

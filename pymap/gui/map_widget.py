@@ -10,8 +10,9 @@ from PIL.ImageQt import ImageQt
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
 import numpy as np
 from skimage.measure import label
-import properties, history
+import properties, history, blocks
 import os
+import json
 
 class MapWidget(QWidget):
     """ Widget that renders the map and displays properties """
@@ -176,15 +177,15 @@ class MapWidget(QWidget):
         except:
             return QMessageBox.critical(self, 'Invalid Dimensions', f'"{tokens[0]}" is not a valid width.')
         width_max = self.main_gui.project.config['pymap']['footer']['map_width_max']
-        if width_new > width_max:
-            return QMessageBox.critical(self, 'Invalid Dimeinsions', f'Width {width_new} larger than maximum width {width_max}')
+        if width_new > width_max or width_new <= 0:
+            return QMessageBox.critical(self, 'Invalid Dimeinsions', f'Width {width_new} larger than maximum width {width_max} or non positive')
         try:
             height_new = int(tokens[1].strip(), 0)
         except:
             return QMessageBox.critical(self, 'Invalid Dimensions', f'"{tokens[1]}" is not a valid height.')
         height_max = self.main_gui.project.config['pymap']['footer']['map_height_max']
-        if height_new > height_max:
-            return QMessageBox.critical(self, 'Invalid Dimeinsions', f'Height {height_new} larger than maximum height {height_max}')
+        if height_new > height_max or height_new <= 0:
+            return QMessageBox.critical(self, 'Invalid Dimeinsions', f'Height {height_new} larger than maximum height {height_max} or non positive')
         self.main_gui.resize_map(height_new, width_new)
 
     def resize_border(self):
@@ -241,12 +242,12 @@ class MapWidget(QWidget):
         if self.main_gui.project is None: return
         self.combo_box_tileset_primary.blockSignals(True)
         self.combo_box_tileset_primary.clear()
+        self.combo_box_tileset_primary.addItems(list(self.main_gui.project.tilesets_primary.keys()))
         self.combo_box_tileset_primary.blockSignals(False)
         self.combo_box_tileset_secondary.blockSignals(True)
         self.combo_box_tileset_secondary.clear()
-        self.combo_box_tileset_secondary.blockSignals(False)
-        self.combo_box_tileset_primary.addItems(list(self.main_gui.project.tilesets_primary.keys()))
         self.combo_box_tileset_secondary.addItems(list(self.main_gui.project.tilesets_secondary.keys()))
+        self.combo_box_tileset_secondary.blockSignals(False)
         self.load_header()
 
     def load_header(self, *args):
@@ -291,22 +292,18 @@ class MapWidget(QWidget):
         """ Loads the entire map image. """
         self.map_scene.clear()
         if self.main_gui.project is None or self.main_gui.header is None: return
-
-        map_blocks = properties.get_member_by_path(self.main_gui.footer, self.main_gui.project.config['pymap']['footer']['map_blocks_path'])
-        map_height, map_width, _ = map_blocks.shape
         padded_width, padded_height = self.get_border_padding()
-        border_blocks = properties.get_member_by_path(self.main_gui.footer, self.main_gui.project.config['pymap']['footer']['border_path'])
-        border_height, border_width, _ = border_blocks.shape
+        map_width = properties.get_member_by_path(self.main_gui.footer, self.main_gui.project.config['pymap']['footer']['map_width_path'])
+        map_height = properties.get_member_by_path(self.main_gui.footer, self.main_gui.project.config['pymap']['footer']['map_height_path'])
 
-        # The border is always aligned with the map, therefore one has to consider a virtual block array that is larger than what acutally is displayed
-        virtual_reps_x = (int(np.ceil(padded_width / border_width)) + int(np.ceil((map_width + padded_width) / border_width)))
-        virtual_reps_y = (int(np.ceil(padded_height / border_height)) + int(np.ceil((map_height + padded_height) / border_height)))
-        self.blocks = np.tile(border_blocks, (virtual_reps_y, virtual_reps_x, 1))
-        x0, y0 = (border_width - (padded_width % border_width)) % border_width, (border_height - (padded_height % border_height)) % border_height
-        # Create frame exactly the size of the map and its borders repeated with the border sequence, aligned with the origin of the map
-        self.blocks = self.blocks[y0:y0 + map_height + 2 * padded_height, x0:x0 + map_width + 2 * padded_width]
-        # Insert the map into this frame
-        self.blocks[padded_height:padded_height + map_height, padded_width:padded_width + map_width] = map_blocks
+        # Crop the visible blocks from all blocks including the border
+        self.blocks = blocks.compute_blocks(self.main_gui.footer, self.main_gui.project)
+        connections = properties.get_member_by_path(self.main_gui.header, self.main_gui.project.config['pymap']['header']['connections']['connections_path'])
+        for connection in blocks.filter_visible_connections(blocks.unpack_connections(connections, self.main_gui.project)):
+            blocks.insert_connection(self.blocks, connection, self.main_gui.footer, self.main_gui.project)
+        visible_width, visible_height = map_width + 2 * padded_width, map_height + 2 * padded_height
+        invisible_border_width, invisible_border_height = (self.blocks.shape[1] - visible_width) // 2, (self.blocks.shape[0] - visible_height) // 2
+        self.blocks = self.blocks[invisible_border_height : self.blocks.shape[0]-invisible_border_height ,invisible_border_width : self.blocks.shape[1]-invisible_border_width] 
 
         # Create a pixel map for each block
         self.map_images = np.empty_like(self.blocks[:, :, 0], dtype=object)
@@ -357,7 +354,6 @@ class MapWidget(QWidget):
             for (yy, xx), level in np.ndenumerate(blocks[:, :, 1]):
                 if x + xx in range(map_width) and y + yy in range(map_height):
                     self.level_images[padded_height + y + yy, padded_width + x + xx].setPixmap(self.level_blocks_pixmaps[level])
-
 
     def load_blocks(self):
         """ Loads the block pool. """
@@ -415,6 +411,7 @@ class MapWidget(QWidget):
     def get_border_padding(self):
         """ Returns how many blocks are padded to the border of the map. """
         return self.main_gui.project.config['pymap']['display']['border_padding'] if self.show_border.isChecked() else (0, 0)
+
 
 class BorderScene(QGraphicsScene):
     """ Scene for the border view. """
@@ -629,15 +626,3 @@ def select_blocks(blocks, x0, x1, y0, y1):
         y0, y1 = y1 - 1, y0 + 1
     return blocks[y0:y1, x0:x1, :]
 
-def blocks_to_ndarray(blocks):
-    """ Converts a blocks list into a numpy ndarray. """
-    return np.array([
-        [[data['block_idx'], data['level']] for data in line ] for line in blocks
-    ], dtype=int)
-
-def ndarray_to_blocks(x):
-    """ Converts a numpy ndarray back into serializable blocks. """
-    return [
-        [{'block_idx' : int(block_idx), 'level' : int(level)} for block_idx, level in line] for line in x
-    ]
-    

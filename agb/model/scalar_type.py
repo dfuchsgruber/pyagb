@@ -4,7 +4,7 @@ from agb.model.type import Type, associate_with_constant, label_and_align
 class ScalarType(Type):
     """ Class to model scalar types. """
 
-    def __init__(self, fmt, constant=None):
+    def __init__(self, fmt, constant=None, default=0):
         """ Initailizes the scalar type.
         
         Parameters:
@@ -13,9 +13,12 @@ class ScalarType(Type):
             The format string for the scalar type. Either (u|s)(8|16|32) or 'pointer'.
         constant : str or None
             The constant table associated with the scalar type.
+        default : str or int
+            The default value.
         """
         self.fmt = fmt
         self.constant = constant
+        self.default = default
 
     def from_data(self, rom, offset, proj, context, parents):
         """ Retrieves the scalar type from a rom.
@@ -99,8 +102,8 @@ class ScalarType(Type):
         Returns:
         --------
         value : int
-            Zero value (0)."""
-        return 0
+            Default value."""
+        return self.default
 
     def size(self, value, project, context, parents):
         """ Returns the size of a specific structure instanze in bytes.

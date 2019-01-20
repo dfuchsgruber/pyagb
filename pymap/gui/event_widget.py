@@ -155,6 +155,7 @@ class EventTab(QWidget):
 
     def load_events(self):
         """ Updates the events according to the model. """
+        self.event_properties.clear()
         if self.event_widget.main_gui.project is None or self.event_widget.main_gui.header is None:
             self.idx_combobox.blockSignals(True)
             self.idx_combobox.clear()
@@ -178,11 +179,13 @@ class EventTab(QWidget):
 
     def remove_event(self, event_idx):
         """ Removes an event. """
+        if self.event_widget.main_gui.project is None or self.event_widget.main_gui.header is None: return
         if event_idx < 0: return
         self.event_widget.undo_stack.push(history.RemoveEvent(self.event_widget, self.event_type, event_idx))
 
     def append_event(self):
         """ Appends a new event. """
+        if self.event_widget.main_gui.project is None or self.event_widget.main_gui.header is None: return
         self.event_widget.undo_stack.push(history.AppendEvent(self.event_widget, self.event_type))
 
     def event_to_group(self, event):
@@ -303,12 +306,10 @@ class MapScene(QGraphicsScene):
                 event_type, event_idx = self.dragged_event
                 event = properties.get_member_by_path(self.event_widget.main_gui.header, event_type['events_path'])[event_idx]
                 # Assemble undo and redo instructions for changing the coordinates
-                x_path = ''.join(map(lambda member: f'[{repr(member)}]', event_type['x_path']))
-                y_path = ''.join(map(lambda member: f'[{repr(member)}]', event_type['y_path']))
-                redo_statements = [f'root{x_path} = \'{x - padded_x}\'', f'root{y_path} = \'{y - padded_y}\'']
-                undo_statements = [f'root{x_path} = \'{self.last_drag[0] - padded_x}\'', f'root{y_path} = \'{self.last_drag[1] - padded_y}\'']
+                redo_statement_x, undo_statement_x = history.path_to_statement(event_type['x_path'], x - padded_x, self.last_drag[0] - padded_x)
+                redo_statement_y, undo_statement_y = history.path_to_statement(event_type['y_path'], y - padded_y, self.last_drag[1] - padded_y)
                 self.event_widget.undo_stack.push(history.ChangeEventProperty(
-                    self.event_widget, event_type, event_idx, redo_statements, undo_statements))
+                    self.event_widget, event_type, event_idx, [redo_statement_x, redo_statement_y], [undo_statement_x, undo_statement_y]))
                 self.last_drag = x, y
         else:
             self.event_widget.info_label.setText('')

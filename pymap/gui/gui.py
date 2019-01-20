@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 from skimage.measure import label
 import appdirs
-import resource_tree, map_widget, footer_widget, properties, render, history, header_widget, event_widget
+import resource_tree, map_widget, footer_widget, properties, render, history, header_widget, event_widget, connection_widget, blocks
 import pymap.project
 from settings import Settings
 
@@ -51,12 +51,14 @@ class PymapGui(QMainWindow):
         self.central_widget = QTabWidget()
         self.map_widget = map_widget.MapWidget(self)
         self.event_widget = event_widget.EventWidget(self)
+        self.connection_widget = connection_widget.ConnectionWidget(self)
         self.header_widget = header_widget.HeaderWidget(self)
         self.footer_widget = footer_widget.FooterWidget(self)
         self.tileset_widget = QTextEdit()
         self.central_widget.addTab(self.map_widget, 'Map')
         self.central_widget.addTab(self.event_widget, 'Events')
         self.central_widget.addTab(self.tileset_widget, 'Tileset')
+        self.central_widget.addTab(self.connection_widget, 'Connections')
         self.central_widget.addTab(self.header_widget, 'Header')
         self.central_widget.addTab(self.footer_widget, 'Footer')
         self.central_widget.currentChanged.connect(self.tab_changed)
@@ -146,30 +148,28 @@ class PymapGui(QMainWindow):
         self.header_bank = None
         self.header_map_idx = None
         # Render subwidgets
-        self.map_widget.load_header()
+        self.update()
 
     def open_header(self, bank, map_idx):
         """ Opens a new map header and displays it. """
         if self.project is None: return
         # Check if the history of the map or header needs to be saved
-        if self.header is not None and (not self.header_widget.undo_stack.isClean() or not self.event_widget.undo_stack.isClean()): # TODO: Connection stack
+        if self.header is not None and (not self.header_widget.undo_stack.isClean() or not self.event_widget.undo_stack.isClean() or not self.connection_widget.undo_stack.isClean()):
             pressed = QMessageBox.question(self, 'Save Header Changes', f'Header {self.project.headers[self.header_bank][self.header_map_idx][0]} has changed. Do you want to save changes?')
             if pressed == QMessageBox.Yes: self.save_header()
             if pressed != QMessageBox.Yes and pressed != QMessageBox.No: return # Stay on map 
-        self.header_widget.undo_stack.clear() # TODO: Connection stack
+        self.header_widget.undo_stack.clear()
         self.event_widget.undo_stack.clear()
+        self.connection_widget.undo_stack.clear()
         os.chdir(os.path.dirname(self.project_path))
         label, path, namespace = self.project.headers[bank][map_idx]
-        with open(path, encoding=self.project.config['json']['encoding']) as f:
-            content = json.load(f)
-        assert(content['type'] == self.project.config['pymap']['header']['datatype'])
-        assert(content['label'] == label)
-        self.header = content['data']
+        self.header, label, namespace = self.project.load_header(bank, map_idx)
         self.header_bank = bank
         self.header_map_idx = map_idx
         # Trigger opening of the fooster
         footer_label = properties.get_member_by_path(self.header, self.project.config['pymap']['header']['footer_path'])
         self.open_footer(footer_label)
+
 
     def open_footer(self, label):
         """ Opens a new footer and assigns it to the current header. """
@@ -182,19 +182,15 @@ class PymapGui(QMainWindow):
         self.map_widget.undo_stack.clear()
         self.footer_widget.undo_stack.clear()
         os.chdir(os.path.dirname(self.project_path))
-        footer_idx, path = self.project.footers[label]
-        with open(path, encoding=self.project.config['json']['encoding']) as f:
-            content = json.load(f)
-        assert(content['type'] == self.project.config['pymap']['footer']['datatype'])
-        assert(content['label'] == label)
-        self.footer = content['data']
+        self.footer, footer_idx = self.project.load_footer(label)
         self.footer_label = label
+        # Associate this header with the new footer
         properties.set_member_by_path(self.header, label, self.project.config['pymap']['header']['footer_path'])
         properties.set_member_by_path(self.header, footer_idx, self.project.config['pymap']['header']['footer_idx_path'])
         # Accelerate computiations by storing map blocks and borders in numpy arrays
-        map_blocks = map_widget.blocks_to_ndarray(properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['map_blocks_path']))
+        map_blocks = blocks.blocks_to_ndarray(properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['map_blocks_path']))
         properties.set_member_by_path(self.footer, map_blocks, self.project.config['pymap']['footer']['map_blocks_path'])
-        border_blocks = map_widget.blocks_to_ndarray(properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['border_path']))
+        border_blocks = blocks.blocks_to_ndarray(properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['border_path']))
         properties.set_member_by_path(self.footer, border_blocks, self.project.config['pymap']['footer']['border_path'])
         # Trigger opening the tilesets
         tileset_primary_label = properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['tileset_primary_path'])
@@ -207,37 +203,27 @@ class PymapGui(QMainWindow):
         os.chdir(os.path.dirname(self.project_path))
         if label_primary is not None:
             # If the footer is assigned a null reference, do not render
-            path_primary = self.project.tilesets_primary[label_primary]
-            with open(path_primary, encoding=self.project.config['json']['encoding']) as f:
-                content = json.load(f)
-            assert(content['type'] == self.project.config['pymap']['tileset_primary']['datatype'])
-            assert(content['label'] == label_primary)
-            self.tileset_primary = content['data']
+            self.tileset_primary = self.project.load_tileset(True, label_primary)
             self.tileset_primary_label = label_primary
             properties.set_member_by_path(self.footer, label_primary, self.project.config['pymap']['footer']['tileset_primary_path'])
         if label_secondary is not None:
-            path_secondary = self.project.tilesets_secondary[label_secondary]
-            with open(path_secondary, encoding=self.project.config['json']['encoding']) as f:
-                content = json.load(f)
-            assert(content['type'] == self.project.config['pymap']['tileset_secondary']['datatype'])
-            assert(content['label'] == label_secondary)
-            self.tileset_secondary = content['data']
+            self.tileset_secondary = self.project.load_tileset(False, label_secondary)
             self.tileset_secondary_label = label_secondary
             properties.set_member_by_path(self.footer, label_secondary, self.project.config['pymap']['footer']['tileset_secondary_path'])
         if label_primary is not None or label_secondary is not None:
         # Load the gfx and render tiles
             self.tiles = render.get_tiles(self.tileset_primary, self.tileset_secondary, self.project)
             self.blocks = render.get_blocks(self.tileset_primary, self.tileset_secondary, self.tiles, self.project)
-            self._update()
+            self.update()
 
     def save_footer(self):
         """ Saves the current map footer. """
         if self.project is None or self.header is None or self.footer is None: return
         # Convert blocks and borders back to lists
         footer = deepcopy(self.footer)
-        map_blocks = map_widget.ndarray_to_blocks(properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['map_blocks_path']))
+        map_blocks = blocks.ndarray_to_blocks(properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['map_blocks_path']))
         properties.set_member_by_path(footer, map_blocks, self.project.config['pymap']['footer']['map_blocks_path'])
-        border_blocks = map_widget.ndarray_to_blocks(properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['border_path']))
+        border_blocks = blocks.ndarray_to_blocks(properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['border_path']))
         properties.set_member_by_path(footer, border_blocks, self.project.config['pymap']['footer']['border_path'])
         footer_idx, path = self.project.footers[self.footer_label]
         with open(path, 'w+', encoding=self.project.config['json']['encoding']) as f:
@@ -259,14 +245,15 @@ class PymapGui(QMainWindow):
         # Adapt history
         self.header_widget.undo_stack.setClean()
         self.event_widget.undo_stack.setClean()
-        # TODO: Connection stack
+        self.connection_widget.undo_stack.setClean()
 
         
-    def _update(self):
-        self.map_widget.load_header()
+    def update(self):
+        self.map_widget.load_project() # Loading the project reflects also changes to the labels of tilesets
         self.footer_widget.load_footer()
         self.header_widget.load_header()
         self.event_widget.load_header() # It is important to place this after the map widget, since it reuses its tiling
+        self.connection_widget.load_header()
         # TODO: other widgets
         pass
 
@@ -335,6 +322,12 @@ class PymapGui(QMainWindow):
         if self.project is None or self.header is None or self.footer is None: return
         label_old = self.tileset_primary_label if primary else self.tileset_secondary_label
         self.map_widget.undo_stack.push(history.AssignTileset(self, primary, label, label_old))
+
+    def change_footer(self, label):
+        """ Changes the current footer by performing a command on the header. """
+        if self.project is None or self.header is None: return
+        self.header_widget.undo_stack.push(history.AssignFooter(self, label, self.footer_label))
+
 
         
 def main():

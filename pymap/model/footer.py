@@ -5,6 +5,9 @@ import json
 import agb.types
 from . import backend
 
+map_dimension = agb.types.ScalarType('u32', default=1)
+border_dimension = agb.types.ScalarType('u8', default=1)
+
 # Define the map block bitfield type
 map_block_type = agb.types.BitfieldType('u16', [
     ('block_idx', None, 10),
@@ -45,15 +48,15 @@ blocks_array_pointer_type = agb.types.PointerType(
 footer_type = agb.types.Structure(
     [
         # The map will be indexed [y][x]
-        ('width', 'u32', 0),
-        ('height', 'u32', 0),
+        ('width', 'footer.map_dimension', 0),
+        ('height', 'footer.map_dimension', 0),
         # The borders will be indexed [y][x]
         ('border', 'footer.border_array_pointer', 1),
         ('blocks', 'footer.blocks_array_pointer', 1),
         ('tileset_primary', 'tileset_pointer', 1),
         ('tileset_secondary', 'tileset_pointer', 1),
-        ('border_width', 'u8', 0),
-        ('border_height', 'u8', 0),
+        ('border_width', 'footer.border_dimension', 0),
+        ('border_height', 'footer.border_dimension', 0),
         ('field_1A', 'map_battle_style', 1)
     ], 
     # Export the width and height of the blocks and border beforehand
@@ -71,5 +74,7 @@ default_model = {
     'footer.blocks_line' : blocks_line_type,
     'footer.blocks_array' : blocks_array_type,
     'footer.blocks_array_pointer' : blocks_array_pointer_type,
-    'footer' : footer_type
+    'footer.map_dimension' : map_dimension,
+    'footer.border_dimension' : border_dimension,
+    'footer' : footer_type,
 }

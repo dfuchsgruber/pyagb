@@ -171,6 +171,30 @@ class AssignTileset(QUndoCommand):
         """ Undoes the tileset assignment. """
         self._assign(self.label_old)
 
+class AssignFooter(QUndoCommand):
+    """ Class for assigning a footer. """
+    
+    def __init__(self, main_gui, label_new, label_old):
+        super().__init__()
+        self.main_gui = main_gui
+        self.label_new = label_new
+        self.label_old = label_old
+
+    def _assign(self, label):
+        """ Helper for assigning a label. """
+        if self.main_gui.project is None or self.main_gui.header is None: return
+        if not label in self.main_gui.project.footers:
+            return QMessageBox.critical(self.main_gui, 'Unable to assign footer', f'Unable to assign footer {label} since it is no longer in the project. Maybe you deleted it?')
+        self.main_gui.open_footer(label)
+    
+    def redo(self):
+        """ Performs the tileset assignment. """
+        self._assign(self.label_new)
+
+    def undo(self):
+        """ Undoes the tileset assignment. """
+        self._assign(self.label_old)
+
 class ChangeFooterProperty(QUndoCommand):
     """ Change a property of the footer. """
 
@@ -292,4 +316,36 @@ class AppendEvent(QUndoCommand):
         properties.set_member_by_path(self.event_widget.main_gui.header, len(events), self.event_type['size_path'])
         self.event_widget.load_header()
 
-        
+class ChangeConnectionProperty(QUndoCommand):
+    """ Change a property of any vent. """
+
+    def __init__(self, connection_widget, connection_idx, mirror_offset, statements_redo, statements_undo):
+        super().__init__()
+        self.connection_widget = connection_widget
+        self.connection_idx = connection_idx
+        self.mirror_offset = mirror_offset
+        self.statements_redo = statements_redo
+        self.statements_undo = statements_undo
+
+    def redo(self):
+        """ Executes the redo statements. """
+        root = properties.get_member_by_path(
+            self.connection_widget.main_gui.header, self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_path'])[self.connection_idx]
+        for statement in self.statements_redo:
+            exec(statement)
+        self.connection_widget.update_connection(self.connection_idx, self.mirror_offset)
+
+    def undo(self):
+        """ Executes the redo statements. """
+        root = properties.get_member_by_path(
+            self.connection_widget.main_gui.header, self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_path'])[self.connection_idx]
+        for statement in self.statements_undo:
+            exec(statement)
+        self.connection_widget.update_connection(self.connection_idx, self.mirror_offset)
+
+def path_to_statement(path, old_value, new_value):
+    """ Transforms a path to a property into a redoable statement relative to a 'root' instance. """
+    path = ''.join(map(lambda member: f'[{repr(member)}]', path))
+    return f'root{path} = {repr(str(new_value))}', f'root{path} = {repr(str(old_value))}'
+
+    
