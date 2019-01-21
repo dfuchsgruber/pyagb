@@ -343,6 +343,62 @@ class ChangeConnectionProperty(QUndoCommand):
             exec(statement)
         self.connection_widget.update_connection(self.connection_idx, self.mirror_offset)
 
+class AppendConnection(QUndoCommand):
+    """ Append a new connection. """
+
+    def __init__(self, connection_widget):
+        super().__init__()
+        self.connection_widget = connection_widget
+
+    def redo(self):
+        """ Appends a new event to the end of the list. """
+        project = self.connection_widget.main_gui.project
+        datatype = self.connection_widget.main_gui.project.config['pymap']['header']['connections']['datatype']
+        connections = properties.get_member_by_path(
+            self.connection_widget.main_gui.header, self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_path'])
+        context = self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_path'] + [len(connections)]
+        parents = properties.get_parents_by_path(
+            self.connection_widget.main_gui.header, self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_path'])
+        connections.append(project.model[datatype](project, context, parents))
+        properties.set_member_by_path(
+            self.connection_widget.main_gui.header, len(connections), self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_size_path'])
+        self.connection_widget.load_header()
+
+    def undo(self):
+        """ Removes the last event. """
+        connections = properties.get_member_by_path(
+            self.connection_widget.main_gui.header, self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_path'])
+        connections.pop()
+        properties.set_member_by_path(
+            self.connection_widget.main_gui.header, len(connections), self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_size_path'])
+        self.connection_widget.load_header()
+
+class RemoveConnection(QUndoCommand):
+    """ Remove a connection. """
+
+    def __init__(self, connection_widget, connection_idx):
+        super().__init__()
+        self.connection_widget = connection_widget
+        self.connection_idx = connection_idx
+        project = self.connection_widget.main_gui.project
+        self.connection = properties.get_member_by_path(self.connection_widget.main_gui.header, project.config['pymap']['header']['connections']['connections_path'])[self.connection_idx]
+    
+    def redo(self):
+        """ Removes the connection from the connections. """
+        connections = properties.get_member_by_path(self.connection_widget.main_gui.header, self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_path'])
+        connections.pop(self.connection_idx)
+        properties.set_member_by_path(
+            self.connection_widget.main_gui.header, len(connections), self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_size_path'])
+        self.connection_widget.load_header()
+
+    def undo(self):
+        """ Reinserts the connection. """
+        connections = properties.get_member_by_path(self.connection_widget.main_gui.header, self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_path'])
+        connections.insert(self.connection_idx, self.connection)
+        properties.set_member_by_path(
+            self.connection_widget.main_gui.header, len(connections), self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_size_path'])
+        self.connection_widget.load_header()
+
 def path_to_statement(path, old_value, new_value):
     """ Transforms a path to a property into a redoable statement relative to a 'root' instance. """
     path = ''.join(map(lambda member: f'[{repr(member)}]', path))

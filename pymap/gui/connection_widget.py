@@ -39,7 +39,7 @@ class ConnectionWidget(QWidget):
 
         connection_layout = QGridLayout()
         self.connection_widget.setLayout(connection_layout)
-        self.mirror_offset = QCheckBox('Mirror Offset to Adjacent Map')
+        self.mirror_offset = QCheckBox('Mirror Displacement to Adjacent Map')
         self.mirror_offset.setChecked(self.main_gui.settings['connections.mirror_offset'])
         self.mirror_offset.stateChanged.connect(self.mirror_offset_changed)
         connection_layout.addWidget(self.mirror_offset, 1, 1, 1, 3)
@@ -47,11 +47,11 @@ class ConnectionWidget(QWidget):
         connection_layout.addWidget(self.idx_combobox, 2, 1)
         self.add_button = QPushButton()
         self.add_button.setIcon(QIcon(resource_tree.icon_paths['plus']))
-        #self.add_button.clicked.connect(self.append_event)
+        self.add_button.clicked.connect(self.append_connection)
         connection_layout.addWidget(self.add_button, 2, 2)
         self.remove_button = QPushButton()
         self.remove_button.setIcon(QIcon(resource_tree.icon_paths['remove']))
-        #self.remove_button.clicked.connect(lambda: self.remove_event(self.idx_combobox.currentIndex()))
+        self.remove_button.clicked.connect(lambda: self.remove_connection(self.idx_combobox.currentIndex()))
         connection_layout.addWidget(self.remove_button, 2, 3)
         self.connection_properties = ConnectionProperties(self)
         connection_layout.addWidget(self.connection_properties, 3, 1, 1, 3)
@@ -132,6 +132,17 @@ class ConnectionWidget(QWidget):
             blocks.insert_connection(map_blocks, connection, self.main_gui.footer, self.main_gui.project)
         return map_blocks
 
+    def remove_connection(self, connection_idx):
+        """ Removes a connection. """
+        if self.main_gui.project is None or self.main_gui.header is None: return
+        if connection_idx < 0: return
+        self.undo_stack.push(history.RemoveConnection(self, connection_idx))
+
+    def append_connection(self):
+        """ Appends a new connection. """
+        if self.main_gui.project is None or self.main_gui.header is None: return
+        self.undo_stack.push(history.AppendConnection(self))
+
     def update_connection(self, connection_idx, mirror_offset):
         """ Updates a certain connection. """
         if self.idx_combobox.currentIndex() == connection_idx:
@@ -162,7 +173,6 @@ class ConnectionWidget(QWidget):
                     if opposite_directions[connection_type] == adjacent_connection_type and adjacent_bank == self.main_gui.header_bank and adjacent_map_idx == self.main_gui.header_map_idx:
                         # Match, mirror the change
                         properties.set_member_by_path(adjacent_packed[idx], str(-offset), self.main_gui.project.config['pymap']['header']['connections']['connection_offset_path'])
-                        print(-offset)
                         self.main_gui.project.save_header(header, bank, map_idx)
 
     def update_blocks(self):    
@@ -306,25 +316,27 @@ class MapScene(QGraphicsScene):
         padded_x, padded_y = self.connection_widget.main_gui.project.config['pymap']['display']['border_padding']
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
-        if x - padded_x in range(map_width) and y - padded_y in range(map_height):
-            self.connection_widget.info_label.setText(f'x : {hex(x - padded_x)}, y : {hex(y - padded_y)}')
-            return
-        
+        if x in range(map_width + 2 * padded_x) and y in range(map_height + 2 * padded_y):
+            if x - padded_x in range(map_width) and y - padded_y in range(map_height):
+                self.connection_widget.info_label.setText(f'x : {hex(x - padded_x)}, y : {hex(y - padded_y)}')
+            else:
+                self.connection_widget.info_label.setText('')
             if self.last_drag is not None and self.last_drag != (x, y):
                 # Start the dragging macro if not started already
                 if not self.drag_started:
                     self.drag_started = True
                     self.connection_widget.undo_stack.beginMacro('Drag event')
-                # Drag the current event to this position
-                event_type, event_idx = self.dragged_event
-                event = properties.get_member_by_path(self.connection_widget.main_gui.header, event_type['events_path'])[event_idx]
-                # Assemble undo and redo instructions for changing the coordinates
-                x_path = ''.join(map(lambda member: f'[{repr(member)}]', event_type['x_path']))
-                y_path = ''.join(map(lambda member: f'[{repr(member)}]', event_type['y_path']))
-                redo_statements = [f'root{x_path} = \'{x - padded_x}\'', f'root{y_path} = \'{y - padded_y}\'']
-                undo_statements = [f'root{x_path} = \'{self.last_drag[0] - padded_x}\'', f'root{y_path} = \'{self.last_drag[1] - padded_y}\'']
-                self.connection_widget.undo_stack.push(history.ChangeEventProperty(
-                    self.connection_widget, event_type, event_idx, redo_statements, undo_statements))
+                # Drag the connection to this position
+                connection_type, offset, bank, map_idx, blocks = self.connection_widget.connections[self.dragged_idx]
+                if connection_type in ('north', 'south'):
+                    offset_new = offset + x - self.last_drag[0]
+                elif connection_type in ('east', 'west'):
+                    offset_new = offset + y - self.last_drag[1]
+                self.connection_widget.connections[self.dragged_idx] = connection_type, offset_new, bank, map_idx, blocks
+                statement_redo, statement_undo = history.path_to_statement(
+                    self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connection_offset_path'], offset, offset_new)
+                self.connection_widget.undo_stack.push(
+                    history.ChangeConnectionProperty(self.connection_widget, self.dragged_idx, self.connection_widget.mirror_offset.isChecked(), [statement_redo], [statement_undo]))
                 self.last_drag = x, y
         else:
             self.connection_widget.info_label.setText('')

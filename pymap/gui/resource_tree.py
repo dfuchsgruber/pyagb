@@ -19,6 +19,10 @@ TILESET_PRIMARY = 'tileset_primary'
 TILESET_SECONDARY = 'tileset_secondary'
 TILESET_PRIMARY_ROOT = 'tileset_primary_root'
 TILESET_SECONDARY_ROOT = 'tileset_secondary_root'
+GFX_PRIMARY_ROOT = 'gfx_primary_root'
+GFX_SECONDARY_ROOT = 'gfx_secondary_root'
+GFX_PRIMARY = 'gfx_primary'
+GFX_SECONDARY = 'gfx_secondary'
 FOOTER = 'footer'
 
 # Load icons
@@ -63,8 +67,10 @@ class ResourceParameterTree(QTreeWidget):
         self.gfx_root = QTreeWidgetItem(self, ['Gfx'])
         self.gfx_root.setIcon(0, QIcon(icon_paths['tree']))
         self.gfx_primary_root = QTreeWidgetItem(self.gfx_root, ['Primary'])
+        self.gfx_primary_root.context = GFX_PRIMARY_ROOT
         self.gfx_primary_root.setIcon(0, QIcon(icon_paths['folder']))
         self.gfx_secondary_root = QTreeWidgetItem(self.gfx_root, ['Secondary'])
+        self.gfx_secondary_root.context = GFX_SECONDARY_ROOT
         self.gfx_secondary_root.setIcon(0, QIcon(icon_paths['folder']))
 
         self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -611,9 +617,11 @@ class ResourceParameterTree(QTreeWidget):
         remove_children(self.gfx_secondary_root)
         for gfx in sorted(project.gfxs_primary):
             gfx_root = QTreeWidgetItem(self.gfx_primary_root, [f'{gfx}'])
+            gfx_root.context, gfx_root.context_data = GFX_PRIMARY_ROOT, gfx
             gfx_root.setIcon(0, QIcon(icon_paths['gfx']))
         for gfx in sorted(project.gfxs_secondary):
             gfx_root = QTreeWidgetItem(self.gfx_secondary_root, [f'{gfx}'])
+            gfx_root.context, gfx_root.context_data = GFX_SECONDARY_ROOT, gfx
             gfx_root.setIcon(0, QIcon(icon_paths['gfx']))
 
 
