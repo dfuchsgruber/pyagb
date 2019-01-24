@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 from skimage.measure import label
 import appdirs
-import resource_tree, map_widget, footer_widget, properties, render, history, header_widget, event_widget, connection_widget, blocks
+import resource_tree, map_widget, footer_widget, properties, render, history, header_widget, event_widget, connection_widget, blocks, tileset_widget
 import pymap.project
 from settings import Settings
 
@@ -54,7 +54,7 @@ class PymapGui(QMainWindow):
         self.connection_widget = connection_widget.ConnectionWidget(self)
         self.header_widget = header_widget.HeaderWidget(self)
         self.footer_widget = footer_widget.FooterWidget(self)
-        self.tileset_widget = QTextEdit()
+        self.tileset_widget = tileset_widget.TilesetWidget(self)
         self.central_widget.addTab(self.map_widget, 'Map')
         self.central_widget.addTab(self.event_widget, 'Events')
         self.central_widget.addTab(self.tileset_widget, 'Tileset')
