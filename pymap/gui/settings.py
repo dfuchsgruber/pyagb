@@ -17,6 +17,7 @@ default_settings = {
     'map_widget.level_opacity' : 30,
     'event_widget.show_pictures' : True,
     'connections.mirror_offset' : True,
+    'tileset.zoom' : 20,
 }
 
 class Settings(collections.MutableMapping):

@@ -81,7 +81,7 @@ def get_map(footer, blocks):
     return map_img
 
 def get_blocks(tileset_primary, tileset_secondary, tiles, project):
-    """ Computes a block. 
+    """ Computes the set of blocks for a combination of tilesets. 
     
     Parameters:
     -----------

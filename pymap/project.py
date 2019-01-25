@@ -121,7 +121,7 @@ class Project:
         namespace : str or None
             The namespace of the header
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
         if bank in self.headers and map_idx in self.headers[bank]:
             label, path, namespace = self.headers[bank][map_idx]
@@ -148,7 +148,7 @@ class Project:
         namespace : str
             The new namespace.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         if bank in self.headers and map_idx in self.headers[bank]:
             path = self.headers[bank][map_idx][1]
             header, _, _ = self.load_header(bank, map_idx)
@@ -177,7 +177,7 @@ class Project:
         footer : str
             The footer of the new map.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         if bank in self.headers:
             if not map_idx in self.headers[bank]:
                 with open(path, encoding=self.config['json']['encoding']) as f:
@@ -240,7 +240,7 @@ class Project:
         map_idx : int or str
             The map index in the bank. If it is an integer or integer string, it is converted into its "canonical" form.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
         if bank in self.headers and map_idx in self.headers[bank]:
             label, path, namespace = self.headers[bank][map_idx]
@@ -274,7 +274,7 @@ class Project:
         header : dict
             The new header.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
         if bank in self.headers:
             if map_idx in self.headers[bank]:
@@ -345,7 +345,7 @@ class Project:
         footer_idx : int
             The index of the footer or -1 if no footer is present.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         if label in self.footers:
             footer_idx, path = self.footers[label]
             with open(path, encoding=self.config['json']['encoding']) as f:
@@ -366,7 +366,7 @@ class Project:
         label : str
             The label of the footer.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         if label in self.footers:
             footer_idx, path = self.footers[label]
             with open(path, 'w+', encoding=self.config['json']['encoding']) as f:
@@ -392,7 +392,7 @@ class Project:
         footer_idx : int or str
             The index in the footer table.
         """ 
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         if label in self.footers:
             raise RuntimeError(f'Footer {label} already present.')
         elif footer_idx not in self.unused_footer_idx():
@@ -418,7 +418,7 @@ class Project:
         footer_idx : int
             Index of the footer.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         if label in self.footers:
             raise RuntimeError(f'Footer {label} already existent.')
         if footer_idx not in self.unused_footer_idx():
@@ -462,7 +462,7 @@ class Project:
         tileset : dict or None
             The tileset structure.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         path = (self.tilesets_primary if primary else self.tilesets_secondary).get(label, None)
         if path is None:
             return None
@@ -485,7 +485,7 @@ class Project:
         label : str
             The label of the tileset.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         tilesets = self.tilesets_primary if primary else self.tilesets_secondary
         if label in tilesets:
             path = tilesets[label]
@@ -510,7 +510,7 @@ class Project:
         path : str
             Path to the tileset structure.
         """ 
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         tilesets = self.tilesets_primary if primary else self.tilesets_secondary
         if label in tilesets:
             raise RuntimeError(f'Tileset {label} already present.')
@@ -561,7 +561,7 @@ class Project:
         path : str
             The path to the tileset.
         """
-        os.chdir(os.path.dirname(self.path))
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
         tilesets = self.tilesets_primary if primary else self.tilesets_secondary
         if label in tilesets:
             raise RuntimeError(f'Footer {label} already existent.')
