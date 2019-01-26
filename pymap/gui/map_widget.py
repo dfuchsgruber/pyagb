@@ -359,8 +359,7 @@ class MapWidget(QWidget):
         """ Loads the block pool. """
         self.blocks_scene.clear()
         if self.main_gui.project is None or self.main_gui.header is None: return
-        self.blocks_image = QPixmap.fromImage(ImageQt(render.draw_block_map(
-            self.main_gui.blocks, BLOCK_MAP[:len(self.main_gui.blocks)])))
+        self.blocks_image = QPixmap.fromImage(ImageQt(render.draw_blocks(self.main_gui.blocks)))
         item = QGraphicsPixmapItem(self.blocks_image)
         self.blocks_scene.addItem(item)
         item.setAcceptHoverEvents(True)
@@ -614,9 +613,6 @@ class MapScene(QGraphicsScene):
             self.last_draw = None
             #self.map_widget.history.close()
             self.map_widget.undo_stack.endMacro()
-
-# Static block map for the blocks widget
-BLOCK_MAP = np.array([[idx, 0] for idx in range(0x400)]).reshape((-1, 8, 2))
 
 def select_blocks(blocks, x0, x1, y0, y1):
     """ Helper method to select a subset of blocks by a box. """

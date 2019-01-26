@@ -6,7 +6,7 @@ from pymap.gui.properties import set_member_by_path, get_member_by_path
 import os
 import pymap.model.model
 from pathlib import Path
-from agb import types
+from agb import types, image
 import agb.string.agbstring
 
 class Project:
@@ -33,7 +33,7 @@ class Project:
             self.constants = constants.Constants({})
             self.config = configuration.default_configuration.copy()
         else:
-            os.chdir(os.path.dirname(file_path))
+            os.chdir(os.abspath(os.path.dirname(file_path)))
             self.from_file(file_path)
             self.path = file_path
 
@@ -571,6 +571,31 @@ class Project:
         tilesets[label] = path
         self.save_tileset(primary, tileset['data'], label)
         self.autosave()
+
+    def load_gfx(self, primary, label):
+        """ Loads a gfx and instanciates an agb image. 
+        
+        Parameters:
+        -----------
+        primary : bool
+            If the image is a gfx for a primary or secondary tileset.
+        label : str
+            The label the gfx is associated with.
+        
+        Returns:
+        --------
+        image : agb.image.Image
+            The agb image.
+        """
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
+        gfx = self.gfxs_primary if primary else self.gfxs_secondary
+        if label not in gfx:
+            raise RuntimeError(f'No gfx associated with label {gfx}')
+        else:
+            path = gfx[label]
+            img, _ = image.from_file(path)
+            return img
+
         
     def unused_banks(self):
         """ Returns a list of all unused map banks. 

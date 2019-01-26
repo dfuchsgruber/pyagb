@@ -141,6 +141,7 @@ class PymapGui(QMainWindow):
             self.footer_widget.load_project()
             self.header_widget.load_project()
             self.event_widget.load_project()
+            self.tileset_widget.load_project()
 
     def clear_header(self):
         """ Unassigns the current header, footer, tilesets. """
@@ -254,7 +255,7 @@ class PymapGui(QMainWindow):
         self.header_widget.load_header()
         self.event_widget.load_header() # It is important to place this after the map widget, since it reuses its tiling
         self.connection_widget.load_header()
-        # TODO: other widgets
+        self.tileset_widget.load_header()
         pass
 
     def resource_tree_toggle_header_listing(self):
