@@ -33,6 +33,24 @@ def get_border(footer, blocks, project):
             border_img.paste(blocks[block_idx], (16 * x, 16 * y), blocks[block_idx])
     return border_img
 
+def draw_blocks(blocks, width=8):
+    """ Draws a picture of all available blocks. 
+    
+    Parameters:
+    -----------
+    blocks : list
+        A lsit of 16x16 blocks
+    width : int
+        The number of blocks per line
+
+    Returns:
+    --------
+    block_img : PIL.Image
+        An image of all blocks.
+    """
+    block_map = np.array([[idx, 0] for idx in range(len(blocks))]).reshape((-1, width, 2))
+    return draw_block_map(blocks, block_map)
+
 def draw_block_map(blocks, block_map):
     """ Computes the image of an entire block map.
     
@@ -40,7 +58,7 @@ def draw_block_map(blocks, block_map):
     -----------
     blocks : list
         A list of 16x16 blocks.
-    block_map : np.array, shape [H, W, 2]
+    block_map : np.array, shape [H, W, >=1]
         The blocks in a 2d array.
 
     Returns:
@@ -194,8 +212,8 @@ def get_tiles(tileset_primary, tileset_secondary, project):
     # Load images
     gfx_primary = get_member_by_path(tileset_primary, project.config['pymap']['tileset_primary']['gfx_path'])
     gfx_secondary = get_member_by_path(tileset_secondary, project.config['pymap']['tileset_secondary']['gfx_path'])
-    gfx_primary, _ = agb.image.from_file(project.gfxs_primary[gfx_primary])
-    gfx_secondary, _ = agb.image.from_file(project.gfxs_secondary[gfx_secondary])
+    gfx_primary = project.load_gfx(True, gfx_primary)
+    gfx_secondary = project.load_gfx(False, gfx_secondary)
 
     # Pack colors for both tilesets
     palettes_primary = get_member_by_path(tileset_primary, project.config['pymap']['tileset_primary']['palettes_path'])
