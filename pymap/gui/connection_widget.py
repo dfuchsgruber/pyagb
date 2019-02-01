@@ -68,6 +68,10 @@ class ConnectionWidget(QWidget):
         """ Loads a new project. """
         self.load_header()
 
+    def reload_project(self, *args):
+        """ Called when members of the project structure are refactored, removed or inserted. Updates relevant widgets. """
+        self.load_project() # There is never a discrepancy between the data model and display, so reloading the footer does not hurt the user changes
+
     def load_header(self):
         """ Loads graphics for the current header. """
         self.map_scene.clear()

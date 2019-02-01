@@ -237,8 +237,8 @@ class MapWidget(QWidget):
         self.main_gui.settings['map_widget.level_opacity'] = opacity
         self.load_map()
 
-    def load_project(self, *args):
-        """ Update project related widgets. """
+    def reload_project(self, *args):
+        """ Called when members of the project structure are refactored, removed or inserted. Updates relevant widgets. """
         if self.main_gui.project is None: return
         self.combo_box_tileset_primary.blockSignals(True)
         self.combo_box_tileset_primary.clear()
@@ -248,6 +248,11 @@ class MapWidget(QWidget):
         self.combo_box_tileset_secondary.clear()
         self.combo_box_tileset_secondary.addItems(list(self.main_gui.project.tilesets_secondary.keys()))
         self.combo_box_tileset_secondary.blockSignals(False)
+
+    def load_project(self, *args):
+        """ Update project related widgets. """
+        if self.main_gui.project is None: return
+        self.reload_project()
         self.load_header()
 
     def load_header(self, *args):
@@ -508,7 +513,7 @@ class BlocksScene(QGraphicsScene):
             if x1 != x + 1 or y1 != y + 1:
                 # Redraw the selection
                 self.selection_box = x0, x + 1, y0, y + 1
-                self.map_widget.set_selection(select_blocks(BLOCK_MAP, *self.selection_box))
+                self.map_widget.set_selection(render.select_blocks(render.block_map, *self.selection_box))
 
     def mouseReleaseEvent(self, event):
         """ Event handler for releasing the mouse. """
@@ -524,7 +529,7 @@ class BlocksScene(QGraphicsScene):
             self.selection_box = x, x + 1, y, y + 1
         if event.button() == Qt.LeftButton or event.button() == Qt.RightButton:
             # Select the current block
-            self.map_widget.set_selection(BLOCK_MAP[y:y+1, x:x+1, :])
+            self.map_widget.set_selection(render.block_map[y:y+1, x:x+1, :])
 
 class MapScene(QGraphicsScene):
     """ Scene for the map view. """
@@ -566,9 +571,8 @@ class MapScene(QGraphicsScene):
             x0, x1, y0, y1 = self.selection_box
             if x1 != x + 1 or y1 != y + 1:
                 # Redraw the selection
-                #print(x, y)
                 self.selection_box = x0, x + 1, y0, y + 1
-                self.map_widget.set_selection(select_blocks(self.map_widget.blocks, *self.selection_box))
+                self.map_widget.set_selection(render.select_blocks(self.map_widget.blocks, *self.selection_box))
 
     def mousePressEvent(self, event):
         """ Event handler for pressing the mouse. """
@@ -614,11 +618,5 @@ class MapScene(QGraphicsScene):
             #self.map_widget.history.close()
             self.map_widget.undo_stack.endMacro()
 
-def select_blocks(blocks, x0, x1, y0, y1):
-    """ Helper method to select a subset of blocks by a box. """
-    if x1 <= x0:
-        x0, x1 = x1 - 1, x0 + 1
-    if y1 <= y0:
-        y0, y1 = y1 - 1, y0 + 1
-    return blocks[y0:y1, x0:x1, :]
+
 

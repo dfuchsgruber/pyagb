@@ -68,6 +68,8 @@ default_configuration = {
             'gfx_path' : ['gfx'],
             'blocks_path' : ['blocks'],
             'datatype' : 'tileset_primary',
+            'behaviours_path' : ['behaviours'],
+            'behaviour_datatype' : 'tileset.behaviour',
         },
         'tileset_secondary' : {
             # Define how to access a certain palette given a tileset. If ['foo', 'bar'] is given
@@ -77,6 +79,8 @@ default_configuration = {
             'gfx_path' : ['gfx'],
             'blocks_path' : ['blocks'],
             'datatype' : 'tileset_secondary',
+            'behaviours_path' : ['behaviours'],
+            'behaviour_datatype' : 'tileset.behaviour',
         },
         'footer' : {
             'map_width_path' : ['width'],

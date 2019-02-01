@@ -33,22 +33,22 @@ def get_border(footer, blocks, project):
             border_img.paste(blocks[block_idx], (16 * x, 16 * y), blocks[block_idx])
     return border_img
 
-def draw_blocks(blocks, width=8):
+# height x width x level static array that enumerates all blocks
+block_map = np.array([[idx, 0] for idx in range(0x400)]).reshape((-1, 8, 2))
+
+def draw_blocks(blocks):
     """ Draws a picture of all available blocks. 
     
     Parameters:
     -----------
     blocks : list
         A lsit of 16x16 blocks
-    width : int
-        The number of blocks per line
 
     Returns:
     --------
     block_img : PIL.Image
         An image of all blocks.
     """
-    block_map = np.array([[idx, 0] for idx in range(len(blocks))]).reshape((-1, width, 2))
     return draw_block_map(blocks, block_map)
 
 def draw_block_map(blocks, block_map):
@@ -188,7 +188,6 @@ def get_tile(image_primary, image_secondary, packed_palettes_primary, packed_pal
     assert(pal_idx >= 0 and pal_idx <= 12)
     if pal_idx < 7: colors = packed_palettes_primary[pal_idx]
     else: colors = packed_palettes_secondary[pal_idx - 7]
-    
 
 def get_tiles(tileset_primary, tileset_secondary, project):
     """ Computes the gfx of both tilesets in all possible palettes and splits it into 8x8 tiles. 
@@ -259,3 +258,30 @@ def pack_colors(palettes, project):
                 packed_palette.append(color[channel] << 3)
         packed.append(packed_palette)
     return packed
+
+def select_blocks(blocks, x0, x1, y0, y1):
+    """ Helper method to select a subset of an array by a box that may be negative. 
+    
+    Parameters:
+    -----------
+    blocks : ndarray, shape [h, w]
+        The blocks to select from.
+    x0 : int
+        X-coorindate of the first corner.
+    y0 : int
+        Y-coordinate of the first corner.
+    x1 : int
+        X-coordinate of the second corner.
+    y1 : int
+        Y-coordinate of the second_corner
+
+    Returns:
+    --------
+    selected : ndarray, shape [|x0 - x1|, |y0 - y1|]
+        The selection described by the box.
+    """
+    if x1 <= x0:
+        x0, x1 = x1 - 1, x0 + 1
+    if y1 <= y0:
+        y0, y1 = y1 - 1, y0 + 1
+    return blocks[y0:y1, x0:x1]

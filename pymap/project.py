@@ -596,6 +596,27 @@ class Project:
             img, _ = image.from_file(path)
             return img
 
+    def save_gfx(self, primary, image, palette, label):
+        """ Saves a gfx with a certain palette. 
+        
+        Parameters:
+        -----------
+        primary : bool
+            If the image is a gfx for a primary or secondary tileset.
+        image : agb.image
+            The agb image of the gfx.
+        palette : agb.palette
+            The agb palette to save the gfx in.
+        label : str
+            The label the gfx is associated with.
+        """
+        os.chdir(os.path.abspath(os.path.dirname(self.path)))
+        gfx = self.gfxs_primary if primary else self.gfxs_secondary
+        if label not in gfx:
+            raise RuntimeError(f'No gfx associated with label {gfx}')
+        else:
+            path = gfx[label]
+            image.save(path, palette)
         
     def unused_banks(self):
         """ Returns a list of all unused map banks. 

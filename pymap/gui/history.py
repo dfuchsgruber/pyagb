@@ -1,4 +1,4 @@
-import properties
+import properties, render
 from warnings import warn
 from deepdiff import DeepDiff
 import numpy as np
@@ -156,8 +156,6 @@ class AssignTileset(QUndoCommand):
     def _assign(self, label):
         """ Helper for assigning a label. """
         if self.main_gui.project is None: return
-        if not label in getattr(self.main_gui.project, ('tilesets_primary' if self.primary else 'tilesets_secondary')):
-            return QMessageBox.critical(self.main_gui, 'Unable to assign tileset', f'Unable to assign tileset {label} since it is no longer in the project. Maybe you deleted it?')
         if self.primary:
             self.main_gui.open_tilesets(label_primary=label)
         else:
@@ -183,9 +181,33 @@ class AssignFooter(QUndoCommand):
     def _assign(self, label):
         """ Helper for assigning a label. """
         if self.main_gui.project is None or self.main_gui.header is None: return
-        if not label in self.main_gui.project.footers:
-            return QMessageBox.critical(self.main_gui, 'Unable to assign footer', f'Unable to assign footer {label} since it is no longer in the project. Maybe you deleted it?')
         self.main_gui.open_footer(label)
+    
+    def redo(self):
+        """ Performs the tileset assignment. """
+        self._assign(self.label_new)
+
+    def undo(self):
+        """ Undoes the tileset assignment. """
+        self._assign(self.label_old)
+
+class AssignGfx(QUndoCommand):
+    """ Class for assigning a gfx to a tileset. """
+    
+    def __init__(self, main_gui, primary, label_new, label_old):
+        super().__init__()
+        self.main_gui = main_gui
+        self.primary = primary
+        self.label_new = label_new
+        self.label_old = label_old
+
+    def _assign(self, label):
+        """ Helper for assigning a label. """
+        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if self.primary:
+            self.main_gui.open_gfxs(label_primary = label)
+        else:
+            self.main_gui.open_gfxs(label_secondary = label)
     
     def redo(self):
         """ Performs the tileset assignment. """
@@ -398,6 +420,100 @@ class RemoveConnection(QUndoCommand):
         properties.set_member_by_path(
             self.connection_widget.main_gui.header, len(connections), self.connection_widget.main_gui.project.config['pymap']['header']['connections']['connections_size_path'])
         self.connection_widget.load_header()
+
+class ChangeBlockProperty(QUndoCommand):
+    """ Change a property of any block. """
+
+    def __init__(self, tileset_widget, block_idx, statements_redo, statements_undo):
+        super().__init__()
+        self.tileset_widget = tileset_widget
+        self.block_idx = block_idx
+        self.statements_redo = statements_redo
+        self.statements_undo = statements_undo
+
+    def redo(self):
+        """ Executes the redo statements. """
+        config = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.block_idx < 0x280 else 'tileset_secondary']
+        tileset = self.tileset_widget.main_gui.tileset_primary if self.block_idx < 0x280 else self.tileset_widget.main_gui.tileset_secondary
+        root = properties.get_member_by_path(tileset, config['behaviours_path'])[self.block_idx % 0x280]
+        for statement in self.statements_redo:
+            exec(statement)
+        self.tileset_widget.block_properties.update()
+
+    def undo(self):
+        """ Executes the redo statements. """
+        config = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.block_idx < 0x280 else 'tileset_secondary']
+        tileset = self.tileset_widget.main_gui.tileset_primary if self.block_idx < 0x280 else self.tileset_widget.main_gui.tileset_secondary
+        root = properties.get_member_by_path(tileset, config['behaviours_path'])[self.block_idx % 0x280]
+        for statement in self.statements_undo:
+            exec(statement)
+        self.tileset_widget.block_properties.update()
+
+class SetTiles(QUndoCommand):
+    """ Changes the tiles of any block. """
+
+    def __init__(self, tileset_widget, block_idx, layer, x, y, tiles_new, tiles_old):
+        super().__init__()
+        self.tileset_widget = tileset_widget
+        self.block_idx = block_idx
+        self.layer = layer
+        self.x = x
+        self.y = y
+        self.tiles_new = tiles_new
+        self.tiles_old = tiles_old
+
+    def _set_tiles(self, tiles):
+        """ Helper method to set tiles. """
+        tileset = self.tileset_widget.main_gui.tileset_primary if self.block_idx < 0x280 else self.tileset_widget.main_gui.tileset_secondary
+        path = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.block_idx < 0x280 else 'tileset_secondary']['blocks_path']
+        blocks = properties.get_member_by_path(tileset, path)
+        block = np.array(blocks[self.tileset_widget.selected_block % 0x280]).reshape(2, 2, 2)
+        block[self.layer, self.y : self.y + tiles.shape[0], self.x : self.x + tiles.shape[1]] = tiles
+        blocks[self.block_idx % 0x280] = block.flatten().tolist()
+        # Update the block
+        self.tileset_widget.main_gui.blocks[self.block_idx] = render.get_block(blocks[self.block_idx % 0x280], self.tileset_widget.main_gui.tiles, self.tileset_widget.main_gui.project)
+        self.tileset_widget.load_blocks()
+        if self.layer == 0: self.tileset_widget.block_lower_scene.update_block()
+        elif self.layer == 1: self.tileset_widget.block_upper_scene.update_block()
+
+    def redo(self):
+        """ Performs the change on the block. """
+        self._set_tiles(self.tiles_new)
+
+    def undo(self):
+        """ Undoes the change on the block. """
+        self._set_tiles(self.tiles_old)
+
+class SetPalette(QUndoCommand):
+    """ Changes a palette of a tileset. """
+
+    def __init__(self, tileset_widget, pal_idx, palette_new, palette_old):
+        super().__init__()
+        self.tileset_widget = tileset_widget
+        self.pal_idx = pal_idx
+        self.palette_new = palette_new
+        self.palette_old = palette_old
+
+    def _set_palette(self, palette):
+        """ Helper method to set a palette. """
+        if self.pal_idx < 7:
+            palettes = properties.get_member_by_path(self.tileset_widget.main_gui.tileset_primary, self.tileset_widget.main_gui.project.config['pymap']['tileset_primary']['palettes_path'])
+        else:
+            palettes = properties.get_member_by_path(self.tileset_widget.main_gui.tileset_secondary, self.tileset_widget.main_gui.project.config['pymap']['tileset_secondary']['palettes_path'])
+        palettes[self.pal_idx % 7] = palette
+        # Update tiles and blocks
+        self.tileset_widget.main_gui.load_blocks()
+        self.tileset_widget.reload()
+
+    def redo(self):
+        """ Sets the new palette. """
+        self._set_palette(self.palette_new)
+
+    def undo(self):
+        """ Undoes the setting of the new palette. """
+        self._set_palette(self.palette_old)
+
+
 
 def path_to_statement(path, old_value, new_value):
     """ Transforms a path to a property into a redoable statement relative to a 'root' instance. """

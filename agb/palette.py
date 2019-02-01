@@ -46,8 +46,12 @@ class Palette:
             List of 16-bit values representing the colors of this palette.
         """
         def color_pack(color):
-            return (color[0] >> 3) | ((color[1] >> 3) << 5) | ((color[2] << 3) << 10)
-        return list(map(color_pack, self.rgbs.astype(int)))
+            return {
+                'red' : color[0] >> 3,
+                'blue': color[1] >> 3,
+                'green' : color[2] >> 3,
+            }
+        return list(map(color_pack, self.rgbs.astype(int).tolist()))
 
 
 def from_data(data):

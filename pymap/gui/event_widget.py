@@ -42,6 +42,10 @@ class EventWidget(QWidget):
         layout.setColumnStretch(1, 4)
         layout.setColumnStretch(6, 1)
 
+    def reload_project(self, *args):
+        """ Called when members of the project structure are refactored, removed or inserted. Updates relevant widgets. """
+        self.load_project() # There is never a discrepancy between the data model and display, so reloading the footer does not hurt the user changes
+
     def load_project(self):
         """ Load a new project. """
         self.load_header()
@@ -306,8 +310,8 @@ class MapScene(QGraphicsScene):
                 event_type, event_idx = self.dragged_event
                 event = properties.get_member_by_path(self.event_widget.main_gui.header, event_type['events_path'])[event_idx]
                 # Assemble undo and redo instructions for changing the coordinates
-                redo_statement_x, undo_statement_x = history.path_to_statement(event_type['x_path'], x - padded_x, self.last_drag[0] - padded_x)
-                redo_statement_y, undo_statement_y = history.path_to_statement(event_type['y_path'], y - padded_y, self.last_drag[1] - padded_y)
+                redo_statement_x, undo_statement_x = history.path_to_statement(event_type['x_path'], self.last_drag[0] - padded_x, x - padded_x)
+                redo_statement_y, undo_statement_y = history.path_to_statement(event_type['y_path'], self.last_drag[1] - padded_y, y - padded_y)
                 self.event_widget.undo_stack.push(history.ChangeEventProperty(
                     self.event_widget, event_type, event_idx, [redo_statement_x, redo_statement_y], [undo_statement_x, undo_statement_y]))
                 self.last_drag = x, y

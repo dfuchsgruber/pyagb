@@ -300,15 +300,17 @@ class ResourceParameterTree(QTreeWidget):
         set_member_by_path(header, namespace, self.main_gui.project.config['pymap']['header']['namespace_path'])
         self.main_gui.project.save_header(header, bank, map_idx)
         self.load_headers()
+        self.main_gui.reload_project()
 
     def remove_header(self, *args, bank=None, map_idx=None):
         """ Removes a header from the project. """
         pressed = QMessageBox.question(self, 'Confirm header removal', f'Do you really want to remove header [{bank}, {map_idx.zfill(2)}] from the project entirely?')
         if pressed == QMessageBox.Yes:
-            if bank == self.main_gui.header and map_idx == self.main_gui.header_map_idx:
+            if bank == self.main_gui.header_bank and map_idx == self.main_gui.header_map_idx:
                 self.main_gui.clear_header()
             self.main_gui.project.remove_header(bank, map_idx)
             self.load_headers()
+            self.main_gui.reload_project()
 
     def import_header(self, *args, bank=None, map_idx=None):
         """ Imports a map header structure into the project. """
@@ -331,6 +333,7 @@ class ResourceParameterTree(QTreeWidget):
         if footer is None: return
         self.main_gui.project.import_header(bank, map_idx, label, path, namespace, footer)
         self.load_headers()
+        self.main_gui.reload_project()
         
     def prompt_unused_footer_idx(self, title):
         """ Prompts a dialog that asks for an unused footer index. """
@@ -387,6 +390,7 @@ class ResourceParameterTree(QTreeWidget):
         set_member_by_path(footer, tileset_secondary, self.main_gui.project.config['pymap']['footer']['tileset_secondary_path'])
         self.main_gui.project.save_footer(footer, label)
         self.load_footers()
+        self.main_gui.reload_project()
 
     def remove_footer(self, *args, footer=None):
         """ Removes a footer from the project with prompt. """
@@ -408,6 +412,7 @@ class ResourceParameterTree(QTreeWidget):
                 return QMessageBox.critical(self, 'Confirm footer removal', f'The following headers refer to footer {footer}: {", ".join(headers_readable)}. Assign different footers to those headers first.')
             self.main_gui.project.remove_footer(footer)
             self.load_footers()
+            self.main_gui.reload_project()
 
     def refactor_footer(self, *args, label_old=None, label_new=None):
         """ Refactors the map footer's label. """
@@ -421,7 +426,7 @@ class ResourceParameterTree(QTreeWidget):
             self.main_gui.footer_label = label_new
             set_member_by_path(self.main_gui.header, label_new, self.main_gui.project.config['pymap']['header']['footer_path'])
         self.load_footers()
-        self.main_gui.update()
+        self.main_gui.reload_project()
 
     def import_footer(self, *args):
         """ Imports a map header structure into the project. """
@@ -436,6 +441,7 @@ class ResourceParameterTree(QTreeWidget):
         if label is None: return
         self.main_gui.project.import_footer(label, path, int(footer_idx))
         self.load_footers()
+        self.main_gui.reload_project()
         
     def prompt_gfx(self, title, primary):
         """ Prompts for a gfx by a dialog. """
@@ -489,6 +495,7 @@ class ResourceParameterTree(QTreeWidget):
         set_member_by_path(tileset, gfx, self.main_gui.project.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['gfx_path'])
         self.main_gui.project.save_tileset(primary, tileset, label)
         self.load_tilesets()
+        self.main_gui.reload_project()
         
     def remove_tileset(self, *args, primary=None, label=None):
         """ Removes a tileset. """
@@ -507,7 +514,8 @@ class ResourceParameterTree(QTreeWidget):
             if len(footers) > 0:
                 return QMessageBox.critical(self, 'Tileset Removal', f'The following footers refer to the tileset {label}: {", ".join(footers)}. Assign different tilesets to those footers first.')
             self.main_gui.project.remove_tileset(primary, label)
-            self.load_footers()
+            self.load_tilesets()
+            self.main_gui.reload_project()
 
     def refactor_tileset(self, *args, primary=None, label_old=None, label_new=None):
         """ Changes the label of a tileset. """
@@ -524,7 +532,7 @@ class ResourceParameterTree(QTreeWidget):
             self.main_gui.tileset_secondary_label = label_new
             set_member_by_path(self.main_gui.footer, label_new, self.main_gui.project.config['pymap']['footer']['tileset_secondary_path'])
         self.load_tilesets()
-        self.main_gui.update()
+        self.main_gui.reload_project()
 
     def import_tileset(self, *args, primary=None):
         """ Imports a tileset. """
@@ -541,7 +549,7 @@ class ResourceParameterTree(QTreeWidget):
         if label is None: return
         self.main_gui.project.import_tileset(primary, label, path)
         self.load_tilesets()
-        self.main_gui.update()
+        self.main_gui.reload_project()
 
     def load_project(self):
         """ Updates the tree of a project. """

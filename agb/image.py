@@ -129,6 +129,21 @@ class Image:
             ])
         return img
 
+    def save(self, path, palette):
+        """ Saves this image with a given palette. 
+        
+        Parameters:
+        -----------
+        path : str
+            The path to save the image at.
+        palette : list or byte-like
+            Sequence where each groups of 3 represent the R,G,B values
+        """
+        img = PIL.Image.new('P', (self.width, self.height))
+        img.putdata(self.data.T.flatten())
+        img.putpalette(palette)
+        img.save(path)
+
 def from_file(file_path):
     """ Creates an Image instance from a png file.
     
@@ -150,5 +165,5 @@ def from_file(file_path):
         image = Image(None, width, height, depth=attributes['bitdepth'])
         image.data = np.array([*data]).T
         colors = attributes['palette']
-        _palette = palette.Palette(list(zip(colors[0::3], colors[1::3], colors[2::3])))
+        _palette = palette.Palette(colors)
         return image, _palette

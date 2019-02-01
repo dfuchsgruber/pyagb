@@ -94,6 +94,7 @@ class PymapGui(QMainWindow):
         file_menu_save_footer = file_menu_save_menu.addAction('Footer')
         file_menu_save_footer.triggered.connect(self.save_footer)
         file_menu_save_tilesets = file_menu_save_menu.addAction('Tilesets')
+        file_menu_save_tilesets.triggered.connect(self.save_tilesets)
         # 'Edit' menu
         edit_menu = self.menuBar().addMenu('&Edit')
         edit_menu_undo_action = edit_menu.addAction('Undo')
@@ -114,14 +115,28 @@ class PymapGui(QMainWindow):
 
     def tab_changed(self):
         """ Callback method for when a tab is changed. """
+        # Update map data and blocks lazily in order to prevent lag when mapping blocks or tiles
         if self.central_widget.currentWidget() is self.event_widget:
-            self.event_widget.load_header() # The updates to the map are lazy: Only update the map when the tab is opened.
+            self.map_widget.load_header()
+            self.event_widget.load_header()
+        if self.central_widget.currentWidget() is self.map_widget:
+            self.map_widget.load_header()
+        if self.central_widget.currentWidget() is self.connection_widget:
+            self.connection_widget.load_header()
+
+    def closeEvent(self, event):
+        """ Query to save currently open files on closing. """
+        if self.prompt_save_header() or self.prompt_save_footer() or self.prompt_save_tilesets():
+            event.ignore()
+            return
+        super().closeEvent(event)
 
     def save_all(self):
         """ Saves project, header, footer and tilesets. """
         self.save_project()
         self.save_header()
         self.save_footer()
+        self.save_tilesets()
 
     def save_project(self):
         """ Saves the current project. """
@@ -143,6 +158,15 @@ class PymapGui(QMainWindow):
             self.event_widget.load_project()
             self.tileset_widget.load_project()
 
+    def reload_project(self):
+        """ Called when members of the project structure changed because of refactoring, removal or insertion. """
+        self.map_widget.reload_project()
+        self.event_widget.reload_project()
+        self.header_widget.reload_project()
+        self.footer_widget.reload_project()
+        self.connection_widget.reload_project()
+        self.tileset_widget.reload_project()
+
     def clear_header(self):
         """ Unassigns the current header, footer, tilesets. """
         self.header = None
@@ -151,38 +175,51 @@ class PymapGui(QMainWindow):
         # Render subwidgets
         self.update()
 
-    def open_header(self, bank, map_idx):
+    def prompt_save_header(self):
+        """ Prompts to save the header if it is unsafed. Returns True if the user did not take any action. """
+        if self.project is None or self.header is None: return False
+        if self.header is not None and (not self.header_widget.undo_stack.isClean() or not self.event_widget.undo_stack.isClean() or not self.connection_widget.undo_stack.isClean()):
+            pressed = self.prompt_saving(self, 'Save Header Changes', f'Header {self.project.headers[self.header_bank][self.header_map_idx][0]} has changed. Do you want to save changes?')
+            if pressed == QMessageBox.Save: self.save_header()
+            return pressed == QMessageBox.Cancel
+
+    def prompt_save_footer(self):
+        """ Prompts to save the footer if it is unsafed. """
+        if self.project is None or self.header is None or self.footer is None: return False
+        if self.footer is not None and (not self.map_widget.undo_stack.isClean() or not self.footer_widget.undo_stack.isClean()):
+            pressed = self.prompt_saving(self, 'Save Footer Changes', f'Footer {self.footer_label} has changed. Do you want to save changes?')
+            if pressed == QMessageBox.Save: self.save_footer()
+            return pressed == QMessageBox.Cancel
+
+    def prompt_save_tilesets(self):
+        """ Prompts to save the tilesets if they are unsafed. """
+        if self.project is None or self.header is None or self.footer is None or self.tileset_primary is None or self.tileset_secondary is None: return False
+        if self.tileset_primary is not None and not self.tileset_secondary is None and not self.tileset_widget.undo_stack.isClean():
+            pressed = self.prompt_saving(self, 'Save Tileset Changes', f'Tilesets {self.tileset_primary_label} and {self.tileset_secondary_label} have changed. Do you want to save changes?')
+            if pressed == QMessageBox.Save: self.save_tilesets()
+            return pressed == QMessageBox.Cancel
+
+    def open_header(self, bank, map_idx, prompt_saving=True):
         """ Opens a new map header and displays it. """
         if self.project is None: return
-        # Check if the history of the map or header needs to be saved
-        if self.header is not None and (not self.header_widget.undo_stack.isClean() or not self.event_widget.undo_stack.isClean() or not self.connection_widget.undo_stack.isClean()):
-            pressed = QMessageBox.question(self, 'Save Header Changes', f'Header {self.project.headers[self.header_bank][self.header_map_idx][0]} has changed. Do you want to save changes?')
-            if pressed == QMessageBox.Yes: self.save_header()
-            if pressed != QMessageBox.Yes and pressed != QMessageBox.No: return # Stay on map 
+        if prompt_saving and (self.prompt_save_header() or self.prompt_save_footer() or self.prompt_save_tilesets()): return
         self.header_widget.undo_stack.clear()
         self.event_widget.undo_stack.clear()
         self.connection_widget.undo_stack.clear()
-        os.chdir(os.path.dirname(self.project_path))
         label, path, namespace = self.project.headers[bank][map_idx]
         self.header, label, namespace = self.project.load_header(bank, map_idx)
         self.header_bank = bank
         self.header_map_idx = map_idx
         # Trigger opening of the fooster
         footer_label = properties.get_member_by_path(self.header, self.project.config['pymap']['header']['footer_path'])
-        self.open_footer(footer_label)
+        self.open_footer(footer_label, prompt_saving=False) # Do not prompt saving the same files twice
 
-
-    def open_footer(self, label):
+    def open_footer(self, label, prompt_saving=True):
         """ Opens a new footer and assigns it to the current header. """
         if self.project is None or self.header is None: return
-        # Check if the history of the map or footer needs to be saved
-        if self.footer is not None and (not self.map_widget.undo_stack.isClean() or not self.footer_widget.undo_stack.isClean()):
-            pressed = QMessageBox.question(self, 'Save Footer Changes', f'Footer {self.footer_label} has changed. Do you want to save changes?')
-            if pressed == QMessageBox.Yes: self.save_footer()
-            if pressed != QMessageBox.Yes and pressed != QMessageBox.No: return # Stay on map 
+        if prompt_saving and (self.prompt_save_footer() or self.prompt_save_tilesets()): return
         self.map_widget.undo_stack.clear()
         self.footer_widget.undo_stack.clear()
-        os.chdir(os.path.dirname(self.project_path))
         self.footer, footer_idx = self.project.load_footer(label)
         self.footer_label = label
         # Associate this header with the new footer
@@ -196,12 +233,14 @@ class PymapGui(QMainWindow):
         # Trigger opening the tilesets
         tileset_primary_label = properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['tileset_primary_path'])
         tileset_secondary_label = properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['tileset_secondary_path'])
-        self.open_tilesets(tileset_primary_label, tileset_secondary_label)
+        self.open_tilesets(tileset_primary_label, tileset_secondary_label, prompt_saving=False) # Do not prompt saving the same files twice
 
-    def open_tilesets(self, label_primary=None, label_secondary=None):
+    def open_tilesets(self, label_primary=None, label_secondary=None, prompt_saving=True):
         """ Opens and assigns a new primary tileset and secondary tileset to the current footer. """
         if self.project is None or self.header is None or self.footer is None: return
-        os.chdir(os.path.dirname(self.project_path))
+        if prompt_saving and self.prompt_save_tilesets(): return
+        self.tileset_widget.undo_stack.clear()
+        # Check if the tilesets need to be saved
         if label_primary is not None:
             # If the footer is assigned a null reference, do not render
             self.tileset_primary = self.project.load_tileset(True, label_primary)
@@ -212,10 +251,34 @@ class PymapGui(QMainWindow):
             self.tileset_secondary_label = label_secondary
             properties.set_member_by_path(self.footer, label_secondary, self.project.config['pymap']['footer']['tileset_secondary_path'])
         if label_primary is not None or label_secondary is not None:
-        # Load the gfx and render tiles
-            self.tiles = render.get_tiles(self.tileset_primary, self.tileset_secondary, self.project)
-            self.blocks = render.get_blocks(self.tileset_primary, self.tileset_secondary, self.tiles, self.project)
+            gfx_primary_label = properties.get_member_by_path(self.tileset_primary, self.project.config['pymap']['tileset_primary']['gfx_path'])
+            gfx_secondary_label = properties.get_member_by_path(self.tileset_secondary, self.project.config['pymap']['tileset_secondary']['gfx_path'])
+            self.open_gfxs(gfx_primary_label, gfx_secondary_label)
+
+    def open_gfxs(self, label_primary=None, label_secondary=None):
+        """ Opens and assigns new gfxs to the primary and secondary tilesets. """
+        if self.project is None or self.header is None or self.footer is None or self.tileset_primary is None or self.tileset_secondary is None: return
+        # Assign the gfxs to the tilesets
+        if label_primary is not None:
+            properties.set_member_by_path(self.tileset_primary, label_primary, self.project.config['pymap']['tileset_primary']['gfx_path'])
+        if label_secondary is not None:
+            properties.set_member_by_path(self.tileset_secondary, label_secondary, self.project.config['pymap']['tileset_secondary']['gfx_path'])
+        if label_primary is not None or label_secondary is not None:
+            # Load the gfx and render tiles
+            self.load_blocks()
             self.update()
+
+    def load_blocks(self):
+        """ Updates blocks and their tiles. """
+        self.tiles = render.get_tiles(self.tileset_primary, self.tileset_secondary, self.project)
+        self.blocks = render.get_blocks(self.tileset_primary, self.tileset_secondary, self.tiles, self.project)
+
+    def save_tilesets(self):
+        """ Saves the current tilesets. """
+        if self.project is None or self.header is None or self.footer is None or self.tileset_primary is None or self.tileset_secondary is None: return
+        self.project.save_tileset(True, self.tileset_primary, self.tileset_primary_label)
+        self.project.save_tileset(False, self.tileset_secondary, self.tileset_secondary_label)
+        self.tileset_widget.undo_stack.setClean()
 
     def save_footer(self):
         """ Saves the current map footer. """
@@ -227,22 +290,14 @@ class PymapGui(QMainWindow):
         border_blocks = blocks.ndarray_to_blocks(properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['border_path']))
         properties.set_member_by_path(footer, border_blocks, self.project.config['pymap']['footer']['border_path'])
         footer_idx, path = self.project.footers[self.footer_label]
-        with open(path, 'w+', encoding=self.project.config['json']['encoding']) as f:
-            json.dump(
-                {'type' : self.project.config['pymap']['footer']['datatype'], 'label' : self.footer_label, 'data' : footer}, f, 
-                indent=self.project.config['json']['indent'])
-        # Adapt history
+        self.project.save_footer(footer, self.footer_label)
         self.map_widget.undo_stack.setClean()
         self.footer_widget.undo_stack.setClean()
 
     def save_header(self):
         """ Saves the current map header.  """
         if self.project is None or self.header is None: return
-        label, path, _ = self.project.headers[self.header_bank][self.header_map_idx]
-        with open(path, 'w+', encoding=self.project.config['json']['encoding']) as f:
-            json.dump(
-                {'type' : self.project.config['pymap']['header']['datatype'], 'label' : label, 'data' : self.header}, f, 
-                indent=self.project.config['json']['indent'])
+        self.project.save_header(self.header, self.header_bank, self.header_map_idx)
         # Adapt history
         self.header_widget.undo_stack.setClean()
         self.event_widget.undo_stack.setClean()
@@ -256,7 +311,6 @@ class PymapGui(QMainWindow):
         self.event_widget.load_header() # It is important to place this after the map widget, since it reuses its tiling
         self.connection_widget.load_header()
         self.tileset_widget.load_header()
-        pass
 
     def resource_tree_toggle_header_listing(self):
         """ Toggles the listing method for the resource tree. """
@@ -329,7 +383,23 @@ class PymapGui(QMainWindow):
         if self.project is None or self.header is None: return
         self.header_widget.undo_stack.push(history.AssignFooter(self, label, self.footer_label))
 
+    def change_gfx(self, label, primary):
+        """ Changes the current gfx by performing a command. """
+        if self.project is None or self.header is None or self.footer is None or self.tileset_primary is None or self.tileset_secondary is None: return
+        if primary:
+            label_old = properties.get_member_by_path(self.tileset_primary, self.project.config['pymap']['tileset_primary']['gfx_path'])
+        else:
+            label_old = properties.get_member_by_path(self.tileset_secondary, self.project.config['pymap']['tileset_secondary']['gfx_path'])
+        self.tileset_widget.undo_stack.push(history.AssignGfx(self, primary, label, label_old))
 
+    def prompt_saving(self, parent, text, informative_text):
+        """ Displays a prompt to ask the user if a certain file should be saved. """
+        message_box = QMessageBox(parent)
+        message_box.setWindowTitle(text)
+        message_box.setText(informative_text)
+        message_box.setStandardButtons(QMessageBox.Save | QMessageBox.No | QMessageBox.Cancel)
+        message_box.setDefaultButton(QMessageBox.Save)
+        return message_box.exec_()
         
 def main():
     #os.chdir('/media/d/romhacking/Violet_Sources')
