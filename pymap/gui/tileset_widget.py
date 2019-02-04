@@ -5,7 +5,7 @@ from PyQt5.QtOpenGL import *
 import numpy as np
 from PIL.ImageQt import ImageQt
 from PIL import Image
-import map_widget, properties, render, blocks, resource_tree, history
+from . import map_widget, properties, render, blocks, resource_tree, history
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
 from deepdiff import DeepDiff
 from itertools import product
@@ -173,11 +173,6 @@ class TilesetWidget(QWidget):
 
     def load_project(self):
         """ Loads a new project. """
-        self.reload_project()
-        self.load_header()
-
-    def reload_project(self, *args):
-        """ Called when members of the project structure are refactored, removed or inserted. Updates relevant widgets. """
         if self.main_gui.project is None: return
         self.gfx_primary_combobox.blockSignals(True)
         self.gfx_primary_combobox.clear()
@@ -187,7 +182,8 @@ class TilesetWidget(QWidget):
         self.gfx_secondary_combobox.clear()
         self.gfx_secondary_combobox.addItems(list(self.main_gui.project.gfxs_secondary.keys()))
         self.gfx_secondary_combobox.blockSignals(False)
-
+        self.load_header()
+        
     def load_header(self):
         """ Updates the blocks of a new header. """
         self.tiles_scene.clear()

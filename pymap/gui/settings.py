@@ -2,7 +2,7 @@
 import appdirs
 import os
 import json
-import resource_tree
+from . import resource_tree
 import collections
 
 dir = appdirs.user_config_dir(appname='pymap')
@@ -15,6 +15,7 @@ default_settings = {
     'recent.footer' : '.',
     'recent.tileset' : '.',
     'recent.palette' : '.',
+    'recent.gfx' : '.',
     'map_widget.level_opacity' : 30,
     'event_widget.show_pictures' : True,
     'connections.mirror_offset' : True,

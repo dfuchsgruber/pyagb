@@ -5,3 +5,6 @@ pypng
 pyqt5
 pyqtgraph
 appdirs
+deepdiff
+scipy
+scikit-image

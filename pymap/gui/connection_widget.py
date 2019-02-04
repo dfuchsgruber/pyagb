@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtOpenGL import *
 import numpy as np
 from PIL.ImageQt import ImageQt
-import map_widget, properties, render, blocks, resource_tree, history
+from . import map_widget, properties, render, blocks, resource_tree, history
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
 from deepdiff import DeepDiff
 from itertools import product
@@ -67,10 +67,6 @@ class ConnectionWidget(QWidget):
     def load_project(self):
         """ Loads a new project. """
         self.load_header()
-
-    def reload_project(self, *args):
-        """ Called when members of the project structure are refactored, removed or inserted. Updates relevant widgets. """
-        self.load_project() # There is never a discrepancy between the data model and display, so reloading the footer does not hurt the user changes
 
     def load_header(self):
         """ Loads graphics for the current header. """

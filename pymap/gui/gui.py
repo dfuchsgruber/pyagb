@@ -9,9 +9,9 @@ from copy import deepcopy
 import numpy as np
 from skimage.measure import label
 import appdirs
-import resource_tree, map_widget, footer_widget, properties, render, history, header_widget, event_widget, connection_widget, blocks, tileset_widget
+from . import resource_tree, map_widget, footer_widget, properties, render, history, header_widget, event_widget, connection_widget, blocks, tileset_widget
 import pymap.project
-from settings import Settings
+from .settings import Settings
 
 class PymapGui(QMainWindow):
 
@@ -158,15 +158,6 @@ class PymapGui(QMainWindow):
             self.event_widget.load_project()
             self.tileset_widget.load_project()
 
-    def reload_project(self):
-        """ Called when members of the project structure changed because of refactoring, removal or insertion. """
-        self.map_widget.reload_project()
-        self.event_widget.reload_project()
-        self.header_widget.reload_project()
-        self.footer_widget.reload_project()
-        self.connection_widget.reload_project()
-        self.tileset_widget.reload_project()
-
     def clear_header(self):
         """ Unassigns the current header, footer, tilesets. """
         self.header = None
@@ -305,12 +296,12 @@ class PymapGui(QMainWindow):
 
         
     def update(self):
+        self.tileset_widget.load_project() # Loading the project reflects also changes to the labels of gfxs
         self.map_widget.load_project() # Loading the project reflects also changes to the labels of tilesets
         self.footer_widget.load_footer()
         self.header_widget.load_header()
         self.event_widget.load_header() # It is important to place this after the map widget, since it reuses its tiling
         self.connection_widget.load_header()
-        self.tileset_widget.load_header()
 
     def resource_tree_toggle_header_listing(self):
         """ Toggles the listing method for the resource tree. """
@@ -407,6 +398,3 @@ def main():
     ex = PymapGui()
     ex.show()
     sys.exit(app.exec_())
-	
-if __name__ == '__main__':
-   main()

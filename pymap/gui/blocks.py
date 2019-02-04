@@ -2,7 +2,7 @@
 
 import numpy as np
 import json
-import properties
+from . import properties
 
 def compute_blocks(footer, project):
     """ Computes all blocks for a given header and footer including borders. 

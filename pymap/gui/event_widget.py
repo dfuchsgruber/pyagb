@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtOpenGL import *
 from PIL.ImageQt import ImageQt
 import numpy as np
-import properties, history, map_widget, resource_tree
+from . import properties, history, map_widget, resource_tree
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
 from deepdiff import DeepDiff
 from copy import deepcopy
@@ -41,10 +41,6 @@ class EventWidget(QWidget):
         layout.addWidget(self.tab_widget, 1, 6, 5, 1)
         layout.setColumnStretch(1, 4)
         layout.setColumnStretch(6, 1)
-
-    def reload_project(self, *args):
-        """ Called when members of the project structure are refactored, removed or inserted. Updates relevant widgets. """
-        self.load_project() # There is never a discrepancy between the data model and display, so reloading the footer does not hurt the user changes
 
     def load_project(self):
         """ Load a new project. """

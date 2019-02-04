@@ -4,7 +4,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import os
 from functools import partial
-from properties import get_member_by_path, set_member_by_path 
+from .properties import get_member_by_path, set_member_by_path 
 import json
 
 SORT_BY_BANK = 'bank'
@@ -126,24 +126,15 @@ class ResourceParameterTree(QTreeWidget):
             action = menu.addAction('Import Footer')
             action.setIcon(QIcon(icon_paths['import']))
             action.triggered.connect(lambda _: self.import_footer())
-        elif context == TILESET_PRIMARY:
+        elif context == TILESET_PRIMARY or context == TILESET_SECONDARY:
             action = menu.addAction('Assign to Footer')
-            action.triggered.connect(lambda _: self.main_gui.change_tileset(item.context_data, True))
+            action.triggered.connect(lambda _: self.main_gui.change_tileset(item.context_data, context == TILESET_SECONDARY))
             action = menu.addAction('Remove')
-            action.triggered.connect(partial(self.remove_tileset, primary=True, label=item.context_data))
+            action.triggered.connect(partial(self.remove_tileset, primary=context == TILESET_SECONDARY, label=item.context_data))
             action.setIcon(QIcon(icon_paths['remove']))
             action = menu.addAction('Relabel')
             action.setIcon(QIcon(icon_paths['rename']))
-            action.triggered.connect(lambda _: self.refactor_tileset(primary=True, label_old=item.context_data))
-        elif context == TILESET_SECONDARY:
-            action = menu.addAction('Assign to Footer')
-            action.triggered.connect(lambda _: self.main_gui.change_tileset(item.context_data, False))
-            action = menu.addAction('Remove')
-            action.triggered.connect(partial(self.remove_tileset, primary=False, label=item.context_data))
-            action.setIcon(QIcon(icon_paths['remove']))
-            action = menu.addAction('Relabel')
-            action.setIcon(QIcon(icon_paths['rename']))
-            action.triggered.connect(lambda _: self.refactor_tileset(primary=False, label_old=item.context_data))
+            action.triggered.connect(lambda _: self.refactor_tileset(primary=context == TILESET_SECONDARY, label_old=item.context_data))
         elif context == FOOTER:
             action = menu.addAction('Assign to Header')
             action.triggered.connect(lambda _: self.main_gui.change_footer(item.context_data))
@@ -164,6 +155,19 @@ class ResourceParameterTree(QTreeWidget):
             action = menu.addAction('Import Tileset')
             action.triggered.connect(lambda _: self.import_tileset(primary=context==TILESET_PRIMARY_ROOT))
             action.setIcon(QIcon(icon_paths['import']))
+        elif context == GFX_PRIMARY or context == GFX_SECONDARY:
+            action = menu.addAction('Assign to Tileset')
+            action.triggered.connect(lambda _: self.main_gui.change_gfx(item.context_data, context == GFX_PRIMARY))
+            action = menu.addAction('Remove')
+            action.triggered.connect(lambda _: self.remove_gfx(primary=context == GFX_PRIMARY, label=item.context_data))
+            action.setIcon(QIcon(icon_paths['remove']))
+            action = menu.addAction('Relabel')
+            action.triggered.connect(lambda _: self.refactor_gfx(primary=context == GFX_PRIMARY, label_old=item.context_data))
+            action.setIcon(QIcon(icon_paths['rename']))
+        elif context == GFX_PRIMARY_ROOT or context == GFX_SECONDARY_ROOT:
+            action = menu.addAction('Import Gfx')
+            action.setIcon(QIcon(icon_paths['import']))
+            action.triggered.connect(lambda _: self.import_gfx(primary=context == GFX_PRIMARY_ROOT))
         else:
             return
         menu.exec_(self.viewport().mapToGlobal(position))
@@ -300,7 +304,7 @@ class ResourceParameterTree(QTreeWidget):
         set_member_by_path(header, namespace, self.main_gui.project.config['pymap']['header']['namespace_path'])
         self.main_gui.project.save_header(header, bank, map_idx)
         self.load_headers()
-        self.main_gui.reload_project()
+        self.main_gui.update()
 
     def remove_header(self, *args, bank=None, map_idx=None):
         """ Removes a header from the project. """
@@ -310,7 +314,7 @@ class ResourceParameterTree(QTreeWidget):
                 self.main_gui.clear_header()
             self.main_gui.project.remove_header(bank, map_idx)
             self.load_headers()
-            self.main_gui.reload_project()
+            self.main_gui.update()
 
     def import_header(self, *args, bank=None, map_idx=None):
         """ Imports a map header structure into the project. """
@@ -333,7 +337,7 @@ class ResourceParameterTree(QTreeWidget):
         if footer is None: return
         self.main_gui.project.import_header(bank, map_idx, label, path, namespace, footer)
         self.load_headers()
-        self.main_gui.reload_project()
+        self.main_gui.update()
         
     def prompt_unused_footer_idx(self, title):
         """ Prompts a dialog that asks for an unused footer index. """
@@ -390,7 +394,7 @@ class ResourceParameterTree(QTreeWidget):
         set_member_by_path(footer, tileset_secondary, self.main_gui.project.config['pymap']['footer']['tileset_secondary_path'])
         self.main_gui.project.save_footer(footer, label)
         self.load_footers()
-        self.main_gui.reload_project()
+        self.main_gui.update()
 
     def remove_footer(self, *args, footer=None):
         """ Removes a footer from the project with prompt. """
@@ -412,7 +416,7 @@ class ResourceParameterTree(QTreeWidget):
                 return QMessageBox.critical(self, 'Confirm footer removal', f'The following headers refer to footer {footer}: {", ".join(headers_readable)}. Assign different footers to those headers first.')
             self.main_gui.project.remove_footer(footer)
             self.load_footers()
-            self.main_gui.reload_project()
+            self.main_gui.update()
 
     def refactor_footer(self, *args, label_old=None, label_new=None):
         """ Refactors the map footer's label. """
@@ -426,7 +430,7 @@ class ResourceParameterTree(QTreeWidget):
             self.main_gui.footer_label = label_new
             set_member_by_path(self.main_gui.header, label_new, self.main_gui.project.config['pymap']['header']['footer_path'])
         self.load_footers()
-        self.main_gui.reload_project()
+        self.main_gui.update()
 
     def import_footer(self, *args):
         """ Imports a map header structure into the project. """
@@ -441,7 +445,7 @@ class ResourceParameterTree(QTreeWidget):
         if label is None: return
         self.main_gui.project.import_footer(label, path, int(footer_idx))
         self.load_footers()
-        self.main_gui.reload_project()
+        self.main_gui.update()
         
     def prompt_gfx(self, title, primary):
         """ Prompts for a gfx by a dialog. """
@@ -464,14 +468,18 @@ class ResourceParameterTree(QTreeWidget):
                 QMessageBox.critical(self, title, f'The label {label} is already used for another tileset of this type.')
                 label = None
         return label
-
-    def prompt_tileset_type(self, title):
-        """ Prompts the type of a tileset, either primary or secondary. """
-        if self.main_gui.project is None: return
-        # Prompt the type if unspecified
-        primary, ok_pressed = QInputDialog.getItem(self, 'Create New Tileset', 'Select the tileset type:', ['Primary', 'Secondary'], 0, False)
-        if not ok_pressed: return None
-        else: return primary == 'Primary'
+    
+    def prompt_gfx_label(self, title, primary):
+        """ Prompts for an unused gfx label """
+        gfxs = self.main_gui.project.gfxs_primary if primary else self.main_gui.project.gfxs_secondary
+        label = None
+        while label is None:
+            label, ok_pressed = QInputDialog.getText(self, title, f'Select a unique label for the gfx:')
+            if not ok_pressed: return None
+            if label in gfxs:
+                QMessageBox.critical(self, title, f'The label {label} is already used for another gfx of this type.')
+                label = None
+        return label
 
     def create_tileset(self, *args, primary=None):
         """ Prompts a dialog to create a new tileset. """
@@ -495,7 +503,7 @@ class ResourceParameterTree(QTreeWidget):
         set_member_by_path(tileset, gfx, self.main_gui.project.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['gfx_path'])
         self.main_gui.project.save_tileset(primary, tileset, label)
         self.load_tilesets()
-        self.main_gui.reload_project()
+        self.main_gui.update()
         
     def remove_tileset(self, *args, primary=None, label=None):
         """ Removes a tileset. """
@@ -515,7 +523,7 @@ class ResourceParameterTree(QTreeWidget):
                 return QMessageBox.critical(self, 'Tileset Removal', f'The following footers refer to the tileset {label}: {", ".join(footers)}. Assign different tilesets to those footers first.')
             self.main_gui.project.remove_tileset(primary, label)
             self.load_tilesets()
-            self.main_gui.reload_project()
+            self.main_gui.update()
 
     def refactor_tileset(self, *args, primary=None, label_old=None, label_new=None):
         """ Changes the label of a tileset. """
@@ -532,7 +540,7 @@ class ResourceParameterTree(QTreeWidget):
             self.main_gui.tileset_secondary_label = label_new
             set_member_by_path(self.main_gui.footer, label_new, self.main_gui.project.config['pymap']['footer']['tileset_secondary_path'])
         self.load_tilesets()
-        self.main_gui.reload_project()
+        self.main_gui.update()
 
     def import_tileset(self, *args, primary=None):
         """ Imports a tileset. """
@@ -549,7 +557,61 @@ class ResourceParameterTree(QTreeWidget):
         if label is None: return
         self.main_gui.project.import_tileset(primary, label, path)
         self.load_tilesets()
-        self.main_gui.reload_project()
+        self.main_gui.update()
+
+    def refactor_gfx(self, *args, primary=None, label_old=None, label_new=None):
+        """ Changes the label of a gfx. """
+        if self.main_gui.project is None: return
+        if label_new is None:
+            label_new = self.prompt_gfx_label('Relabel Gfx', primary)
+            if label_new is None: return
+        self.main_gui.project.refactor_gfx(primary, label_old, label_new)
+        # If the current tileset refers to this gfx, change the label as well
+        if primary:
+            gfx_primary_label = get_member_by_path(self.main_gui.tileset_primary, self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'])
+            if gfx_primary_label == label_old:
+                set_member_by_path(self.main_gui.tileset_primary, label_new, self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'])
+        else:
+            gfx_secondary_label = get_member_by_path(self.main_gui.tileset_secondary, self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'])
+            if gfx_secondary_label == label_old:
+                set_member_by_path(self.main_gui.tileset_secondary, label_new, self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'])
+        self.load_gfx()
+        self.main_gui.update()
+
+    def remove_gfx(self, *args, primary=None, label=None):
+        """ Removes a gfxs. """
+        pressed = QMessageBox.question(self, 'Confirm gfx removal', f'Do you really want to remove gfx {label} from the project entirely?')
+        if pressed == QMessageBox.Yes:
+            # Scan through all tilesets and collect tilesets that refer to this gfx
+            tilesets = []
+            current_tileset = self.main_gui.tileset_primary_label if primary else self.main_gui.tileset_secondary_label
+            for tileset_label in (self.main_gui.project.tilesets_primary if primary else self.main_gui.project.tilesets_secondary):
+                # Check if currently the active tileset in display is refering to this gfx
+                if (self.main_gui.tileset_primary_label == tileset_label and primary) or (self.main_gui.tileset_secondary_label == tileset_label and not primary):
+                    tileset = self.main_gui.tileset_primary if primary else self.main_gui.tileset_secondary
+                else:
+                    tileset = self.main_gui.project.load_tileset(primary, tileset_label)
+                if label == get_member_by_path(tileset, self.main_gui.project.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['gfx_path']):
+                    tilesets.append(tileset_label)
+            if len(tilesets) > 0:
+                return QMessageBox.critical(self, 'Gfx Removal', f'The following tilesets refer to the gfx {label}: {", ".join(tilesets)}. Assign different gfxs to those tilesets first.')
+            self.main_gui.project.remove_gfx(primary, label)
+            self.load_gfx()
+            self.main_gui.update()
+
+    def import_gfx(self, *args, primary):
+        """ Imports a gfx. """
+        if self.main_gui.project is None: return
+        path, suffix = QFileDialog.getOpenFileName(
+            self, 'Import Gfx', os.path.join(os.path.dirname(self.main_gui.settings['recent.gfx']), 
+            f'tileset.png'), '4BPP PNG (*.png)')
+        self.main_gui.settings['recent.png'] = path
+        if not len(path): return
+        label = self.prompt_gfx_label('Import Gfx', primary)
+        if label is None: return
+        self.main_gui.project.import_gfx(primary, label, path)
+        self.load_gfx()
+        self.main_gui.update()
 
     def load_project(self):
         """ Updates the tree of a project. """
@@ -625,11 +687,11 @@ class ResourceParameterTree(QTreeWidget):
         remove_children(self.gfx_secondary_root)
         for gfx in sorted(project.gfxs_primary):
             gfx_root = QTreeWidgetItem(self.gfx_primary_root, [f'{gfx}'])
-            gfx_root.context, gfx_root.context_data = GFX_PRIMARY_ROOT, gfx
+            gfx_root.context, gfx_root.context_data = GFX_PRIMARY, gfx
             gfx_root.setIcon(0, QIcon(icon_paths['gfx']))
         for gfx in sorted(project.gfxs_secondary):
             gfx_root = QTreeWidgetItem(self.gfx_secondary_root, [f'{gfx}'])
-            gfx_root.context, gfx_root.context_data = GFX_SECONDARY_ROOT, gfx
+            gfx_root.context, gfx_root.context_data = GFX_SECONDARY, gfx
             gfx_root.setIcon(0, QIcon(icon_paths['gfx']))
 
 

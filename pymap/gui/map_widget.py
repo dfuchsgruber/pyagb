@@ -1,6 +1,6 @@
 # Widget to display a map and its events
 
-import render
+from . import render
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -10,7 +10,7 @@ from PIL.ImageQt import ImageQt
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
 import numpy as np
 from skimage.measure import label
-import properties, history, blocks
+from . import properties, history, blocks
 import os
 import json
 
@@ -236,9 +236,9 @@ class MapWidget(QWidget):
         opacity = self.level_opacity_slider.sliderPosition()
         self.main_gui.settings['map_widget.level_opacity'] = opacity
         self.load_map()
-
-    def reload_project(self, *args):
-        """ Called when members of the project structure are refactored, removed or inserted. Updates relevant widgets. """
+        
+    def load_project(self, *args):
+        """ Update project related widgets. """
         if self.main_gui.project is None: return
         self.combo_box_tileset_primary.blockSignals(True)
         self.combo_box_tileset_primary.clear()
@@ -248,11 +248,6 @@ class MapWidget(QWidget):
         self.combo_box_tileset_secondary.clear()
         self.combo_box_tileset_secondary.addItems(list(self.main_gui.project.tilesets_secondary.keys()))
         self.combo_box_tileset_secondary.blockSignals(False)
-
-    def load_project(self, *args):
-        """ Update project related widgets. """
-        if self.main_gui.project is None: return
-        self.reload_project()
         self.load_header()
 
     def load_header(self, *args):

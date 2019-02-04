@@ -1,4 +1,4 @@
-import properties, render
+from . import properties, render
 from warnings import warn
 from deepdiff import DeepDiff
 import numpy as np

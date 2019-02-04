@@ -183,7 +183,7 @@ class Project:
                 with open(path, encoding=self.config['json']['encoding']) as f:
                     header = json.load(f)
                 assert(header['type'] == self.config['pymap']['header']['datatype']), 'Header datatype mismatches the configuration'
-                self.headers[bank][map_idx] = [label, path, namespace]
+                self.headers[bank][map_idx] = [label, os.path.relpath(path), namespace]
                 if footer not in self.footers:
                     raise RuntimeError(f'Footer {footer} is not existent.')
                 set_member_by_path(header['data'], namespace, self.config['pymap']['header']['namespace_path'])
@@ -426,7 +426,7 @@ class Project:
         with open(path, encoding=self.config['json']['encoding']) as f:
             footer = json.load(f)
         assert(footer['type'] == self.config['pymap']['footer']['datatype']), 'Footer datatype mismatches the configuration'
-        self.footers[label] = footer_idx, path
+        self.footers[label] = footer_idx, os.path.relpath(path)
         self.save_footer(footer['data'], label)
         self.autosave()
 
@@ -568,7 +568,7 @@ class Project:
         with open(path, encoding=self.config['json']['encoding']) as f:
             tileset = json.load(f)
         assert(tileset['type'] == self.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['datatype']), 'Tileset datatype mismatches the configuration'
-        tilesets[label] = path
+        tilesets[label] = os.path.relpath(path)
         self.save_tileset(primary, tileset['data'], label)
         self.autosave()
 
@@ -617,7 +617,78 @@ class Project:
         else:
             path = gfx[label]
             image.save(path, palette)
+    
+    def refactor_gfx(self, primary, label_old, label_new):
+        """ Changes the label of a gfx. Applies changes to all tilesets refering to this gfx. 
         
+        Parameters:
+        -----------
+        primary : bool
+            If the tileset is a primary gfx or not (secondary gfx).
+        label_old : str
+            The old label of the gfx to refactor.
+        label_new : str
+            Its new label.
+        """
+        gfxs = self.gfxs_primary if primary else self.gfxs_secondary
+        assert(label_old in gfxs), f'Gfx {label_old} not existent.'
+        assert(label_new not in gfxs), f'Gfx {label_new} already existent.'
+        for label in (self.tilesets_primary if primary else self.tilesets_secondary):
+            tileset = self.load_tileset(primary, label)
+            if get_member_by_path(tileset, self.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['gfx_path']) == label_old:
+                set_member_by_path(tileset, label_new, self.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['gfx_path'])
+                self.save_tileset(primary, tileset, label)
+                print(f'Refactored gfx reference in tileset {label}')
+        gfxs[label_new] = gfxs.pop(label_old)
+        self.autosave()
+
+    def remove_gfx(self, primary, label):
+        """ Removes a gfx from the project.
+        
+        Parameters:
+        -----------
+        primary : bool
+            If the gfx is a primary gfx.
+        label : str
+            The label of the gfx.
+        """
+        gfxs = self.gfxs_primary if primary else self.gfxs_secondary
+        if label in gfxs:
+            del gfxs[label]
+            self.autosave()
+        else:
+            raise RuntimeError(f'Gfx {label} not existent')
+
+    def import_gfx(self, primary, label, path):
+        """ Imports a gfx into the project. Assertions on the bitdepth and image size are 
+        performed.
+        
+        Parameters:
+        -----------
+        primary : bool
+            If the gfx is a primary gfx.
+        label : str
+            The label of the gfx.
+        path : str
+            The path to the gfx.
+        """
+        gfxs = self.gfxs_primary if primary else self.gfxs_secondary
+        if label in gfxs:
+            raise RuntimeError(f'Gfx {label} already exists.')
+        else:
+            # Load gfx and assert size bounds
+            img, _ = agb.image.from_file(path)
+            assert(img.depth == 4)
+            assert(img.width % 8 == 0)
+            assert(img.height % 8 == 0)
+            if primary:
+                assert(img.width * img.height == 320 * 128)
+            else:
+                assert(img.width * img.height == 192 * 128)
+            gfxs[label] = os.path.relpath(path)
+            self.autosave()
+
+
     def unused_banks(self):
         """ Returns a list of all unused map banks. 
         

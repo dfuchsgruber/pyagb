@@ -3,7 +3,7 @@
 import agb.image
 from PIL import Image
 from warnings import warn
-from properties import get_member_by_path
+from .properties import get_member_by_path
 import numpy as np
 
 def get_border(footer, blocks, project):

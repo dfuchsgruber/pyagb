@@ -2,7 +2,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtOpenGL import *
-import properties, history
+from . import properties, history
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
 from deepdiff import DeepDiff
 from copy import deepcopy
@@ -22,11 +22,7 @@ class FooterWidget(ParameterTree):
     def load_project(self, *args):
         """ Update project related widgets. """
         self.load_footer()
-
-    def reload_project(self, *args):
-        """ Called when members of the project structure are refactored, removed or inserted. Updates relevant widgets. """
-        self.load_project() # There is never a discrepancy between the data model and display, so reloading the footer does not hurt the user changes
-
+        
     def load_footer(self):
         """ Loads a new footer. """
         self.clear()
