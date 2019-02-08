@@ -49,22 +49,20 @@ class Structure(Type):
         structure = {}
         parents = parents + [structure]
 
-        export_closures = {} # Store functions that will export the members here
-        
-        # Create callbacks in the order of members
-        for attribute, datatype_name, _ in self.structure:
-            datatype = project.model[datatype_name]
-            def export_member():
-                # Helper function that will export the member
-                value = datatype.from_data(rom, offset, project, context + [attribute], parents)
+        priorities = sorted(list(set([x[2] for x in self.structure])))
+        for priority in priorities: # Export according to priorities
+            for attribute, datatype_name, datatype_priority in self.structure:
+                datatype = project.model[datatype_name]
+                if datatype_priority == priority:
+                    # Export the member in this iteration
+                    value = datatype.from_data(rom, offset, project, context + [attribute], parents)
+                elif datatype_priority > priority and attribute not in structure:
+                    # Initilize the datatype with an empty stub in order to retrieve its size
+                    value = datatype(project, context + [attribute], parents)
+                else:
+                    value = structure[attribute]
                 structure[attribute] = value
-            export_closures[attribute] = export_member
-            offset += datatype.size(structure[attribute], project, parents)
-        
-        # Export members w.r.t. to their priority
-        for attribute, datatype_name, _ in sorted(self.structure, key=lambda x: x[2]):
-            export_closures[attribute]()
-
+                offset += datatype.size(value, project, context + [attribute], parents) # Initialize empty before exporting
         return structure
 
     def __call__(self, project, context, parents):

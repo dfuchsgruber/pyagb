@@ -168,7 +168,7 @@ scalar_from_data = {
     'u32' : (lambda rom, offset, _: struct.unpack_from('<I', rom, offset=offset)[0]),
     's32' : (lambda rom, offset, _: struct.unpack_from('<i', rom, offset=offset)[0]),
     'pointer' : (lambda rom, offset, project: (
-        struct.unpack_from('<I', rom, offset=offset)[0] - project['rom']['offset'] if
+        struct.unpack_from('<I', rom, offset=offset)[0] - project.config['rom']['offset'] if
         struct.unpack_from('<I', rom, offset=offset)[0] != 0 else None
     ))
 }

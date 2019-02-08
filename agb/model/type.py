@@ -1,5 +1,6 @@
 # Abstract Type class
 from abc import ABC, abstractmethod
+from warnings import warn
 
 class Type(ABC):
 

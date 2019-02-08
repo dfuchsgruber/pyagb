@@ -43,11 +43,14 @@ class UnboundedArrayType(Type):
         values = []
         parents = parents + [values]
         datatype = project.model[self.datatype]
+        idx = 0
         while True:
-            value = datatype.from_data(rom, offset, project, context + [i], parents)
-            if value == tail:
+            value = datatype.from_data(rom, offset, project, context + [idx], parents)
+            if value == self.tail:
                 break
             values.append(value)
+            offset += datatype.size(value, project, context + [idx], parents)
+            idx += 1
         return values
     
     

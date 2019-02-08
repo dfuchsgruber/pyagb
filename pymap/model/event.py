@@ -51,7 +51,7 @@ signpost_value_type = agb.types.UnionType({
         'item' : 'event.signpost_item',
         'script' : 'ow_script_pointer'
     },
-    lambda project, context, parents: 'script' if parents[-1]['type'] < 5 else 'item'
+    lambda project, context, parents: 'script' if int(parents[-1]['type']) < 5 else 'item'
 )
 
 signpost_type = agb.types.Structure([

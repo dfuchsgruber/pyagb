@@ -21,7 +21,7 @@ default_models = [
     pymap.model.connection.default_model,
     pymap.model.tileset.default_model,
     pymap.model.header.default_model,
-    pymap.model.backend.default_model
+    pymap.model.backend.default_model,
 ]
 
 for model in default_models:

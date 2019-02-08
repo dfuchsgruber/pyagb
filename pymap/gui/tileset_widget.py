@@ -586,6 +586,10 @@ class BlockScene(QGraphicsScene):
             elif event.button() == Qt.RightButton:
                 self.selection_box = x, x + 1, y, y + 1
                 self.update_selection_box()
+                # Select the palette of this tile
+                pal_idx = self.tileset_widget.selection[0, 0]['palette_idx']
+                self.tileset_widget.tiles_palette_combobox.setCurrentIndex(pal_idx)
+
 
     def mouseReleaseEvent(self, event):
         """ Event handler for releasing the mouse. """
