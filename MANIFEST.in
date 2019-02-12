@@ -1,1 +1,1 @@
-include pymap/gui/icon/.*
+include pymap/gui/icon/*.*

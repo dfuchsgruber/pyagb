@@ -3,10 +3,10 @@
 from setuptools import setup, find_packages
 
 setup(name='pyagb', 
-    version='1.0', 
+    version='1.1', 
     description='Python3 interface for Gameboy Advance ROMs (agb)',
     author='Wodka',
-    packages = ['agb', 'pymap'],
+    packages = find_packages(),
     scripts = [
         'script/pymapgui.py', 'script/pymap2s.py', 
         'script/pymapconstex.py', 'script/pypreproc.py', 
