@@ -285,3 +285,34 @@ def select_blocks(blocks, x0, x1, y0, y1):
     if y1 <= y0:
         y0, y1 = y1 - 1, y0 + 1
     return blocks[y0:y1, x0:x1]
+
+def get_box(x0, x1, y0, y1):
+    """ Helper method to fix a negative box. 
+
+    Parameters:
+    ------------
+    x0 : int
+        X-coorindate of the first corner.
+    y0 : int
+        Y-coordinate of the first corner.
+    x1 : int
+        X-coordinate of the second corner.
+    y1 : int
+        Y-coordinate of the second_corner
+        
+    Returns:
+    ------------
+    x0 : int
+        X-coorindate of the first corner.
+    y0 : int
+        Y-coordinate of the first corner.
+    x1 : int
+        X-coordinate of the second corner.
+    y1 : int
+        Y-coordinate of the second_corner
+    """
+    if x1 <= x0:
+        x0, x1 = x1 - 1, x0 + 1
+    if y1 <= y0:
+        y0, y1 = y1 - 1, y0 + 1
+    return x0, x1, y0, y1

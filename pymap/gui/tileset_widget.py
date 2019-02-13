@@ -284,6 +284,10 @@ class TilesetWidget(QWidget):
         item = QGraphicsPixmapItem(self.tile_pixmaps[self.tiles_palette_combobox.currentIndex()][flip].scaled(width, height))
         self.tiles_scene.addItem(item)
         item.setAcceptHoverEvents(True)
+        # Add the selection rectangle
+        color = QColor.fromRgbF(1.0, 0.0, 0.0, 1.0)
+        self.tiles_scene.selection_rect = self.tiles_scene.addRect(0, 0, 0, 0, pen = QPen(color, 1.0 * self.zoom_slider.value() / 10), brush = QBrush(0))
+        self.tiles_scene.update_selection_rect()
         self.tiles_scene.setSceneRect(0, 0, width, height)
         
     def zoom_changed(self):
@@ -440,6 +444,7 @@ class TilesScene(QGraphicsScene):
         super().__init__(parent=parent)
         self.tileset_widget = tileset_widget
         self.selection_box = None
+        self.selection_rect = None
 
     def mouseMoveEvent(self, event):
         """ Event handler for moving the mouse. """
@@ -480,9 +485,23 @@ class TilesScene(QGraphicsScene):
         if self.tileset_widget.main_gui.project is None or self.tileset_widget.main_gui.header is None or self.tileset_widget.main_gui.footer is None or \
             self.tileset_widget.main_gui.tileset_primary is None or self.tileset_widget.main_gui.tileset_secondary is None: return
         flip = (int(self.tileset_widget.tiles_mirror_horizontal_checkbox.isChecked()) * HFLIP) | (int(self.tileset_widget.tiles_mirror_vertical_checkbox.isChecked()) * VFLIP)
-        self.tileset_widget.set_selection(render.select_blocks(
-            tiles[self.tileset_widget.tiles_palette_combobox.currentIndex(), flip], *self.selection_box
-        ))
+        if self.selection_box is not None:
+            self.tileset_widget.set_selection(render.select_blocks(
+                tiles[self.tileset_widget.tiles_palette_combobox.currentIndex(), flip], *self.selection_box
+            ))
+        self.update_selection_rect()
+    
+    def update_selection_rect(self):
+        """ Updates the selection rectangle. """
+        if self.tileset_widget.main_gui.project is None or self.tileset_widget.main_gui.header is None or self.tileset_widget.main_gui.footer is None or \
+            self.tileset_widget.main_gui.tileset_primary is None or self.tileset_widget.main_gui.tileset_secondary is None  or self.selection_rect is None: return
+        if self.selection_box is not None:
+            # Redraw the red selection box
+            x0, x1, y0, y1 = render.get_box(*self.selection_box)
+            scale = 8 * self.tileset_widget.zoom_slider.value() / 10
+            self.selection_rect.setRect(int(scale * x0), int(scale * y0), int(scale * (x1 - x0)), int(scale * (y1 - y0)))
+        else:
+            self.selection_rect.setRect(0, 0, 0, 0)
 
 # A static num_pals x num_flips x 64 x 16 array that represents the display of the tileset widget
 tiles = np.array([
@@ -571,6 +590,10 @@ class BlockScene(QGraphicsScene):
                 if x1 != x + 1 or y1 != y + 1:
                     self.selection_box = x0, x + 1, y0, y + 1
                     self.update_selection_box()
+                    # Clear the selection box of the tiles widget
+                    self.tileset_widget.tiles_scene.selection_box = None
+                    self.tileset_widget.tiles_scene.select_tiles()
+
 
     def mousePressEvent(self, event):
         """ Event handler for pressing the mouse. """
@@ -589,6 +612,15 @@ class BlockScene(QGraphicsScene):
                 # Select the palette of this tile
                 pal_idx = self.tileset_widget.selection[0, 0]['palette_idx']
                 self.tileset_widget.tiles_palette_combobox.setCurrentIndex(pal_idx)
+                # Select the tile in the tiles widget
+                tile_idx = self.tileset_widget.selection[0, 0]['tile_idx']
+                x, y = tile_idx % 16, tile_idx // 16
+                self.tileset_widget.tiles_scene.selection_box = x, x + 1, y, y + 1
+                self.tileset_widget.tiles_scene.select_tiles()
+                self.tileset_widget.tiles_scene.selection_box = None
+                # Ensure the rect is visible
+                scale = int(self.tileset_widget.zoom_slider.value() * 8 / 10)
+                self.tileset_widget.tiles_scene_view.ensureVisible(self.tileset_widget.tiles_scene.selection_rect.rect())
 
 
     def mouseReleaseEvent(self, event):
