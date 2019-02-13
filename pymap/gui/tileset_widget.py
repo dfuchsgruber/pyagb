@@ -542,8 +542,8 @@ class BlockScene(QGraphicsScene):
             self.tileset_widget.main_gui.tileset_primary if self.tileset_widget.selected_block < 0x280 else self.tileset_widget.main_gui.tileset_secondary, 
             self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.tileset_widget.selected_block < 0x280 else 'tileset_secondary']['blocks_path']
             )[self.tileset_widget.selected_block % 0x280]).reshape(2, 2, 2) 
-        x0, x1, y0, y1 = self.selection_box
-        self.tileset_widget.set_selection(block[int(self.upper), y0 : y1, x0 : x1])
+        self.tileset_widget.set_selection(render.select_blocks(
+            block[int(self.upper)], *self.selection_box))
         
     def mouseMoveEvent(self, event):
         """ Event handler for hover events on the map image. """
