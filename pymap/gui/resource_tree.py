@@ -285,6 +285,7 @@ class ResourceParameterTree(QTreeWidget):
         if namespace is None:
             namespace = self.prompt_namespace('Create New Header')
             if namespace is None: return
+        label = None
         if label is None:
             label = self.prompt_header_label('Create New Header')
             if label is None: return

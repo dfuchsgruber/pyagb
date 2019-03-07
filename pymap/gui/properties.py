@@ -634,7 +634,9 @@ def type_to_parameter(project, datatype_name):
         The corresponding parameter class.
     """
     datatype = project.model[datatype_name]
-    if isinstance(datatype, PointerType):
+    if isinstance(datatype, DynamicLabelPointer):
+        raise NotImplementedError(f'Dynamic label pointers not yet supported.')
+    elif isinstance(datatype, PointerType):
         return PointerParameter
     elif isinstance(datatype, BitfieldType):
         return BitfieldTypeParameter

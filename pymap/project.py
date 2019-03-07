@@ -498,7 +498,7 @@ class Project:
         else:
             raise RuntimeError(f'No tileset {label}')
 
-    def new_tileset(self, primary, label, path):
+    def new_tileset(self, primary, label, path, gfx_compressed=True):
         """ Creates a new tileset.
         
         Parameters:
@@ -509,6 +509,8 @@ class Project:
             The label of the tileset.
         path : str
             Path to the tileset structure.
+        gfx_compressed : bool
+            If the gfx is expected to be compressed in the ROM.
         """ 
         os.chdir(os.path.abspath(os.path.dirname(self.path)))
         tilesets = self.tilesets_primary if primary else self.tilesets_secondary
@@ -516,8 +518,10 @@ class Project:
             raise RuntimeError(f'Tileset {label} already present.')
         else:
             tilesets[label] = os.path.relpath(path)
-            datatype = self.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['datatype']
+            config = self.config['pymap']['tileset_primary' if primary else 'tileset_secondary']
+            datatype = config['datatype']
             tileset = self.model[datatype](self, [], [])
+            set_member_by_path(tileset, str(int(gfx_compressed)), config['gfx_compressed_path'])
             # Save the tileset
             self.save_tileset(primary, tileset, label)
             self.autosave()

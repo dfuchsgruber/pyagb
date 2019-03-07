@@ -520,4 +520,33 @@ def path_to_statement(path, old_value, new_value):
     path = ''.join(map(lambda member: f'[{repr(member)}]', path))
     return f'root{path} = {repr(str(new_value))}', f'root{path} = {repr(str(old_value))}'
 
+class SetTilesetAnimation(QUndoCommand):
+    """ Changes the animation of a tileset. """
     
+    def __init__(self, tileset_widget, primary, value_new):
+        super().__init__()
+        self.tileset_widget = tileset_widget
+        self.primary = primary
+        self.value_new = value_new
+        widget = self.tileset_widget.animation_primary_line_edit if self.primary else self.tileset_widget.animation_secondary_line_edit
+        tileset = self.tileset_widget.main_gui.tileset_primary if self.primary else self.tileset_widget.main_gui.tileset_secondary
+        config = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.primary else 'tileset_secondary']
+        self.value_old = properties.get_member_by_path(tileset, config['animation_path'])
+
+    def _set_value(self, value):
+        """ Helper method to set a value to the custom LineEdit. """
+        widget = self.tileset_widget.animation_primary_line_edit if self.primary else self.tileset_widget.animation_secondary_line_edit
+        tileset = self.tileset_widget.main_gui.tileset_primary if self.primary else self.tileset_widget.main_gui.tileset_secondary
+        config = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.primary else 'tileset_secondary']
+        widget.blockSignals(True)
+        widget.setText(str(value))
+        widget.blockSignals(False)
+        properties.set_member_by_path(tileset, str(value), config['animation_path'])
+
+    def redo(self):
+        """ Sets the new value. """
+        self._set_value(self.value_new)
+
+    def undo(self):
+        """ Undoes the setting of the new value. """
+        self._set_value(self.value_old)

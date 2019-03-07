@@ -5,15 +5,20 @@ import struct
 
 class Palette:
 
-    def __init__(self, rgbs):
+    def __init__(self, rgbs, size=16):
         """ Initalizes the palette structure. 
         
         Parameters:
         -----------
         rgbs : array-like
             Sequence of triplets (Red, Green, Blue)
+        size : int or None
+            If given, the fixed size of the palette.
         """
-        self.rgbs = np.array(rgbs, dtype=int)
+        if size is None:
+            size = len(rgbs)
+        self.rgbs = np.zeros((size, 3), dtype=np.int)
+        self.rgbs[: len(rgbs)] = np.array(rgbs, dtype=int)
 
     def __getitem__(self, key):
         return Palette(self.rgbs[key])

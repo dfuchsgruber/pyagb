@@ -34,7 +34,7 @@ class TilesetWidget(QWidget):
         blocks_layout = QGridLayout()
         blocks_group.setLayout(blocks_layout)
         blocks_layout.addWidget(self.blocks_scene_view)
-        layout.addWidget(blocks_group, 2, 1, 3, 1)
+        layout.addWidget(blocks_group, 2, 1, 4, 1)
 
         gfx_group = QGroupBox('Gfx')
         gfx_layout = QGridLayout()
@@ -53,6 +53,19 @@ class TilesetWidget(QWidget):
         gfx_layout.setColumnStretch(4, 1)
         layout.addWidget(gfx_group, 2, 2, 1, 1)
 
+        animation_group = QGroupBox('Animation')
+        animation_layout = QGridLayout()
+        animation_group.setLayout(animation_layout)
+        animation_layout.addWidget(QLabel('Primary'), 1, 1, 1, 1)
+        self.animaton_primary_line_edit = QLineEditWithoutHistory()
+        animation_layout.addWidget(self.animaton_primary_line_edit, 1, 2, 1, 1)
+        animation_layout.addWidget(QLabel('Secondary'), 2, 1, 1, 1)
+        self.animation_secondary_line_edit = QLineEditWithoutHistory()
+        animation_layout.addWidget(self.animation_secondary_line_edit, 2, 2, 1, 1)
+        self.animaton_primary_line_edit.textChanged.connect(lambda value: self.undo_stack.push(history.SetTilesetAnimation(self, True, value)))
+        self.animation_secondary_line_edit.textChanged.connect(lambda value: self.undo_stack.push(history.SetTilesetAnimation(self, False, value)))
+        layout.addWidget(animation_group, 3, 2, 1, 1)
+
         seleciton_group = QGroupBox('Selection')
         selection_layout = QGridLayout()
         seleciton_group.setLayout(selection_layout)
@@ -61,7 +74,7 @@ class TilesetWidget(QWidget):
         self.selection_scene_view.setViewport(QGLWidget())
         self.selection_scene_view.setScene(self.selection_scene)
         selection_layout.addWidget(self.selection_scene_view)
-        layout.addWidget(seleciton_group, 3, 2, 1, 1)
+        layout.addWidget(seleciton_group, 4, 2, 1, 1)
 
         current_block_group = QGroupBox('Current Block')
         current_block_layout = QGridLayout()
@@ -103,7 +116,7 @@ class TilesetWidget(QWidget):
         current_block_layout.setRowStretch(2, 1)
         current_block_layout.setRowStretch(3, 0)
 
-        layout.addWidget(current_block_group, 4, 2, 1, 1)
+        layout.addWidget(current_block_group, 5, 2, 1, 1)
 
         tiles_group = QGroupBox('Tiles')
         tiles_layout = QGridLayout()
@@ -141,7 +154,7 @@ class TilesetWidget(QWidget):
         tiles_layout.setColumnStretch(1, 1)
         tiles_layout.setColumnStretch(2, 0)
         tiles_layout.setColumnStretch(3, 0)
-        layout.addWidget(tiles_group, 2, 3, 3, 1)
+        layout.addWidget(tiles_group, 2, 3, 4, 1)
 
         zoom_group = QGroupBox('Zoom')
         zoom_layout = QGridLayout()
@@ -158,13 +171,14 @@ class TilesetWidget(QWidget):
         self.zoom_slider.setValue(self.main_gui.settings['tileset.zoom'])
 
         self.info_label = QLabel('')
-        layout.addWidget(self.info_label, 5, 1, 1, 3)
+        layout.addWidget(self.info_label, 6, 1, 1, 3)
 
         layout.setRowStretch(1, 0)
         layout.setRowStretch(2, 0)
         layout.setRowStretch(3, 0)
-        layout.setRowStretch(4, 1)
-        layout.setRowStretch(5, 0)
+        layout.setRowStretch(4, 0)
+        layout.setRowStretch(5, 1)
+        layout.setRowStretch(6, 0)
         layout.setColumnStretch(1, 1)
         layout.setColumnStretch(2, 1)
         layout.setColumnStretch(3, 1)
@@ -196,6 +210,8 @@ class TilesetWidget(QWidget):
             self.behaviour_clipboard_copy.setEnabled(False)
             self.gfx_primary_combobox.setEnabled(False)
             self.gfx_secondary_combobox.setEnabled(False)
+            self.animaton_primary_line_edit.setEnabled(False)
+            self.animation_secondary_line_edit.setEnabled(False)
         else:
             self.behaviour_clipboard_copy.setEnabled(True)
             self.gfx_primary_combobox.setEnabled(True)
@@ -208,6 +224,16 @@ class TilesetWidget(QWidget):
             self.gfx_secondary_combobox.blockSignals(True)
             self.gfx_secondary_combobox.setCurrentText(gfx_secondary_label)
             self.gfx_secondary_combobox.blockSignals(False)
+            self.animaton_primary_line_edit.setEnabled(True)
+            self.animation_secondary_line_edit.setEnabled(True)
+            self.animaton_primary_line_edit.blockSignals(True)
+            self.animation_secondary_line_edit.blockSignals(True)
+            animation_primary = properties.get_member_by_path(self.main_gui.tileset_primary, self.main_gui.project.config['pymap']['tileset_primary']['animation_path'])
+            animation_secondary = properties.get_member_by_path(self.main_gui.tileset_secondary, self.main_gui.project.config['pymap']['tileset_secondary']['animation_path'])
+            self.animaton_primary_line_edit.setText(str(animation_primary))
+            self.animation_secondary_line_edit.setText(str(animation_secondary))
+            self.animaton_primary_line_edit.blockSignals(False)
+            self.animation_secondary_line_edit.blockSignals(False)
             self.load_tiles()
             self.load_blocks()
             self.set_selection(np.array([[
@@ -704,3 +730,11 @@ class BlockProperties(ParameterTree):
         self.root.blockSignals(False)
         self.tree_changed(None)
         
+class QLineEditWithoutHistory(QLineEdit):
+    """ Subclass this thing in order to manually filter out undo events. """
+
+    def event(self, event):
+        if event.type() == QEvent.KeyPress:
+            if event.matches(QKeySequence.Undo) or event.matches(QKeySequence.Redo):
+                return False
+        return super().event(event)

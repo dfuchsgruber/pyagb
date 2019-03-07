@@ -2,7 +2,7 @@
 
 from agb.model.array import VariableSizeArrayType, FixedSizeArrayType, ArrayType
 from agb.model.bitfield import BitfieldType
-from agb.model.pointer import PointerType
+from agb.model.pointer import PointerType, DynamicLabelPointer
 from agb.model.scalar_type import ScalarType
 from agb.model.string import StringType
 from agb.model.structure import Structure

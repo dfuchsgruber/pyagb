@@ -591,19 +591,19 @@ class MapScene(QGraphicsScene):
                 selection_height, selection_width, _ = selection.shape
                 if selection_height == 1 and selection_width == 1 and x in range(border_height, border_width + map_width) and y in range(border_height, border_height + map_height):
                     self.map_widget.main_gui.replace_blocks(x - border_width, y - border_height, layer, selection[0, 0, layer])
+            elif modifiers == Qt.ControlModifier:
+                # Flood fill is only allowed for 1-block selections
+                    # Also only one layer is permitted
+                layer = self.map_widget.tabs.currentIndex()
+                selection = self.map_widget.selection if self.map_widget.tabs.currentIndex() == 0 else self.map_widget.levels_selection
+                selection_height, selection_width, _ = selection.shape
+                if selection_height == 1 and selection_width == 1 and x in range(border_height, border_width + map_width) and y in range(border_height, border_height + map_height):
+                    self.map_widget.main_gui.flood_fill(x - border_width, y - border_height, layer, selection[0, 0, layer])
             else:
                 self.last_draw = -1, -1 # This triggers the drawing routine
                 self.map_widget.undo_stack.beginMacro('Drawing Blocks')
                 self.mouseMoveEvent(event)
-        elif event.button() == Qt.MiddleButton:
-            # Flood fill is only allowed for 1-block selections
-                # Also only one layer is permitted
-            layer = self.map_widget.tabs.currentIndex()
-            selection = self.map_widget.selection if self.map_widget.tabs.currentIndex() == 0 else self.map_widget.levels_selection
-            selection_height, selection_width, _ = selection.shape
-            if selection_height == 1 and selection_width == 1 and x in range(border_height, border_width + map_width) and y in range(border_height, border_height + map_height):
-                self.map_widget.main_gui.flood_fill(x - border_width, y - border_height, layer, selection[0, 0, layer])
-
+        
     def mouseReleaseEvent(self, event):
         """ Event handler for releasing the mouse. """
         if event.button() == Qt.RightButton:
