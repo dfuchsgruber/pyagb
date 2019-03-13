@@ -74,7 +74,7 @@ class MapWidget(QWidget):
         level_layout.addWidget(group_selection)
 
         # Load level gfx
-        self.level_blocks_pixmap = QPixmap(os.path.join(os.path.split(__file__)[0], 'level_blocks.png'))
+        self.level_blocks_pixmap = QPixmap(os.path.join(os.path.dirname(__file__), 'asset', 'level_blocks.png'))
         # And split them
         self.level_blocks_pixmaps = [self.level_blocks_pixmap.copy((idx % 4) * 16, (idx // 4) * 16, 16, 16) for idx in range(0x40)]
         self.level_scene = LevelBlocksScene(self)

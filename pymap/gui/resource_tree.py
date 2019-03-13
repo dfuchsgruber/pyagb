@@ -26,19 +26,19 @@ GFX_SECONDARY = 'gfx_secondary'
 FOOTER = 'footer'
 
 # Load icons
-dir, _ = os.path.split(__file__)
+icon_dir = os.path.join(os.path.dirname(__file__), 'asset', 'icon')
 icon_paths = {
-    'header' : os.path.join(dir, 'icon', 'project_tree_header.png'),
-    'folder' : os.path.join(dir, 'icon', 'project_tree_folder.png'),
-    'tree' : os.path.join(dir, 'icon', 'project_tree_tree.png'),
-    'footer' : os.path.join(dir, 'icon', 'project_tree_footer.png'),
-    'tileset' : os.path.join(dir, 'icon', 'project_tree_tileset.png'),
-    'gfx' : os.path.join(dir, 'icon', 'project_tree_gfx.png'),
-    'plus' : os.path.join(dir, 'icon', 'plus.png'),
-    'remove' : os.path.join(dir, 'icon', 'remove.png'),
-    'import' : os.path.join(dir, 'icon', 'import.png'),
-    'rename' : os.path.join(dir, 'icon', 'rename.png'),
-    'tag' : os.path.join(dir, 'icon', 'tag.png')
+    'header' : os.path.join(icon_dir, 'project_tree_header.png'),
+    'folder' : os.path.join(icon_dir, 'project_tree_folder.png'),
+    'tree' : os.path.join(icon_dir, 'project_tree_tree.png'),
+    'footer' : os.path.join(icon_dir, 'project_tree_footer.png'),
+    'tileset' : os.path.join(icon_dir, 'project_tree_tileset.png'),
+    'gfx' : os.path.join(icon_dir, 'project_tree_gfx.png'),
+    'plus' : os.path.join(icon_dir, 'plus.png'),
+    'remove' : os.path.join(icon_dir, 'remove.png'),
+    'import' : os.path.join(icon_dir, 'import.png'),
+    'rename' : os.path.join(icon_dir, 'rename.png'),
+    'tag' : os.path.join(icon_dir, 'tag.png')
 } 
 
 
