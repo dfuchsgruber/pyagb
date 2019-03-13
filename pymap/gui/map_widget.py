@@ -386,6 +386,7 @@ class MapWidget(QWidget):
 
     def set_blocks_selection(self, selection):
         """ Sets currently selected blocks. """
+        selection = selection.copy()
         self.selection = selection
         self.selection_scene.clear()
         if self.main_gui.project is None or self.main_gui.header is None or self.selection is None: return
@@ -397,6 +398,7 @@ class MapWidget(QWidget):
 
     def set_levels_selection(self, selection):
         """ Sets currently selected level blocks. """
+        selection = selection.copy()
         self.levels_selection = selection
         self.levels_selection_scene.clear()
         if self.main_gui.project is None or self.main_gui.header is None or self.selection is None: return
