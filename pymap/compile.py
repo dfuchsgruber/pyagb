@@ -76,7 +76,9 @@ def project_to_assembly(project, header_table_label, footer_table_label):
             map_table_assembly.append(f'.word bank_{i}')
             # Create a new bank
             bank = project.headers[i]
-            num_maps = max(map(int, bank.keys())) + 1
+            map_idxs = set(map(int, bank.keys()))
+            map_idxs.add(-1) # To support empty banks
+            num_maps = max(map_idxs) + 1
             bank_assembly = []
             for j in map(str, range(num_maps)): # @Todo: maybe enable user defined translation based on e.g. constants
                 if j in bank:

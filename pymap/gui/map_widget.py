@@ -248,6 +248,8 @@ class MapWidget(QWidget):
         self.combo_box_tileset_secondary.clear()
         self.combo_box_tileset_secondary.addItems(list(self.main_gui.project.tilesets_secondary.keys()))
         self.combo_box_tileset_secondary.blockSignals(False)
+        self.set_blocks_selection(np.zeros((1, 1, 2), dtype=np.int))
+        self.set_levels_selection(np.zeros((1, 1, 2), dtype=np.int)) 
         self.load_header()
 
     def load_header(self, *args):
@@ -255,9 +257,7 @@ class MapWidget(QWidget):
         # Clear graphics
         self.load_map()
         self.load_border()
-        self.load_blocks()
-        self.set_blocks_selection(np.zeros((1, 1, 2), dtype=np.int))
-        self.set_levels_selection(np.zeros((1, 1, 2), dtype=np.int))    
+        self.load_blocks() 
 
         if self.main_gui.project is None or self.main_gui.header is None:
             # Reset all widgets
@@ -270,6 +270,8 @@ class MapWidget(QWidget):
             self.map_change_dimensions.setEnabled(False)
             self.select_levels.setEnabled(False)
         else:
+            # Update selection blocks
+            self.set_selection(self.selection)  
             self.combo_box_tileset_primary.setEnabled(True)
             self.combo_box_tileset_secondary.setEnabled(True)
             self.show_border.setEnabled(True) 

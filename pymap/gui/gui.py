@@ -296,8 +296,8 @@ class PymapGui(QMainWindow):
 
         
     def update(self):
-        self.tileset_widget.load_project() # Loading the project reflects also changes to the labels of gfxs
-        self.map_widget.load_project() # Loading the project reflects also changes to the labels of tilesets
+        self.tileset_widget.load_header() # Loading the project reflects also changes to the labels of gfxs
+        self.map_widget.load_header() # Loading the project reflects also changes to the labels of tilesets
         self.footer_widget.load_footer()
         self.header_widget.load_header()
         self.event_widget.load_header() # It is important to place this after the map widget, since it reuses its tiling
