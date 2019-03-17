@@ -16,6 +16,8 @@ class FooterWidget(ParameterTree):
         self.root = None
         self.undo_stack = QUndoStack()
         self.setHeaderLabels(['Property', 'Value'])
+        self.header().setSectionResizeMode(QHeaderView.Interactive)
+        self.header().setStretchLastSection(True)
         layout = QVBoxLayout()
         self.load_project()
 

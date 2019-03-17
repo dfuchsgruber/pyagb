@@ -667,6 +667,8 @@ class BlockProperties(ParameterTree):
         super().__init__(parent=parent)
         self.tileset_widget = tileset_widget
         self.setHeaderLabels(['Property', 'Value'])
+        self.header().setSectionResizeMode(QHeaderView.Interactive)
+        self.header().setStretchLastSection(True)
         self.root = None
 
     def load_block(self):

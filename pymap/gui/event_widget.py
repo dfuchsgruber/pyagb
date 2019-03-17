@@ -23,24 +23,25 @@ class EventWidget(QWidget):
         # Layout is similar to the map widget
         layout = QGridLayout()
         self.setLayout(layout)
+        splitter = QSplitter()
+        layout.addWidget(splitter, 1, 1, 1, 1)
 
         self.map_scene = MapScene(self)
         self.map_scene_view = QGraphicsView()
         self.map_scene_view.setViewport(QGLWidget())
         self.map_scene_view.setScene(self.map_scene)
-        layout.addWidget(self.map_scene_view, 1, 1, 5, 5)
+        splitter.addWidget(self.map_scene_view)
 
         self.info_label = QLabel()
-        layout.addWidget(self.info_label, 6, 1, 1, 6)
-        layout.setRowStretch(1, 5)
-        layout.setRowStretch(6, 0)
+        layout.addWidget(self.info_label, 2, 1, 1, 2)
+        layout.setRowStretch(1, 1)
+        layout.setRowStretch(2, 0)
 
         self.tab_widget = QTabWidget()
         self.tab_widget.currentChanged.connect(self.map_scene.update_selection)
         self.tabs = {}
-        layout.addWidget(self.tab_widget, 1, 6, 5, 1)
-        layout.setColumnStretch(1, 4)
-        layout.setColumnStretch(6, 1)
+        splitter.addWidget(self.tab_widget)
+        splitter.setSizes([4 * 10**6, 10**6]) # Ugly as hell hack to take large values
 
     def load_project(self):
         """ Load a new project. """
@@ -213,8 +214,8 @@ class EventProperties(ParameterTree):
         super().__init__(parent=parent)
         self.event_tab = event_tab
         self.setHeaderLabels(['Property', 'Value'])
-        self.header().setStretchLastSection(False)
-        self.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.header().setSectionResizeMode(QHeaderView.Interactive)
+        self.header().setStretchLastSection(True)
         self.root = None
 
     def load_event(self):

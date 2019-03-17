@@ -27,19 +27,21 @@ class MapWidget(QWidget):
         self.undo_stack = QUndoStack()
         
         # (Re-)Build the ui
-        self.layout = QGridLayout()
-        self.setLayout(self.layout)
+        layout = QGridLayout()
+        self.setLayout(layout)
+        splitter = QSplitter()
+        layout.addWidget(splitter, 1, 1, 1, 1)
 
         self.map_scene = MapScene(self)
         self.map_scene_view = QGraphicsView()
         self.map_scene_view.setViewport(QGLWidget())
         self.map_scene_view.setScene(self.map_scene)
-        self.layout.addWidget(self.map_scene_view, 1, 1, 5, 5)
+        splitter.addWidget(self.map_scene_view)
 
         self.info_label = QLabel()
-        self.layout.addWidget(self.info_label, 6, 1, 1, 6)
-        self.layout.setRowStretch(1, 5)
-        self.layout.setRowStretch(6, 0)
+        layout.addWidget(self.info_label, 2, 1, 1, 1)
+        layout.setRowStretch(1, 5)
+        layout.setRowStretch(2, 0)
 
         # Divide into a widget for blocks and levels
         self.tabs = QTabWidget()
@@ -90,9 +92,8 @@ class MapWidget(QWidget):
 
         blocks_container = QVBoxLayout()
         blocks_widget.setLayout(blocks_container)
-        self.layout.addWidget(self.tabs, 1, 6, 5, 1)
-        self.layout.setColumnStretch(1, 4)
-        self.layout.setColumnStretch(6, 1)
+        splitter.addWidget(self.tabs)
+        splitter.setSizes([4 * 10**6, 10**6]) # Ugly as hell hack to take large values
 
         group_tileset = QGroupBox('Tileset')
         blocks_container.addWidget(group_tileset)
