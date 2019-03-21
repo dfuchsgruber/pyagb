@@ -95,6 +95,7 @@ class ScalarTypeParameter(ConstantsTypeParameter):
         self.model_parent = model_parent
         # Make constants appear in the combo box
         if getattr(self.datatype, 'constant', None) is not None:
+            print(self.datatype.constant)
             constants = [value for value in self.project.constants[self.datatype.constant]]
         else:
             constants = []

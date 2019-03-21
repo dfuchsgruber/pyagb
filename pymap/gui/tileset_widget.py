@@ -609,7 +609,7 @@ class BlockScene(QGraphicsScene):
                 # Extract the old tiles
                 tiles_old = block[int(self.upper), y : y + selection.shape[0], x : x + selection.shape[1]].copy()
                 self.tileset_widget.undo_stack.push(history.SetTiles(
-                    self.tileset_widget, self.tileset_widget.selected_block, int(self.upper), x, y, selection, tiles_old
+                    self.tileset_widget, self.tileset_widget.selected_block, int(self.upper), x, y, selection.copy(), tiles_old.copy()
                 ))
             if self.selection_box is not None:
                 x0, x1, y0, y1 = self.selection_box
