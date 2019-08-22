@@ -127,14 +127,15 @@ class ResourceParameterTree(QTreeWidget):
             action.setIcon(QIcon(icon_paths['import']))
             action.triggered.connect(lambda _: self.import_footer())
         elif context == TILESET_PRIMARY or context == TILESET_SECONDARY:
+            primary = context == TILESET_PRIMARY
             action = menu.addAction('Assign to Footer')
-            action.triggered.connect(lambda _: self.main_gui.change_tileset(item.context_data, context == TILESET_SECONDARY))
+            action.triggered.connect(lambda _: self.main_gui.change_tileset(item.context_data, primary=primary))
             action = menu.addAction('Remove')
-            action.triggered.connect(partial(self.remove_tileset, primary=context == TILESET_SECONDARY, label=item.context_data))
+            action.triggered.connect(partial(self.remove_tileset, primary=primary, label=item.context_data))
             action.setIcon(QIcon(icon_paths['remove']))
             action = menu.addAction('Relabel')
             action.setIcon(QIcon(icon_paths['rename']))
-            action.triggered.connect(lambda _: self.refactor_tileset(primary=context == TILESET_SECONDARY, label_old=item.context_data))
+            action.triggered.connect(lambda _: self.refactor_tileset(primary=primary, label_old=item.context_data))
         elif context == FOOTER:
             action = menu.addAction('Assign to Header')
             action.triggered.connect(lambda _: self.main_gui.change_footer(item.context_data))
@@ -230,7 +231,6 @@ class ResourceParameterTree(QTreeWidget):
     def prompt_namespace(self, title):
         """ Prompts a namespace"""
         available_namespaces, namespaces_strict = self.main_gui.project.available_namespaces()
-        print(namespaces_strict)
         # Prompt the namespace
         if len(available_namespaces) > 0:
             namespace, ok_pressed = QInputDialog.getItem(self, title, f'Select a namespace for the header:', available_namespaces, 0, namespaces_strict)
@@ -293,7 +293,7 @@ class ResourceParameterTree(QTreeWidget):
         # Prompt the file path and create the new file
         path, suffix = QFileDialog.getSaveFileName(
             self, 'Create New Map Header', os.path.join(os.path.dirname(self.main_gui.settings['recent.header']), 
-            f'{bank}_{map_idx}_{label}.pms'), 'Pymap Structure (*.pms)')
+            f'{label}.pms'), 'Pymap Structure (*.pms)')
         if not len(path): return
         self.main_gui.settings['recent.header'] = path
 

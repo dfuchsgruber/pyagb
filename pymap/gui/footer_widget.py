@@ -43,7 +43,6 @@ class FooterWidget(ParameterTree):
         self.root.blockSignals(False)
 
     def tree_changed(self, changes):
-        print(changes)
         diffs = DeepDiff(self.main_gui.footer, self.root.model_value())
         root = self.main_gui.footer
         statements_redo = []

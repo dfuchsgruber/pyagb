@@ -12,6 +12,12 @@ import os
 from collections import defaultdict
 from functools import partial
 
+class NullEventToImage:
+    """ Default dummy class to translate events into images. """
+
+    def event_to_image(self, event, event_type, project):
+        return None
+
 class EventWidget(QWidget):
     """ Class to model events. """
 
@@ -61,9 +67,9 @@ class EventWidget(QWidget):
             with open(backend) as f:
                 namespace = {}
                 exec(f.read(), namespace)
-                self.event_to_image = namespace['event_to_image']
+                self.event_to_image = namespace['get_event_to_image']()
         else:
-            self.event_to_image = lambda event, event_type, project: None # No mapping
+            self.event_to_image = NullEventToImage()
 
     def load_header(self):
         """ Opens a new header. """
@@ -194,7 +200,7 @@ class EventTab(QWidget):
         padded_x, padded_y = self.event_widget.main_gui.map_widget.get_border_padding()
         x, y = to_coordinates(properties.get_member_by_path(event, self.event_type['x_path']), properties.get_member_by_path(event, self.event_type['y_path']), padded_x, padded_y)
         # Try to get an image
-        image = self.event_widget.event_to_image(event, self.event_type, self.event_widget.main_gui.project)
+        image = self.event_widget.event_to_image.event_to_image(event, self.event_type, self.event_widget.main_gui.project)
         if image is None or not self.event_widget.main_gui.settings['event_widget.show_pictures']:
             # Use a rectangle
             group = EventGroupRectangular(self.event_widget.map_scene, self.event_type)

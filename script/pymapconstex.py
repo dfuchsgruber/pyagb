@@ -48,7 +48,7 @@ def main(args):
 
     # Output the constants in the desired format
     if table['type'] == 'enum':
-        values = [(const, i) for i, const in enumerate(table['values'])]
+        values = [(const, i + table.get('base', 0)) for i, const in enumerate(table['values'])]
     elif table['type'] == 'dict':
         values = [(value, table['values'][value]) for value in table['values']]
     else:

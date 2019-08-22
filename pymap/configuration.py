@@ -183,7 +183,9 @@ default_configuration = {
             'border_color' : [0.0, 0.0, 0.0, 0.4],
             # Define a python script that provides a function to associate events with an Pilow image
             # The event image backend should contain a function:
-            # def event_to_image(event, event_type, project)
+            # def get_event_to_image() that returns an object that can provide images from events.
+            # This object must have a method that fulfils the following interface:
+            # def event_to_image(self, event, event_type, project)
             # that either returns None if no association was found or a triplet (PilImage, horizontal_displacement, vertical_displacement)
             # that indicates which image to use and how it is displaced w.r.t. to the upper left corner of its block
             'event_to_image_backend' : None,
