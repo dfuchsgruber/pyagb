@@ -68,7 +68,7 @@ def from_data(data, num_colors=16):
     data : bytes-like or list
         The raw binary data to obtain the rgb values from.
     size : int
-        The number of colors in the palette.
+        The number of colors to read from the buffer
     
     Returns:
     --------
@@ -76,9 +76,9 @@ def from_data(data, num_colors=16):
         A new Palette instance.
     """
     data = bytes(data)
-    values = [struct.unpack_from('<H', data, i)[0] for i in range(0, len(data), 2)]
+    values = [struct.unpack_from('<H', data, i)[0] for i in range(0, min(num_colors * 2, len(data)), 2)]
     values = map(lambda value: ((value & 31) * 8, ((value >> 5) & 31) * 8, ((value >> 10) & 31) * 8), values)
-    return Palette(list(values)[:num_colors])
+    return Palette(list(values))
 
 def from_file(file_path):
     """ Creates a Palette instance from an image file.

@@ -37,7 +37,7 @@ class Image:
                     y += tile_pos // 4
                     x += 2 * (tile_pos % 4)
                     # print(f'Tile {idx} -> {x}, {y}')
-                    if x < self.width and y < self.height:
+                    if x < width and y < height:
                         self.data[x, y] = data[idx] & 0xF
                         self.data[x + 1, y] = data[idx] >> 4
                 elif depth == 8:
@@ -47,7 +47,7 @@ class Image:
                     y = 8 * (tile_idx // tile_width)
                     y += tile_pos // 8
                     x += tile_pos % 8
-                    if x < self.width and y < self.height:
+                    if x < width and y < height:
                         self.data[x, y] = data[idx]
                 else:
                     raise RuntimeError('Invalid image depth. Only depths 4 and 8 are supported!')
