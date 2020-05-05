@@ -34,9 +34,11 @@ def preprocess_assembly_line(line, project):
     preprocessed : str
         The preprocessed line.
     """
-    tokens = line.split()
+    tokens = [token for token in line.split() if len(token) > 0]
     if len(tokens) == 0:
         return line
+    # Strip the line
+    line = line.strip()
     # Check for directives
     if tokens[0] == project.config['string']['as']['directives']['std']:
         string = line[line.index(tokens[1]):] # Keep multiple spaces
