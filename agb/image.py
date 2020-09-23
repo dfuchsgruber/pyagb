@@ -86,22 +86,6 @@ class Image:
             else:
                 raise RuntimeError('Invalid image depth. Only depths 4 and 8 are supported!')
         return binary
-        
-    def save(self, file_path, palette):
-        """ Saves the image as png-file.
-        
-        Parameters:
-        -----------
-        file_path : string
-            The file path to save the image at.
-        palette : agb.palette.Palette
-            The palette to use.
-        """
-        with open(file_path, 'wb') as f:
-            writer = png.Writer(self.width, self.height, palette=palette.rgbs, bitdepth=self.depth)
-            writer.write(f, self.data.T)
-
-
 
     def to_pil_image(self, palette, transparent=0):
         """ Creates a Pilow image based on the image resource.

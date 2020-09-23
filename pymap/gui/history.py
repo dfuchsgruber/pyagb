@@ -467,14 +467,15 @@ class SetTiles(QUndoCommand):
         tileset = self.tileset_widget.main_gui.tileset_primary if self.block_idx < 0x280 else self.tileset_widget.main_gui.tileset_secondary
         path = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.block_idx < 0x280 else 'tileset_secondary']['blocks_path']
         blocks = properties.get_member_by_path(tileset, path)
-        block = np.array(blocks[self.tileset_widget.selected_block % 0x280]).reshape(2, 2, 2)
+        block = np.array(blocks[self.tileset_widget.selected_block % 0x280]).reshape(3, 2, 2)
         block[self.layer, self.y : self.y + tiles.shape[0], self.x : self.x + tiles.shape[1]] = tiles
         blocks[self.block_idx % 0x280] = block.flatten().tolist()
         # Update the block
         self.tileset_widget.main_gui.blocks[self.block_idx] = render.get_block(blocks[self.block_idx % 0x280], self.tileset_widget.main_gui.tiles, self.tileset_widget.main_gui.project)
         self.tileset_widget.load_blocks()
         if self.layer == 0: self.tileset_widget.block_lower_scene.update_block()
-        elif self.layer == 1: self.tileset_widget.block_upper_scene.update_block()
+        elif self.layer == 1: self.tileset_widget.block_mid_scene.update_block()
+        elif self.layer == 2: self.tileset_widget.block_upper_scene.update_block()
 
     def redo(self):
         """ Performs the change on the block. """

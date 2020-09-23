@@ -3,8 +3,8 @@
 from warnings import warn
 
 def fit_box(sequence, width, height, coder, delimiters=(0x0,), 
-    scroll=0xFA, paragraph=0xFB, newline=0xFE, buffers=(0xFD, 0xFC),
-    max_buffer_size=10):
+    scroll=0xFA, paragraph=0xFB, newline=0xFE, buffers=(0xFD,),
+    control_codes={0xFC : {}}, max_buffer_size=10):
     """
     Parameters:
     -----------
@@ -26,6 +26,8 @@ def fit_box(sequence, width, height, coder, delimiters=(0x0,),
         The character to force a line break.
     buffers : iterable
         The characters to access a string buffer.
+    control_codes : iterable
+        Control codes that skip 1 or two bytes.
     max_buffer_size : int
         The maximal number of characters that a buffer can hold.
 
@@ -37,11 +39,14 @@ def fit_box(sequence, width, height, coder, delimiters=(0x0,),
     fit_sequence = []
     current_line_length = 0
     num_lines_displayed = 1
+    consumed = 0 # How many following characters were already consumed
 
     for i, character in enumerate(sequence):
         # Take characters until the box overflows
         fit_sequence.append(character)
-        
+        if consumed > 0: # Character was already consumed before
+            consumed -= 1
+            continue
         if character == scroll:
             current_line_length = 0 # The number of lines does not change
         elif character == paragraph:
@@ -54,6 +59,12 @@ def fit_box(sequence, width, height, coder, delimiters=(0x0,),
             num_lines_displayed += 1
         elif character in buffers:
             current_line_length += max_buffer_size
+        elif character in control_codes:
+            commands = control_codes[character]
+            command = sequence[i + 1]
+            consumed = 1
+            arglen = commands.get(command, 0)
+            consumed += arglen
         else:
             current_line_length += 1
         

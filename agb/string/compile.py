@@ -50,7 +50,7 @@ def preprocess_assembly_line(line, project):
         characters = project.config['string']['characters']
         sequence = format.fit_box(process_string(string, project.coder), width, height, delimiters=characters['delimiters'], 
             scroll=characters['scroll'], paragraph=characters['paragraph'], newline=characters['newline'], buffers=characters['buffers'],
-            max_buffer_size=characters['max_buffer_size'], coder=project.coder)
+            control_codes=characters['control_codes'], max_buffer_size=characters['max_buffer_size'], coder=project.coder)
     elif tokens[0] == project.config['string']['as']['directives']['padded']:
         string = line[line.index(tokens[2]):] # Keep multiple spaces
         size = int(tokens[1], 0)

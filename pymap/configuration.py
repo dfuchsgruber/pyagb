@@ -53,7 +53,15 @@ default_configuration = {
             'newline' : 0xFE,
             'scroll' : 0xFA,
             'paragraph' : 0xFB,
-            'buffers' : [0xFD, 0xFC],
+            'buffers' : [0xFD],
+            'control_codes' : {
+                0xFC : {
+                    0x8 : 1, # Text delay
+                    0xB : 2, # Play Song
+                    0xC : 1, # Tall plus
+                    0x10 : 2, # Play Sound Effect
+                },
+            },
             'delimiters' : [0x0],
             'max_buffer_size' : 10
         }  

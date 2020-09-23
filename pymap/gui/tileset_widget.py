@@ -79,24 +79,33 @@ class TilesetWidget(QWidget):
         current_block_group = QGroupBox('Current Block')
         current_block_layout = QGridLayout()
         current_block_group.setLayout(current_block_layout)
-        lower_group = QGroupBox('Lower Layer')
+        lower_group = QGroupBox('Bottom Layer')
         lower_layout = QGridLayout()
         lower_group.setLayout(lower_layout)
-        self.block_lower_scene = BlockScene(self, False)
+        self.block_lower_scene = BlockScene(self, 0)
         self.block_lower_scene_view = QGraphicsView()
         self.block_lower_scene_view.setViewport(QGLWidget())
         self.block_lower_scene_view.setScene(self.block_lower_scene)
         lower_layout.addWidget(self.block_lower_scene_view)
+        mid_group = QGroupBox('Mid Layer')
+        mid_layout = QGridLayout()
+        mid_group.setLayout(mid_layout)
+        self.block_mid_scene = BlockScene(self, 1)
+        self.block_mid_scene_view = QGraphicsView()
+        self.block_mid_scene_view.setViewport(QGLWidget())
+        self.block_mid_scene_view.setScene(self.block_mid_scene)
+        mid_layout.addWidget(self.block_mid_scene_view)
         upper_group = QGroupBox('Upper Layer')
         upper_layout = QGridLayout()
         upper_group.setLayout(upper_layout)
-        self.block_upper_scene = BlockScene(self, True)
+        self.block_upper_scene = BlockScene(self, 2)
         self.block_upper_scene_view = QGraphicsView()
         self.block_upper_scene_view.setViewport(QGLWidget())
         self.block_upper_scene_view.setScene(self.block_upper_scene)
         upper_layout.addWidget(self.block_upper_scene_view)
         current_block_layout.addWidget(lower_group, 1, 1, 1, 1)
-        current_block_layout.addWidget(upper_group, 1, 2, 1, 1)
+        current_block_layout.addWidget(mid_group, 1, 2, 1, 1)
+        current_block_layout.addWidget(upper_group, 1, 3, 1, 1)
         self.block_properties = BlockProperties(self)
         current_block_layout.addWidget(self.block_properties, 2, 1, 1, 2)
         behaviour_clipboard_layout = QGridLayout()
@@ -278,10 +287,12 @@ class TilesetWidget(QWidget):
     def set_current_block(self, block_idx):
         """ Reloads the current block. """
         self.block_lower_scene.clear()
+        self.block_mid_scene.clear()
         self.block_upper_scene.clear()
         if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
         self.selected_block = block_idx
         self.block_lower_scene.update_block()
+        self.block_mid_scene.update_block()
         self.block_upper_scene.update_block()
         self.blocks_scene.update_selection_rect()
         self.block_properties.load_block()
@@ -325,6 +336,7 @@ class TilesetWidget(QWidget):
         self.update_blocks()
         self.set_selection(self.selection)
         self.block_lower_scene.update_block()
+        self.block_mid_scene.update_block()
         self.block_upper_scene.update_block()
 
     def set_selection(self, selection):
@@ -551,10 +563,10 @@ tiles = np.array([
 class BlockScene(QGraphicsScene):
     """ Scene for the current block. """
 
-    def __init__(self, tileset_widget, upper, parent=None):
+    def __init__(self, tileset_widget, layer, parent=None):
         super().__init__(parent=parent)
         self.tileset_widget = tileset_widget
-        self.upper = upper
+        self.layer = layer
         self.last_draw = None
         self.selection_box = None
 
@@ -565,8 +577,7 @@ class BlockScene(QGraphicsScene):
             self.tileset_widget.main_gui.tileset_primary if self.tileset_widget.selected_block < 0x280 else self.tileset_widget.main_gui.tileset_secondary, 
             self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.tileset_widget.selected_block < 0x280 else 'tileset_secondary']['blocks_path']
             )[self.tileset_widget.selected_block % 0x280])
-        if self.upper: block = block[4:]
-        else: block = block[:4]
+        block = block[self.layer * 4 : (self.layer + 1) * 4]
         image = Image.new('RGBA', (16, 16))
         for (y, x), tile in np.ndenumerate(block.reshape(2, 2)):
             tile_img = self.tileset_widget.main_gui.tiles[tile['palette_idx']][tile['tile_idx']]
@@ -586,9 +597,9 @@ class BlockScene(QGraphicsScene):
         block = np.array(properties.get_member_by_path(
             self.tileset_widget.main_gui.tileset_primary if self.tileset_widget.selected_block < 0x280 else self.tileset_widget.main_gui.tileset_secondary, 
             self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.tileset_widget.selected_block < 0x280 else 'tileset_secondary']['blocks_path']
-            )[self.tileset_widget.selected_block % 0x280]).reshape(2, 2, 2) 
+            )[self.tileset_widget.selected_block % 0x280]).reshape(3, 2, 2) 
         self.tileset_widget.set_selection(render.select_blocks(
-            block[int(self.upper)], *self.selection_box))
+            block[int(self.layer)], *self.selection_box))
         
     def mouseMoveEvent(self, event):
         """ Event handler for hover events on the map image. """
@@ -605,11 +616,11 @@ class BlockScene(QGraphicsScene):
                 block = np.array(properties.get_member_by_path(
                     self.tileset_widget.main_gui.tileset_primary if self.tileset_widget.selected_block < 0x280 else self.tileset_widget.main_gui.tileset_secondary, 
                     self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.tileset_widget.selected_block < 0x280 else 'tileset_secondary']['blocks_path']
-                    )[self.tileset_widget.selected_block % 0x280]).reshape(2, 2, 2)
+                    )[self.tileset_widget.selected_block % 0x280]).reshape(3, 2, 2)
                 # Extract the old tiles
-                tiles_old = block[int(self.upper), y : y + selection.shape[0], x : x + selection.shape[1]].copy()
+                tiles_old = block[int(self.layer), y : y + selection.shape[0], x : x + selection.shape[1]].copy()
                 self.tileset_widget.undo_stack.push(history.SetTiles(
-                    self.tileset_widget, self.tileset_widget.selected_block, int(self.upper), x, y, selection.copy(), tiles_old.copy()
+                    self.tileset_widget, self.tileset_widget.selected_block, int(self.layer), x, y, selection.copy(), tiles_old.copy()
                 ))
             if self.selection_box is not None:
                 x0, x1, y0, y1 = self.selection_box
