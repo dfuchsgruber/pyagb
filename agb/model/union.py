@@ -72,7 +72,7 @@ class UnionType(Type):
                 value = subtype.from_data(rom, offset, project, context + [name], parents + [values])
                 values[name] = value
             else:
-                values[name] = subtype(project, parents)
+                values[name] = subtype(project, context, parents)
 
         return values
 

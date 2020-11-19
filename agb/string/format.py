@@ -64,6 +64,7 @@ def fit_box(sequence, width, height, coder, delimiters=(0x0,),
             command = sequence[i + 1]
             consumed = 1
             arglen = commands.get(command, 0)
+            # print(f'Consumed control code command {hex(command)}, Rest of string is {sequence[i + 1 + arglen :]}')
             consumed += arglen
         else:
             current_line_length += 1
