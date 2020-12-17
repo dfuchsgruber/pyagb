@@ -551,3 +551,39 @@ class SetTilesetAnimation(QUndoCommand):
     def undo(self):
         """ Undoes the setting of the new value. """
         self._set_value(self.value_old)
+
+class AppendAutoShape(QUndoCommand):
+    """ Adds an automatic shape. """
+
+    def __init__(self, main_gui):
+        super().__init__()
+        self.main_gui = main_gui
+
+    def redo(self):
+        """ Resizes the map blocks. """
+        self.main_gui.project.automatic_shapes.append([0 for _ in range(15)])
+        self.main_gui.map_widget.load_auto()
+
+    def undo(self):
+        """ Undoes resizing of the map blocks. """
+        self.main_gui.project.automatic_shapes.pop(0)
+        self.main_gui.map_widget.load_auto()
+
+class RemoveAutoShape(QUndoCommand):
+    """ Removes an automatic shape. """
+
+    def __init__(self, main_gui, idx=-1):
+        super().__init__()
+        self.main_gui = main_gui
+        self.idx = idx
+        self.shape = self.main_gui.project.automatic_shapes[self.idx]
+    
+    def redo(self):
+        """ Removes the event from the events. """
+        self.main_gui.project.automatic_shapes.pop(self.idx)
+        self.main_gui.map_widget.load_auto()
+
+    def undo(self):
+        """ Reinserts the event. """
+        self.main_gui.project.automatic_shapes.insert(self.idx, self.shape)
+        self.main_gui.map_widget.load_auto()

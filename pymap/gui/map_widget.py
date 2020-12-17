@@ -38,6 +38,22 @@ class MapWidget(QWidget):
         self.map_scene_view.setScene(self.map_scene)
         splitter.addWidget(self.map_scene_view)
 
+        self.auto_group = QGroupBox('Automatic shapes')
+        auto_group_layout = QGridLayout()
+        self.auto_group.setLayout(auto_group_layout)
+        splitter.addWidget(self.auto_group)
+        self.auto_button_add = QPushButton('Add')
+        self.auto_button_add.clicked.connect(self.add_auto)
+        self.auto_button_delete = QPushButton('Delete')
+        self.auto_button_delete.clicked.connect(self.remove_auto)
+        auto_group_layout.addWidget(self.auto_button_add, 1, 1, 1, 1)
+        auto_group_layout.addWidget(self.auto_button_delete, 1, 2, 1, 1)
+        self.auto_scene = AutoScene(self)
+        self.auto_scene_view = QGraphicsView()
+        self.auto_scene_view.setViewport(QGLWidget())
+        self.auto_scene_view.setScene(self.auto_scene)
+        auto_group_layout.addWidget(self.auto_scene_view, 2, 1, 1, 2)
+
         self.info_label = QLabel()
         layout.addWidget(self.info_label, 2, 1, 1, 1)
         layout.setRowStretch(1, 5)
@@ -93,7 +109,7 @@ class MapWidget(QWidget):
         blocks_container = QVBoxLayout()
         blocks_widget.setLayout(blocks_container)
         splitter.addWidget(self.tabs)
-        splitter.setSizes([4 * 10**6, 10**6]) # Ugly as hell hack to take large values
+        splitter.setSizes([12 * 10**6, 1 * 10**6, 3 * 10**6]) # Ugly as hell hack to take large values
 
         group_tileset = QGroupBox('Tileset')
         blocks_container.addWidget(group_tileset)
@@ -258,7 +274,8 @@ class MapWidget(QWidget):
         # Clear graphics
         self.load_map()
         self.load_border()
-        self.load_blocks() 
+        self.load_blocks()
+        self.load_auto()
 
         if self.main_gui.project is None or self.main_gui.header is None:
             # Reset all widgets
@@ -270,6 +287,8 @@ class MapWidget(QWidget):
             self.border_change_dimenions.setEnabled(False)
             self.map_change_dimensions.setEnabled(False)
             self.select_levels.setEnabled(False)
+            self.auto_button_add.setEnabled(False)
+            self.auto_button_delete.setEnabled(False)
         else:
             # Update selection blocks
             self.set_selection(self.selection)  
@@ -290,6 +309,8 @@ class MapWidget(QWidget):
             self.border_change_dimenions.setEnabled(True)
             self.map_change_dimensions.setEnabled(True)
             self.select_levels.setEnabled(True)
+            self.auto_button_add.setEnabled(True)
+            self.auto_button_delete.setEnabled(True)
 
     def load_map(self):
         """ Loads the entire map image. """
@@ -376,6 +397,30 @@ class MapWidget(QWidget):
         self.border_image = QPixmap.fromImage(ImageQt(render.draw_block_map(self.main_gui.blocks, border_blocks)))
         self.border_scene.addPixmap(self.border_image)
         self.border_scene.setSceneRect(0, 0, border_blocks.shape[1] * 16, border_blocks.shape[0] * 16)
+
+    def load_auto(self):
+        """ Loads automatic shapes. """
+        self.auto_scene.clear()
+        if self.main_gui.project is None or self.main_gui.header is None: return
+        auto = np.array(self.main_gui.project.automatic_shapes).reshape((-1, 5))
+        if auto.shape[0] == 0: return
+        self.auto_image = QPixmap.fromImage(ImageQt(render.draw_block_map(self.main_gui.blocks, np.expand_dims(auto, -1))))
+        self.auto_scene.addPixmap(self.auto_image)
+        self.auto_scene.setSceneRect(0, 0, auto.shape[1] * 16, auto.shape[0] * 16)
+        color = QColor.fromRgbF(1.0, 0.0, 0.0, 1.0)
+        self.auto_scene.selection_rect = self.auto_scene.addRect(0, 0, 0, 0, pen = QPen(color, 1), brush = QBrush(0))
+        self.auto_scene.update_selection_rect()
+
+
+    def add_auto(self):
+        """ Adds an auto shape. """
+        self.undo_stack.push(history.AppendAutoShape(self.main_gui))
+
+    def remove_auto(self):
+        """ Removes an auto shape. """
+        if len(self.main_gui.project.automatic_shapes) > 0:
+            idx = -1 # TODO
+            self.undo_stack.push(history.RemoveAutoShape(self.main_gui, idx=idx))
 
 
     def set_selection(self, selection):
@@ -618,5 +663,38 @@ class MapScene(QGraphicsScene):
             #self.map_widget.history.close()
             self.map_widget.undo_stack.endMacro()
 
+class AutoScene(QGraphicsScene):
+    """ Scene for automatic shapes. """
 
+    def __init__(self, map_widget, parent=None):
+        super().__init__(parent=parent)
+        self.map_widget = map_widget
+        self.idx = 0
 
+    def update_selection_rect(self):
+        """ Updates the red selection rectangle that indicates the current shape. """
+        print(self.idx)
+        if self.idx in range(len(self.map_widget.main_gui.project.automatic_shapes)):
+            self.selection_rect.setRect(0, 16 * 3 * self.idx, 5 * 16, 3 * 16)
+
+    def mouseMoveEvent(self, event):
+        """ Event handler for moving the mouse. """
+        if self.map_widget.main_gui.project is None or self.map_widget.main_gui.header is None: return
+        pos = event.scenePos()
+        x, y = int(pos.x() / 16), int(pos.y() / 16)
+        idx = y // 3
+        print(x, y, idx)
+        if x not in range(5) or idx not in range(len(self.map_widget.main_gui.project.automatic_shapes)):
+            return self.map_widget.info_label.setText(f'')
+        else:
+            self.map_widget.info_label.setText(f'Automatic shape {idx + 1}')
+        
+    def mousePressEvent(self, event):
+        """ Event handler for pressing the mouse. """
+        if self.map_widget.main_gui.project is None or self.map_widget.main_gui.header is None: return
+        pos = event.scenePos()
+        x, y = int(pos.x() / 16), int(pos.y() / 16)
+        idx = y // 3
+        if x in range(5) and idx in range(len(self.map_widget.main_gui.project.automatic_shapes)):
+            self.idx = idx
+            self.update_selection_rect()

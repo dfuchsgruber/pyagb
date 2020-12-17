@@ -32,6 +32,7 @@ class Project:
             self.gfxs_secondary = {}
             self.constants = constants.Constants({})
             self.config = configuration.default_configuration.copy()
+            self.automatic_shapes = []
         else:
             os.chdir(os.path.abspath(os.path.dirname(file_path)))
             self.from_file(file_path)
@@ -66,6 +67,7 @@ class Project:
         self.tilesets_secondary = content['tilesets_secondary']
         self.gfxs_primary = content['gfxs_primary']
         self.gfxs_secondary = content['gfxs_secondary']
+        self.automatic_shapes = content['automatic_shapes']
 
         # Initialize the constants
         with open(file_path + '.constants') as f:
@@ -97,6 +99,7 @@ class Project:
             'tilesets_secondary' : self.tilesets_secondary,
             'gfxs_primary' : self.gfxs_primary,
             'gfxs_secondary' : self.gfxs_secondary,
+            'automatic_shapes' : self.automatic_shapes,
         }
         with open(file_path, 'w+') as f:
             json.dump(representation, f, indent=self.config['json']['indent'])
@@ -129,7 +132,7 @@ class Project:
                 header = json.load(f)
             assert(header['label'] == label), f'Header label mismatches the label stored in the project file'
             assert(header['type'] == self.config['pymap']['header']['datatype']), f'Header datatype mismatches the configuration'
-            assert(_canonical_form(namespace) == _canonical_form(get_member_by_path(header['data'], self.config['pymap']['header']['namespace_path']))), f'Header namespace mismatches the namespaces stored in the project file'
+            assert(_canonical_form(namespace) == _canonical_form(get_member_by_path(header['data'], self.config['pymap']['header']['namespace_path']))), f'Header {bank}.{map_idx} namespace mismatches the namespaces stored in the project file'
             return header['data'], label, namespace
         else:
             return None, None, None
