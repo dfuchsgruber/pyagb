@@ -618,7 +618,6 @@ class MapScene(QGraphicsScene):
                         map_blocks = properties.get_member_by_path(self.map_widget.main_gui.footer, self.map_widget.main_gui.project.config['pymap']['footer']['map_blocks_path'])
                         for coordinate in queue:
                             self.smart_drawing.append(coordinate)
-                            print(f'Coordinate {coordinate} to smart path')
                             # After drawing block with index i we redraw: i - 1, i, i + 1 (=0)
                             auto_shape = self.map_widget.auto_shapes_scene.auto_shape[:, :, 0].flatten()
                             for idx in (-2, -1, 0):
