@@ -1,2 +1,3 @@
 include pymap/gui/icon/*.*
 include pymap/gui/level_blocks.png
+include pymap/gui/auto_shape_background.png

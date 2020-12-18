@@ -1,4 +1,4 @@
-from . import properties, render
+from . import properties, render, smart_shape
 from warnings import warn
 from deepdiff import DeepDiff
 import numpy as np
@@ -115,6 +115,32 @@ class SetBlocks(QUndoCommand):
     def undo(self):
         """ Undos setting of blocks. """
         self._set_blocks(self.blocks_old)
+
+class SmartDrawing(QUndoCommand):
+    """ Smart drawing of blocks. """
+
+    def __init__(self, main_gui, idxs, blocks_old, auto_shape):
+        super().__init__()
+        self.main_gui = main_gui
+        self.idxs = idxs # Shape [N, 2]
+        self.blocks_old = blocks_old # Shape [N]
+        #self.blocks_new = smart_shape.path_to_shape(self.idxs, auto_shape) #np.zeros_like(self.blocks_old)
+        self.blocks_new = smart_shape.path_to_shape2(self.idxs, auto_shape)
+
+    def _set_blocks(self, blocks):
+        """ Draws a smart map. """
+        # TODO:
+        # map_blocks = properties.get_member_by_path(self.main_gui.footer, self.main_gui.project.config['pymap']['footer']['map_blocks_path'])
+        for (y, x), b in zip(self.idxs, blocks):
+            self.main_gui.map_widget.update_map(x, y, (0,), np.array([b], dtype=np.int).reshape((1, 1, 1)))
+
+    def redo(self):
+        self._set_blocks(self.blocks_new)
+    
+    def undo(self):
+        self._set_blocks(self.blocks_old)
+
+
 
 class ReplaceBlocks(QUndoCommand):
     """ Action for replacing a set of blocks with another. """

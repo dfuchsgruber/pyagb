@@ -32,7 +32,6 @@ class Project:
             self.gfxs_secondary = {}
             self.constants = constants.Constants({})
             self.config = configuration.default_configuration.copy()
-            self.automatic_shapes = []
         else:
             os.chdir(os.path.abspath(os.path.dirname(file_path)))
             self.from_file(file_path)
@@ -67,7 +66,6 @@ class Project:
         self.tilesets_secondary = content['tilesets_secondary']
         self.gfxs_primary = content['gfxs_primary']
         self.gfxs_secondary = content['gfxs_secondary']
-        self.automatic_shapes = content['automatic_shapes']
 
         # Initialize the constants
         with open(file_path + '.constants') as f:
@@ -99,7 +97,6 @@ class Project:
             'tilesets_secondary' : self.tilesets_secondary,
             'gfxs_primary' : self.gfxs_primary,
             'gfxs_secondary' : self.gfxs_secondary,
-            'automatic_shapes' : self.automatic_shapes,
         }
         with open(file_path, 'w+') as f:
             json.dump(representation, f, indent=self.config['json']['indent'])
