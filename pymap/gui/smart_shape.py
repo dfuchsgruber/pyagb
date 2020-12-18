@@ -1,110 +1,15 @@
 import numpy as np
-from skimage.draw import polygon, polygon_perimeter
-from scipy.ndimage import generic_filter
 
-UNMATCHED = 13
-INVALID = 14
+DOWN, RIGHT, LEFT, UP, UNDETERMINED = range(5)
 
-# If a piece has less than four piece neighbours, it is part of a "convex" edge of the polygon
-# We can match the four-neighbour footprint (i.e. which of these neighbours is present) to get
-# the idx of the smart shape part
-footprints_four_neighbours = np.array([
-    [0, 0, 1, 1],
-    [0, 1, 1, 1],
-    [0, 1, 0, 1],
-    # Concave footprints (1)
-    [1, 1, 1, 1],
-    [1, 1, 1, 1],
-    
-    [1, 0, 1, 1],
-    [1, 1, 1, 1],
-    [1, 1, 0, 1],
-    # Concave footprints (2)
-    [1, 1, 1, 1],
-    [1, 1, 1, 1],
-    
-    [1, 0, 1, 0],
-    [1, 1, 1, 0],
-    [1, 1, 0, 0],
-])
-
-# Pieces with 8 piece neighbours are are a "concave" edge-connection
-# By looking at which of the 9-neighbourhood is not present we identify
-# which smart shape idx to put
-footprints_five_neighbours = {
-    0 : 8,
-    2 : 9,
-    6 : 4,
-    8 : 3,
+delta_to_dir = {
+    (-1, 0) : DOWN,
+    (0, -1) : RIGHT,
+    (0, 1) : LEFT,
+    (1, 0) : UP,
 }
 
-def fooprint_match(x):
-    if x[4] == 0:
-        return -1 # Not part of the shape
-    x_four_neighbours = x[[1, 3, 5, 7]]
-    matches = (x_four_neighbours == footprints_four_neighbours).all(1)
-    if matches.sum() > 1 and x.sum() == 8:
-        return footprints_five_neighbours[x.argmin()]
-    if matches.sum() == 1: # Convex piece
-        return matches.argmax()
-    elif matches.sum() > 1 and x.sum() == 8: # Concave piece
-        return footprints_five_neighbours.get(x.argmin(), default=UNMATCHED)
-    return INVALID
-         
-def filled_to_shape(filled, footprints_four_neighbours):
-    return 
-
-def path_to_shape(coordinates, auto_shape):
-    """ Transforms a path (a boundary of a shape) into a smart shape by placing adequate tiles. 
-    
-    Parameters:
-    -----------
-    coordinates : list-like
-        A list of (y, x) coordinates where a boundary was set
-    auto_shape : ndarray, shape [15]
-        Block idxs for each part of the shape.
-    """
-    # print(list(coordinates))
-    coords = np.array(list(coordinates))
-    if coords.shape[0] <= 1:
-        return np.array([UNMATCHED])
-    # coords_unshifted = coords.copy()
-    # Create a grid to extract 
-    y_min, x_min = coords.min(0)
-    y_max, x_max = coords.max(0)
-    grid = np.zeros((y_max - y_min + 1, x_max - x_min + 1))
-    coords[:, 0] -= y_min
-    coords[:, 1] -= x_min
-    rr, cc = polygon(coords[:, 0], coords[:, 1], grid.shape)
-    grid[rr, cc] = 1
-    rr, cc = polygon_perimeter(coords[:, 0], coords[:, 1], grid.shape)
-    grid[rr, cc] = 1
-    shape_idxs = generic_filter(grid, fooprint_match, (3, 3), mode='constant')
-    shape_idxs = shape_idxs[tuple(coords.T)].astype(np.int)
-    return auto_shape[shape_idxs]
-
-dirs = np.array([
-    [-1, 0], # down,
-    [0, -1], # right
-    [0, 1], # left
-    [1, 0], # up
-])
-
-DOWN, RIGHT, LEFT, UP = range(4)
-
-def coordinates_to_directions(coordinates):
-    """ Transforms a history of coordinates into directions """
-    deltas = np.sign(coordinates[:-1] - coordinates[1:])
-    directions = []
-    for delta in deltas:
-        match = (delta == dirs).all(1)
-        if match.any():
-            directions.append(match.argmax())
-        else:
-            directions.append(-1)
-    return directions
-
-direction_pair_to_block = {
+direction_pair_to_shape_idx = { # (dir_previous, dir_next) -> shape_idx
     (DOWN, DOWN) : 5,
     (DOWN, RIGHT) : 10,
     (DOWN, LEFT) : 9,
@@ -119,13 +24,42 @@ direction_pair_to_block = {
     (LEFT, UP) : 8,
 }
 
-def path_to_shape2(coordinates, auto_shape):
-    """ Transforms a sequence of directions into blocks. """
-    coordinates = np.array(list(coordinates))
-    if coordinates.shape[0] <= 1:
-        return np.array([UNMATCHED])
-    directions = coordinates_to_directions(coordinates)
-    print(directions)
-    shape_idxs = np.fromiter((direction_pair_to_block.get((prev, cur), UNMATCHED) for (prev, cur) in zip([directions[0]] + directions[:-1], directions)), int)
-    return auto_shape[shape_idxs]
+ERROR_SHAPE_IDX = 14
 
+class SmartPath:
+    """ Class to capture a smart path. """
+
+    def __init__(self):
+        self.coordinates = []
+        self._directions = np.zeros((0,), dtype=np.int) # Idx 0 is missing as it is always treated as corresponding idx -1
+        self.shape_idxs = np.zeros((0,), dtype=np.int)
+
+    def __contains__(self, x):
+        return tuple(x) in self.coordinates
+        
+    def __len__(self):
+        return len(self.coordinates)
+
+    def get_by_path_idx(self, idx):
+        idx = idx % len(self.coordinates)
+        return self.coordinates[idx], self.shape_idxs[idx]
+
+    def _direction(self, x1, x2):
+        """ Determines the direction between two coordinates. """
+        delta = np.sign(x1 - x2)
+        return delta_to_dir.get(tuple(delta), UNDETERMINED)
+
+    def append(self, coordinate):
+        self.coordinates.append(tuple(coordinate))
+        self._directions = np.append(self._directions, UNDETERMINED)
+        self.shape_idxs = np.append(self.shape_idxs, ERROR_SHAPE_IDX)
+        
+        if len(self.coordinates) > 1:
+            n = len(self.coordinates)
+            # Recompute directions for idx and 0
+            for idx in (n-1, 0):
+                self._directions[idx] = self._direction(np.array(self.coordinates[idx - 1]), np.array(self.coordinates[idx])) # previous -> current
+            # Update shapes for idx -1, idx and 0
+            for idx in (n-2, n-1, 0):
+                dir_prev, dir_next = self._directions[idx], self._directions[(idx + 1) % n]
+                self.shape_idxs[idx] = direction_pair_to_shape_idx.get((dir_prev, dir_next), ERROR_SHAPE_IDX)

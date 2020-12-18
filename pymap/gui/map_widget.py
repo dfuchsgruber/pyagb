@@ -10,7 +10,7 @@ from PIL.ImageQt import ImageQt
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
 import numpy as np
 from skimage.measure import label
-from . import properties, history, blocks
+from . import properties, history, blocks, smart_shape
 import os
 import json
 from collections import OrderedDict
@@ -595,10 +595,34 @@ class MapScene(QGraphicsScene):
                         # print('End stmart drawing.')
                         self.last_draw = None
                     elif (y - border_height, x - border_width) not in self.smart_drawing:
+                        queue = []
+                        # Sometimes the mouse is to fast and misses connections
+                        y, x = y - border_height, x - border_width
+                        if len(self.smart_drawing):
+                            (y_prev, x_prev), _ = self.smart_drawing.get_by_path_idx(-1)
+                        else:
+                            y_prev, x_prev = y, x # No previous block to connect to
+                        for i in range(10000): # Limiting the number of iterations is bug-saftey measure, this loop should always terminate before...
+                            dy, dx = y - y_prev, x - x_prev
+                            if dx * dy > 0: # First move x-wise
+                                x_prev += dx
+                            elif dx * dy < 0: # First move y-wise
+                                y_prev += dy
+                            elif dy != 0:
+                                y_prev += dy
+                            elif dx != 0:
+                                x_prev += dx
+                            queue.append((y_prev, x_prev))
+                            if y == y_prev and x == x_prev:
+                                break
                         map_blocks = properties.get_member_by_path(self.map_widget.main_gui.footer, self.map_widget.main_gui.project.config['pymap']['footer']['map_blocks_path'])
-                        self.smart_drawing[(y - border_height, x - border_width)] = map_blocks[y - border_height, x - border_width, 0]
-                        # print(f'Do smart drawing at {(x - border_width, y - border_height)}')
-                        self.map_widget.undo_stack.push(history.SmartDrawing(self.map_widget.main_gui, self.smart_drawing.keys(), self.smart_drawing.values(), self.map_widget.auto_shapes_scene.auto_shape[:, :, 0].flatten()))
+                        for coordinate in queue:
+                            self.smart_drawing.append(coordinate)
+                            # After drawing block with index i we redraw: i - 1, i, i + 1 (=0)
+                            auto_shape = self.map_widget.auto_shapes_scene.auto_shape[:, :, 0].flatten()
+                            for idx in (-2, -1, 0):
+                                (y, x), shape_idx = self.smart_drawing.get_by_path_idx(idx)
+                                self.map_widget.main_gui.set_blocks(x, y, (0,), np.array([[[auto_shape[shape_idx]]]]))
                 else:
                     self.map_widget.main_gui.set_blocks(x - border_width, y - border_height, self.map_widget.layers, selection)
         else:
@@ -641,7 +665,7 @@ class MapScene(QGraphicsScene):
                 if selection_height == 1 and selection_width == 1 and x in range(border_height, border_width + map_width) and y in range(border_height, border_height + map_height):
                     self.map_widget.main_gui.flood_fill(x - border_width, y - border_height, layer, selection[0, 0, layer])
             elif modifiers == Qt.AltModifier: # Start Smart drawing
-                self.smart_drawing = OrderedDict()
+                self.smart_drawing = smart_shape.SmartPath()
                 # print('Start smart drawing.')
                 self.last_draw = -1, -1 # This triggers the drawing routine
                 self.map_widget.undo_stack.beginMacro('Drawing Smart Shapes')
