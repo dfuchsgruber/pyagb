@@ -71,9 +71,13 @@ class Constants:
             raise RuntimeError(f'Undefined constant table "{key}"')
         if self.constant_tables[key] is None:
             # Initialize the constant table
-            with open(str(self.constant_paths[key])) as f:
-                content = json.load(f)
-            base = None
+            try:
+                with open(str(self.constant_paths[key])) as f:
+                    content = json.load(f)
+                base = None
+            except Exception as exn:
+                print(f'Could not load constants {key}.')
+                raise exn
             if content['type'] == 'enum':
                 if 'base' in content:
                     base = content['base']
