@@ -3,7 +3,7 @@ import appdirs
 import os
 import json
 from . import resource_tree
-import collections
+from collections.abc import MutableMapping
 
 dir = appdirs.user_config_dir(appname='pymap')
 config_file = os.path.join(dir, 'settings.json')
@@ -22,7 +22,7 @@ default_settings = {
     'tileset.zoom' : 20,
 }
 
-class Settings(collections.MutableMapping):
+class Settings(MutableMapping):
     """ Class to store settings for pymap. """
 
     def __init__(self):

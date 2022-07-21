@@ -4,9 +4,9 @@
 as C or assembly macros."""
 
 import json
-import collections
+from collections.abc import Mapping
 
-class ConstantTable(collections.Mapping):
+class ConstantTable(Mapping):
     """ This class represents a single constant table,
      where strings are mapped to numerical values."""
 

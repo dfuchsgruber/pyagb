@@ -6,6 +6,7 @@ import os
 from functools import partial
 from .properties import get_member_by_path, set_member_by_path 
 import json
+from copy import deepcopy
 
 SORT_BY_BANK = 'bank'
 SORT_BY_NAMESPACE = 'namespace'
@@ -136,6 +137,8 @@ class ResourceParameterTree(QTreeWidget):
             action = menu.addAction('Relabel')
             action.setIcon(QIcon(icon_paths['rename']))
             action.triggered.connect(lambda _: self.refactor_tileset(primary=primary, label_old=item.context_data))
+            action = menu.addAction('Duplicate')
+            action.triggered.connect(lambda _: self.duplicate_tileset(item.context_data, primary=primary))
         elif context == FOOTER:
             action = menu.addAction('Assign to Header')
             action.triggered.connect(lambda _: self.main_gui.change_footer(item.context_data))
@@ -470,12 +473,12 @@ class ResourceParameterTree(QTreeWidget):
                 label = None
         return label
     
-    def prompt_gfx_label(self, title, primary):
+    def prompt_gfx_label(self, title, primary, text=None):
         """ Prompts for an unused gfx label """
         gfxs = self.main_gui.project.gfxs_primary if primary else self.main_gui.project.gfxs_secondary
         label = None
         while label is None:
-            label, ok_pressed = QInputDialog.getText(self, title, f'Select a unique label for the gfx:')
+            label, ok_pressed = QInputDialog.getText(self, title, f'Select a unique label for the gfx:', text=text)
             if not ok_pressed: return None
             if label in gfxs:
                 QMessageBox.critical(self, title, f'The label {label} is already used for another gfx of this type.')
@@ -503,6 +506,26 @@ class ResourceParameterTree(QTreeWidget):
         tileset = self.main_gui.project.new_tileset(primary, label, path)
         set_member_by_path(tileset, gfx, self.main_gui.project.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['gfx_path'])
         self.main_gui.project.save_tileset(primary, tileset, label)
+        self.load_tilesets()
+        self.main_gui.update()
+
+    def duplicate_tileset(self, src_label, primary=None, label=None):
+        """ Duplicates a tileset """
+        if self.main_gui.project is None: return
+        # Prompt the type if unspecified
+        if primary is None:
+            primary = self.prompt_tileset_type()
+            if primary is None: return None
+        label = self.prompt_tileset_label(f'Duplicate tileset Tileset {src_label}', primary)
+        if label is None: return
+        path, suffix = QFileDialog.getSaveFileName(
+            self, 'Save duplicate of Tileset {src_label}', os.path.join(os.path.dirname(self.main_gui.settings['recent.tileset']), 
+            f'{label}.pms'), 'Pymap Structure (*.pms)')
+        if not len(path): return
+        self.main_gui.settings['recent.tileset'] = path
+
+        tileset = deepcopy(self.main_gui.project.load_tileset(primary, src_label))
+        self.main_gui.project.new_tileset(primary, label, path, tileset=tileset)
         self.load_tilesets()
         self.main_gui.update()
         

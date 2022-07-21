@@ -498,7 +498,7 @@ class Project:
         else:
             raise RuntimeError(f'No tileset {label}')
 
-    def new_tileset(self, primary, label, path, gfx_compressed=True):
+    def new_tileset(self, primary, label, path, gfx_compressed=True, tileset=None):
         """ Creates a new tileset.
         
         Parameters:
@@ -511,6 +511,8 @@ class Project:
             Path to the tileset structure.
         gfx_compressed : bool
             If the gfx is expected to be compressed in the ROM.
+        tileset : optional, dict
+            The new tileset. If not given, an empty default tileset is created from the data model.
         """ 
         os.chdir(os.path.abspath(os.path.dirname(self.path)))
         tilesets = self.tilesets_primary if primary else self.tilesets_secondary
@@ -519,9 +521,10 @@ class Project:
         else:
             tilesets[label] = os.path.relpath(path)
             config = self.config['pymap']['tileset_primary' if primary else 'tileset_secondary']
-            datatype = config['datatype']
-            tileset = self.model[datatype](self, [], [])
-            set_member_by_path(tileset, str(int(gfx_compressed)), config['gfx_compressed_path'])
+            if tileset is None:
+                datatype = config['datatype']
+                tileset = self.model[datatype](self, [], [])
+                set_member_by_path(tileset, str(int(gfx_compressed)), config['gfx_compressed_path'])
             # Save the tileset
             self.save_tileset(primary, tileset, label)
             self.autosave()
@@ -568,7 +571,7 @@ class Project:
         os.chdir(os.path.abspath(os.path.dirname(self.path)))
         tilesets = self.tilesets_primary if primary else self.tilesets_secondary
         if label in tilesets:
-            raise RuntimeError(f'Footer {label} already existent.')
+            raise RuntimeError(f'Tileset {label} already existent.')
         with open(path, encoding=self.config['json']['encoding']) as f:
             tileset = json.load(f)
         assert(tileset['type'] == self.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['datatype']), 'Tileset datatype mismatches the configuration'
