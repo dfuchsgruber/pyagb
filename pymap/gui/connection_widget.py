@@ -56,6 +56,10 @@ class ConnectionWidget(QWidget):
         connection_layout.addWidget(self.remove_button, 2, 3)
         self.connection_properties = ConnectionProperties(self)
         connection_layout.addWidget(self.connection_properties, 3, 1, 1, 3)
+        self.open_connection = QPushButton('Open adjacent map')
+        connection_layout.addWidget(self.open_connection, 4, 1, 1, 3)
+        self.open_connection.clicked.connect(self.open_adjacent_map)
+
         connection_layout.setColumnStretch(1, 1)
         connection_layout.setColumnStretch(2, 0)
         connection_layout.setColumnStretch(3, 0)
@@ -143,6 +147,15 @@ class ConnectionWidget(QWidget):
         """ Appends a new connection. """
         if self.main_gui.project is None or self.main_gui.header is None: return
         self.undo_stack.push(history.AppendConnection(self))
+
+    def open_adjacent_map(self):
+        """ Opens the currently selected adjacent map. """
+        if self.main_gui.project is None or self.main_gui.header is None or self.idx_combobox.currentIndex() < 0:
+            return
+        packed = properties.get_member_by_path(self.main_gui.header, self.main_gui.project.config['pymap']['header']['connections']['connections_path'])[self.idx_combobox.currentIndex()]
+        # Update the unpacked version
+        direction, offset, bank, map_idx, connection_blocks = blocks.unpack_connection(packed, self.main_gui.project)
+        self.main_gui.open_header(bank, map_idx)
 
     def update_connection(self, connection_idx, mirror_offset):
         """ Updates a certain connection. """
@@ -379,3 +392,24 @@ class MapScene(QGraphicsScene):
             self.dragged_idx = -1
             self.last_drag = None
             self.drag_origin = None
+    
+    def mouseDoubleClickEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
+        if event.button() == Qt.LeftButton:
+            if self.connection_widget.main_gui.project is None or self.connection_widget.main_gui.header is None: return
+            map_width = properties.get_member_by_path(self.connection_widget.main_gui.footer, self.connection_widget.main_gui.project.config['pymap']['footer']['map_width_path'])
+            map_height = properties.get_member_by_path(self.connection_widget.main_gui.footer, self.connection_widget.main_gui.project.config['pymap']['footer']['map_height_path'])
+            padded_x, padded_y = self.connection_widget.main_gui.project.config['pymap']['display']['border_padding']
+            pos = event.scenePos()
+            x, y = int(pos.x() / 16), int(pos.y() / 16)
+            if x in range(2 * padded_x + map_width) and y in range(2 * padded_y + map_height) and event.button() == Qt.LeftButton:
+                # Check if there is any connection
+                self.dragged_idx = -1
+                for direction in self.connection_widget.connection_rects:
+                    rect = self.connection_widget.connection_rects[direction].rect()
+                    if x >= int(rect.x() / 16) and x < int((rect.x() + rect.width()) / 16) and y >= int(rect.y() / 16) and y < int((rect.y() + rect.height()) / 16):
+                        # Find the index that matches direction
+                        for idx, connection in enumerate(self.connection_widget.connections):
+                            if connection is not None and direction == connection[0]:
+                                connection_type, offset, bank, map_idx, connection_blocks = connection
+                                self.connection_widget.main_gui.open_header(bank, map_idx)
+                                break
