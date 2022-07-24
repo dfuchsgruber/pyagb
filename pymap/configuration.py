@@ -140,6 +140,11 @@ default_configuration = {
                     'text_color' : [1.0, 1.0, 1.0, 0.7],
                     # Define the path for the position of an event
                     'x_path' : ['x'], 'y_path' : ['y'],
+                    # Warps enable a button in the widget to warp to a map
+                    'goto_header_button_button_enabled' : True,
+                    'target_bank_path' : ['target_bank'],
+                    'target_map_idx_path' : ['target_map'],
+                    'target_warp_idx_path' : ['target_warp_idx'],
                 },
                 {
                     'name' : 'Sign',

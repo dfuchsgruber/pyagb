@@ -155,7 +155,11 @@ class ConnectionWidget(QWidget):
         packed = properties.get_member_by_path(self.main_gui.header, self.main_gui.project.config['pymap']['header']['connections']['connections_path'])[self.idx_combobox.currentIndex()]
         # Update the unpacked version
         direction, offset, bank, map_idx, connection_blocks = blocks.unpack_connection(packed, self.main_gui.project)
-        self.main_gui.open_header(bank, map_idx)
+        try:
+            self.main_gui.open_header(str(bank), str(map_idx))
+        except KeyError as e:
+            return QMessageBox.critical(self, 
+                'Header can not be opened', f'The header {bank}.{map_idx} could not be opened. Key {e.args[0]} was not found.')
 
     def update_connection(self, connection_idx, mirror_offset):
         """ Updates a certain connection. """

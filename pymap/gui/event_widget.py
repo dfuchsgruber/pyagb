@@ -1,3 +1,4 @@
+from typing import Dict, Optional, Tuple
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -55,7 +56,7 @@ class EventWidget(QWidget):
         # Create a tab for each event type
         self.tab_widget.clear()
         self.tabs = {}
-        for event_type in self.main_gui.project.config['pymap']['header']['events']:
+        for event_type in self.main_gui.project.config['pymap']['header']['events']: 
             self.tabs[event_type['datatype']] = EventTab(self, event_type)
             self.tab_widget.addTab(self.tabs[event_type['datatype']], event_type['name'])
 
@@ -150,6 +151,11 @@ class EventTab(QWidget):
         layout.addWidget(self.remove_button, 1, 3)
         self.event_properties = EventProperties(self)
         layout.addWidget(self.event_properties, 2, 1, 1, 3)
+        if event_type.get('goto_header_button_button_enabled', False):
+            self.goto_header_button = QPushButton('Go to target header')
+            self.goto_header_button.clicked.connect(lambda: self.goto_header(self.idx_combobox.currentIndex()))
+            layout.addWidget(self.goto_header_button, 3, 1, 1, 3)
+
         layout.setColumnStretch(1, 1)
         layout.setColumnStretch(2, 0)
         layout.setColumnStretch(3, 0)
@@ -195,6 +201,28 @@ class EventTab(QWidget):
         if self.event_widget.main_gui.project is None or self.event_widget.main_gui.header is None: return
         self.event_widget.undo_stack.push(history.AppendEvent(self.event_widget, self.event_type))
 
+    def goto_header(self, event_idx: int):
+        """ Goes to a new header associated with an event. """
+        if self.event_widget.main_gui.project is None or self.event_widget.main_gui.header is None or event_idx < 0: 
+            return
+        event = properties.get_member_by_path(self.event_widget.main_gui.header, self.event_type['events_path'])[event_idx]
+        target_bank = properties.get_member_by_path(event, self.event_type['target_bank_path'])
+        target_map_idx = properties.get_member_by_path(event, self.event_type['target_map_idx_path'])
+        target_warp_idx = int(str(properties.get_member_by_path(event, self.event_type['target_warp_idx_path'])), 0)
+        try:
+            self.event_widget.main_gui.open_header(str(target_bank), str(target_map_idx))
+        except KeyError as e:
+            return QMessageBox.critical(self, 
+                'Header can not be opened', f'The header {target_bank}.{target_map_idx} could not be opened. Key {e.args[0]} was not found.')
+        # If possible, navigate to the appropriate warp
+        # AT this point, the current widget should have updated all its values to fit the new open header
+        number_events = int(properties.get_member_by_path(self.event_widget.main_gui.header, self.event_type['size_path']))
+        current_idx = min(number_events - 1, max(0, target_warp_idx)) # If -1 is selcted, select first, but never select a no more present event
+        self.idx_combobox.blockSignals(True)
+        self.idx_combobox.setCurrentIndex(current_idx)
+        self.select_event() # We want select event to be triggered even if the current idx is -1 in order to clear the properties
+        self.idx_combobox.blockSignals(False)
+
     def event_to_group(self, event):
         """ Creates a QGraphicsItemGroup for an event. """
         padded_x, padded_y = self.event_widget.main_gui.map_widget.get_border_padding()
@@ -208,10 +236,7 @@ class EventTab(QWidget):
         else:
             group = EventGroupImage(self.event_widget.map_scene, *image)
             group.alignWithPosition(x, y)
-        return group
-
-
-        
+        return group 
 
 class EventProperties(ParameterTree):
     """ Tree to display event properties. """
@@ -265,7 +290,7 @@ class EventProperties(ParameterTree):
 class MapScene(QGraphicsScene):
     """ Scene for the map view. """
 
-    def __init__(self, event_widget, parent=None):
+    def __init__(self, event_widget: EventWidget, parent=None):
         super().__init__(parent=parent)
         self.event_widget = event_widget
         self.event_groups = defaultdict(list) # Items for each event type
@@ -321,10 +346,10 @@ class MapScene(QGraphicsScene):
         else:
             self.event_widget.info_label.setText('')
 
-
-    def mousePressEvent(self, event):
-        """ Event handler for pressing the mouse. """
-        if self.event_widget.main_gui.project is None or self.event_widget.main_gui.header is None: return
+    def _get_event_by_event_position(self, event) -> Optional[Tuple[Dict, int]]:
+        """ Finds an event associated with a mouse event by the position of the mouse event. """
+        if self.event_widget.main_gui.project is None or self.event_widget.main_gui.header is None: 
+            return None
         map_width = properties.get_member_by_path(self.event_widget.main_gui.footer, self.event_widget.main_gui.project.config['pymap']['footer']['map_width_path'])
         map_height = properties.get_member_by_path(self.event_widget.main_gui.footer, self.event_widget.main_gui.project.config['pymap']['footer']['map_height_path'])
         padded_x, padded_y = self.event_widget.main_gui.map_widget.get_border_padding()
@@ -338,14 +363,26 @@ class MapScene(QGraphicsScene):
                     event_x, event_y = to_coordinates(
                         properties.get_member_by_path(event, event_type['x_path']), properties.get_member_by_path(event, event_type['y_path']), padded_x, padded_y)
                     if int(event_x / 16) == x and int(event_y / 16) == y:
-                        # Pick this event as new selection
-                        self.event_widget.tab_widget.setCurrentWidget(self.event_widget.tabs[event_type['datatype']])
-                        self.event_widget.tabs[event_type['datatype']].idx_combobox.setCurrentIndex(event_idx)
-                        # Drag it until the mouse button is released
-                        self.last_drag = x, y
-                        self.drag_started = False # Do not start a macro unless the event is dragged at least one block
-                        self.dragged_event = event_type, event_idx
-                        return
+                        return event_type, event_idx
+        return None
+
+    def mousePressEvent(self, event):
+        """ Event handler for pressing the mouse. """
+        if self.event_widget.main_gui.project is None or self.event_widget.main_gui.header is None:
+            return
+        pos = event.scenePos()
+        x, y = int(pos.x() / 16), int(pos.y() / 16)
+        target = self._get_event_by_event_position(event)
+        if target is not None:
+            event_type, event_idx = target
+            # Pick this event as new selection
+            self.event_widget.tab_widget.setCurrentWidget(self.event_widget.tabs[event_type['datatype']])
+            self.event_widget.tabs[event_type['datatype']].idx_combobox.setCurrentIndex(event_idx)
+            # Drag it until the mouse button is released
+            self.last_drag = x, y
+            self.drag_started = False # Do not start a macro unless the event is dragged at least one block
+            self.dragged_event = event_type, event_idx
+            return
                         
     def mouseReleaseEvent(self, event):
         """ Event handler for releasing the mouse. """
@@ -356,6 +393,17 @@ class MapScene(QGraphicsScene):
             self.drag_started = False
             self.dragged_event = None
             self.last_drag = None
+
+    def mouseDoubleClickEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
+        """ Event handler for double click events. """
+        if self.event_widget.main_gui.project is None or self.event_widget.main_gui.header is None: 
+            return
+        if event.button() == Qt.LeftButton:
+            target = self._get_event_by_event_position(event)
+            if target is not None:
+                event_type, event_idx = target
+                self.event_widget.tabs[event_type['datatype']].goto_header(event_idx)
+
 
 class EventGroupRectangular(QGraphicsItemGroup):
     """ Subclass for an rectangular event group. """
