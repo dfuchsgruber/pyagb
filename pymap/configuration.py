@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 # Define a default configuration for pymap
 default_configuration = {
@@ -240,7 +241,7 @@ def get_configuration(file_path):
     """ Creates a configuration with default values overwritten by
     the custom .config file. """
     configuration = default_configuration.copy()
-    with open(file_path) as f:
+    with open(Path(file_path)) as f:
         custom_configuration = json.load(f)
     update_dict(custom_configuration, configuration)
     return configuration

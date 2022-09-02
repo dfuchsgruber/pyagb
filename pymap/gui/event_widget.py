@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict, Optional, Tuple
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -65,7 +66,7 @@ class EventWidget(QWidget):
         backend = project.config['pymap']['display']['event_to_image_backend']
         if backend is not None:
             os.chdir(os.path.dirname(project.path))
-            with open(backend) as f:
+            with open(Path(backend)) as f:
                 namespace = {}
                 exec(f.read(), namespace)
                 self.event_to_image = namespace['get_event_to_image']()

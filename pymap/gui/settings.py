@@ -1,4 +1,5 @@
 # Store user settings
+from pathlib import Path
 import appdirs
 import os
 import json
@@ -57,12 +58,12 @@ class Settings(MutableMapping):
         os.makedirs(os.path.dirname(config_file), exist_ok=True)
         if not os.path.exists(config_file):
             # Initially create a configuration
-            with open(config_file, 'w+') as f:
+            with open(Path(config_file), 'w+') as f:
                 json.dump(default_settings, f)
             return default_settings
         else:
             settings = default_settings.copy()
-            with open(config_file) as f:
+            with open(Path(config_file)) as f:
                 override_settings = json.load(f)
                 for key in override_settings:
                     settings[key] = override_settings[key]
@@ -77,5 +78,5 @@ class Settings(MutableMapping):
         settings : dict
             The current pymap settings.
         """
-        with open(config_file, 'w+') as f:
+        with open(Path(config_file), 'w+') as f:
             json.dump(self._settings, f)

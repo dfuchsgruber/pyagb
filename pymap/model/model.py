@@ -1,4 +1,5 @@
 # Creates the default models for pymap
+from pathlib import Path
 import agb.types
 import pymap.model.event, pymap.model.footer, pymap.model.header, pymap.model.tileset, pymap.model.backend, pymap.model.connection
 
@@ -49,7 +50,7 @@ def get_model(models_file_paths):
         # Remove models from previous files
         if 'models_to_export' in locals():
             del locals()['models_to_export']
-        with open(models_file_path) as f:
+        with open(Path(models_file_path)) as f:
             exec(f.read())
             # Try to get models
             try:

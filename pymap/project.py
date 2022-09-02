@@ -57,7 +57,7 @@ class Project:
         file_path : str
             The json file that contains the project information.
         """
-        with open(file_path) as f:
+        with open(Path(file_path)) as f:
             content = json.load(f)
 
         self.headers = content['headers']
@@ -68,7 +68,7 @@ class Project:
         self.gfxs_secondary = content['gfxs_secondary']
 
         # Initialize the constants
-        with open(file_path + '.constants') as f:
+        with open(str(Path(file_path)) + '.constants') as f:
             content = json.load(f)
         paths = {key : Path(content[key]) for key in content}
         self.constants = constants.Constants(paths)
@@ -98,7 +98,7 @@ class Project:
             'gfxs_primary' : self.gfxs_primary,
             'gfxs_secondary' : self.gfxs_secondary,
         }
-        with open(file_path, 'w+') as f:
+        with open(Path(file_path), 'w+') as f:
             json.dump(representation, f, indent=self.config['json']['indent'])
         self.path = file_path
 
@@ -125,7 +125,7 @@ class Project:
         bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
         if bank in self.headers and map_idx in self.headers[bank]:
             label, path, namespace = self.headers[bank][map_idx]
-            with open(path, encoding=self.config['json']['encoding']) as f:
+            with open(Path(path), encoding=self.config['json']['encoding']) as f:
                 header = json.load(f)
             assert(header['label'] == label), f'Header label mismatches the label stored in the project file'
             assert(header['type'] == self.config['pymap']['header']['datatype']), f'Header datatype mismatches the configuration'
@@ -180,7 +180,7 @@ class Project:
         os.chdir(os.path.abspath(os.path.dirname(self.path)))
         if bank in self.headers:
             if not map_idx in self.headers[bank]:
-                with open(path, encoding=self.config['json']['encoding']) as f:
+                with open(Path(path), encoding=self.config['json']['encoding']) as f:
                     header = json.load(f)
                 assert(header['type'] == self.config['pymap']['header']['datatype']), 'Header datatype mismatches the configuration'
                 self.headers[bank][map_idx] = [label, os.path.relpath(path), namespace]
@@ -244,7 +244,7 @@ class Project:
         bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
         if bank in self.headers and map_idx in self.headers[bank]:
             label, path, namespace = self.headers[bank][map_idx]
-            with open(path, 'w+', encoding=self.config['json']['encoding']) as f:
+            with open(Path(path), 'w+', encoding=self.config['json']['encoding']) as f:
                 json.dump({
                     'data' : header,
                     'label' : label,
@@ -348,7 +348,7 @@ class Project:
         os.chdir(os.path.abspath(os.path.dirname(self.path)))
         if label in self.footers:
             footer_idx, path = self.footers[label]
-            with open(path, encoding=self.config['json']['encoding']) as f:
+            with open(Path(path), encoding=self.config['json']['encoding']) as f:
                 footer = json.load(f)
             assert(footer['label'] == label), 'Footer label mismatches the label stored in the project.'
             assert(footer['type'] == self.config['pymap']['footer']['datatype']), 'Footer datatype mismatches the configuration'
@@ -369,7 +369,7 @@ class Project:
         os.chdir(os.path.abspath(os.path.dirname(self.path)))
         if label in self.footers:
             footer_idx, path = self.footers[label]
-            with open(path, 'w+', encoding=self.config['json']['encoding']) as f:
+            with open(Path(path), 'w+', encoding=self.config['json']['encoding']) as f:
                 json.dump({
                     'data' : footer,
                     'label' : label,
@@ -423,7 +423,7 @@ class Project:
             raise RuntimeError(f'Footer {label} already existent.')
         if footer_idx not in self.unused_footer_idx():
             raise RuntimeError(f'Footer index {footer_idx} already in use.')
-        with open(path, encoding=self.config['json']['encoding']) as f:
+        with open(Path(path), encoding=self.config['json']['encoding']) as f:
             footer = json.load(f)
         assert(footer['type'] == self.config['pymap']['footer']['datatype']), 'Footer datatype mismatches the configuration'
         self.footers[label] = footer_idx, os.path.relpath(path)
@@ -467,7 +467,7 @@ class Project:
         if path is None:
             return None
         else:
-            with open(path, encoding=self.config['json']['encoding']) as f:
+            with open(Path(path), encoding=self.config['json']['encoding']) as f:
                 tileset = json.load(f)
             assert(tileset['label'] == label), 'Tileset label mismatches the label stored in the project'
             assert(tileset['type'] == self.config['pymap'][('tileset_primary' if primary else 'tileset_secondary')]['datatype']), 'Tileset datatype mismatches the configuration'
@@ -489,7 +489,7 @@ class Project:
         tilesets = self.tilesets_primary if primary else self.tilesets_secondary
         if label in tilesets:
             path = tilesets[label]
-            with open(path, 'w+', encoding=self.config['json']['encoding']) as f:
+            with open(Path(path), 'w+', encoding=self.config['json']['encoding']) as f:
                 json.dump({
                     'data' : tileset,
                     'label' : label,
@@ -572,7 +572,7 @@ class Project:
         tilesets = self.tilesets_primary if primary else self.tilesets_secondary
         if label in tilesets:
             raise RuntimeError(f'Tileset {label} already existent.')
-        with open(path, encoding=self.config['json']['encoding']) as f:
+        with open(Path(path), encoding=self.config['json']['encoding']) as f:
             tileset = json.load(f)
         assert(tileset['type'] == self.config['pymap']['tileset_primary' if primary else 'tileset_secondary']['datatype']), 'Tileset datatype mismatches the configuration'
         tilesets[label] = os.path.relpath(path)

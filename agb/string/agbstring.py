@@ -1,5 +1,6 @@
 # Module to provide a encoder / decoder for strings with custom mappings.
 
+from pathlib import Path
 from . import trie
 from functools import partial
 
@@ -21,7 +22,7 @@ class Agbstring:
         self.hex_to_str_map = trie.PrefixTriemap()
 
         # Parse character map
-        with open(charmap, 'r', encoding='utf-8') as f:
+        with open(Path(charmap), 'r', encoding='utf-8') as f:
             charmap = f.read()
 
         for line in map(

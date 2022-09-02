@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 
 import PIL.Image
@@ -93,7 +94,7 @@ def from_file(file_path):
     palette : Palette
         The palette of the image.
     """
-    with open(file_path, 'rb') as f:
+    with open(Path(file_path), 'rb') as f:
         img = PIL.Image.open(f)
         colors = list(bytes(img.palette.palette))
         return Palette(list(zip(colors[0::3], colors[1::3], colors[2::3])))

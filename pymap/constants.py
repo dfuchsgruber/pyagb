@@ -3,9 +3,10 @@
 """ This module is responsible for resolving constants and exporting them
 as C or assembly macros."""
 
+from email.policy import default
 import json
 from collections.abc import Mapping
-
+from collections import defaultdict
 class ConstantTable(Mapping):
     """ This class represents a single constant table,
      where strings are mapped to numerical values."""
@@ -47,6 +48,13 @@ class ConstantTable(Mapping):
     
     def __len__(self):
         return len(self.values)
+
+    def inverse(self):
+        """ Inverts the mapping """
+        inverse = defaultdict(list)
+        for k, v in self.values.items():
+            inverse[v].append(k)
+        return inverse
         
 class Constants:
 

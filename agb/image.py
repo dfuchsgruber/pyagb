@@ -5,6 +5,7 @@ import numpy as np
 from itertools import product
 import png
 from . import palette
+from pathlib import Path
 
 class Image:
     """ Class that represents a png-based image."""
@@ -128,7 +129,7 @@ class Image:
         img = PIL.Image.new('P', (self.width, self.height))
         img.putdata(self.data.T.flatten())
         img.putpalette(palette)
-        img.save(path)
+        img.save(str(Path(path)))
 
 def from_file(file_path):
     """ Creates an Image instance from a png file.
@@ -145,7 +146,7 @@ def from_file(file_path):
     palette : agb.palette
         The palette of the image
     """
-    with open(file_path, 'rb') as f:
+    with open(Path(file_path), 'rb') as f:
         reader = png.Reader(f)
         width, height, data, attributes = reader.read()
         image = Image(None, width, height, depth=attributes['bitdepth'])
