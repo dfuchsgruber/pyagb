@@ -290,7 +290,7 @@ class ChangeHeaderProperty(QUndoCommand):
         self.header_widget.update()
     
 class ChangeEventProperty(QUndoCommand):
-    """ Change a property of any vent. """
+    """ Change a property of any event. """
 
     def __init__(self, event_widget, event_type, event_idx, statements_redo, statements_undo):
         super().__init__()

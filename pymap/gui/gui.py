@@ -103,6 +103,14 @@ class PymapGui(QMainWindow):
         edit_menu_redo_action = edit_menu.addAction('Redo')
         edit_menu_redo_action.triggered.connect(lambda: self.central_widget.currentWidget().undo_stack.redo())
         edit_menu_redo_action.setShortcut('Ctrl+Y')
+        edit_menu.addSeparator()
+        edit_menu_shift_blocks_and_events_action = edit_menu.addAction('Shift Blocks and Events')
+        edit_menu_shift_blocks_and_events_action.triggered.connect(lambda: self.prompt_shift_blocks_and_events(shift_blocks=True, shift_events=True))
+        edit_menu_shift_blocks_action = edit_menu.addAction('Shift Blocks')
+        edit_menu_shift_blocks_action.triggered.connect(lambda: self.prompt_shift_blocks_and_events(shift_blocks=True, shift_events=False))
+        edit_menu_shift_events_action = edit_menu.addAction('Shift Events')
+        edit_menu_shift_events_action.triggered.connect(lambda: self.prompt_shift_blocks_and_events(shift_blocks=False, shift_events=True))
+
         # 'View' menu
         view_menu = self.menuBar().addMenu('&View')
         view_menu_resource_action = view_menu.addAction('Toggle Header Listing')
@@ -165,6 +173,30 @@ class PymapGui(QMainWindow):
         self.header_map_idx = None
         # Render subwidgets
         self.update()
+
+    def prompt_shift_blocks_and_events(self, shift_blocks=False, shift_events=False):
+        """ Prompts the user to enter by how much all blocks and events should be shifted. """
+        if self.project is None or self.header is None or self.footer is None: return False
+        if shift_blocks and shift_events:
+            title = 'Shift blocks and events'
+        elif shift_blocks:
+            title = 'Shift blocks'
+        elif shift_events:
+            title = 'Shift events'
+        else:
+            raise RuntimeError('Either shift blocks or events or both!')
+        text, ok_pressed = QInputDialog.getText(self, title, 'Enter by how much to shift in the format "x, y"')
+        if ok_pressed:
+            try:
+                x, y = (int(value.strip()) for value in text.split(','))
+            except:
+                QMessageBox.critical(self, 'Invalid format', 'Enter by how much to shift as comma separated values!')
+                return
+            if shift_blocks:
+                self.shift_blocks(x, y)
+            if shift_events:
+                self.shift_events(x, y)
+
 
     def prompt_save_header(self):
         """ Prompts to save the header if it is unsafed. Returns True if the user did not take any action. """
@@ -333,6 +365,37 @@ class PymapGui(QMainWindow):
         window = map_blocks[y : y + blocks.shape[0], x : x + blocks.shape[1]].copy()
         blocks = blocks[:window.shape[0], :window.shape[1]].copy()
         self.map_widget.undo_stack.push(history.SetBlocks(self, x, y, layers, blocks, window))
+
+    def shift_blocks(self, x, y, layers=[0, 1]):
+        """ Shifts the blocks in the current map footer. """
+        if self.project is None or self.header is None or self.footer is None: return
+        blocks = properties.get_member_by_path(self.footer, self.project.config['pymap']['footer']['map_blocks_path'])[:, :, layers] # h x w x layers
+        map_width = properties.get_member_by_path(self.map_widget.main_gui.footer, self.map_widget.main_gui.project.config['pymap']['footer']['map_width_path'])
+        map_height = properties.get_member_by_path(self.map_widget.main_gui.footer, self.map_widget.main_gui.project.config['pymap']['footer']['map_height_path'])
+        if x < 0:
+            blocks = blocks[:, -x : ]
+            x = 0
+        if y < 0:
+            blocks = blocks[-y :, :]
+            y = 0
+        if x < map_width and y < map_height:
+            self.set_blocks(x, y, layers, blocks)
+
+    def shift_events(self, x, y):
+        """ Shifts the events of the current map header. """
+        if self.project is None or self.header is None: return
+        self.event_widget.undo_stack.beginMacro('ShiftEvents')
+        for event_type in self.project.config['pymap']['header']['events']: 
+            num_events = properties.get_member_by_path(self.header, event_type['size_path'])
+            for event_idx in range(num_events):
+                event = properties.get_member_by_path(self.header, event_type['events_path'])[event_idx]
+                x_old = eval(str(properties.get_member_by_path(event, event_type['x_path'])))
+                y_old = eval(str(properties.get_member_by_path(event, event_type['y_path'])))
+                redo_statement_x, undo_statement_x = history.path_to_statement(event_type['x_path'], x_old, x_old + x)
+                redo_statement_y, undo_statement_y = history.path_to_statement(event_type['y_path'], y_old, y_old + y)
+                self.event_widget.undo_stack.push(history.ChangeEventProperty(
+                    self.event_widget, event_type, event_idx, [redo_statement_x, redo_statement_y], [undo_statement_x, undo_statement_y]))
+        self.event_widget.undo_stack.endMacro()
 
     def flood_fill(self, x, y, layer, value):
         """ Flood fills with origin (x, y) and a certain layer with a new value. """
