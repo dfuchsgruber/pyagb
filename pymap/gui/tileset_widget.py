@@ -49,22 +49,16 @@ class TilesetWidget(QWidget):
         self.gfx_secondary_combobox.currentTextChanged.connect(lambda label: self.main_gui.change_gfx(label, False))
         gfx_layout.setColumnStretch(1, 0)
         gfx_layout.setColumnStretch(2, 1)
-        # gfx_layout.setColumnStretch(3, 0)
-        # gfx_layout.setColumnStretch(4, 1)
         layout.addWidget(gfx_group, 2, 2, 1, 1)
 
-        animation_group = QGroupBox('Animation')
-        animation_layout = QGridLayout()
-        animation_group.setLayout(animation_layout)
-        animation_layout.addWidget(QLabel('Primary'), 1, 1, 1, 1)
-        self.animation_primary_line_edit = QLineEditWithoutHistory()
-        animation_layout.addWidget(self.animation_primary_line_edit, 1, 2, 1, 1)
-        animation_layout.addWidget(QLabel('Secondary'), 2, 1, 1, 1)
-        self.animation_secondary_line_edit = QLineEditWithoutHistory()
-        animation_layout.addWidget(self.animation_secondary_line_edit, 2, 2, 1, 1)
-        self.animation_primary_line_edit.textChanged.connect(lambda value: self.undo_stack.push(history.SetTilesetAnimation(self, True, value)))
-        self.animation_secondary_line_edit.textChanged.connect(lambda value: self.undo_stack.push(history.SetTilesetAnimation(self, False, value)))
-        layout.addWidget(animation_group, 3, 2, 1, 1)
+        properties_group = QGroupBox('Properties')
+        properties_layout = QGridLayout()
+        properties_group.setLayout(properties_layout)
+        self.properties_tree_tsp = TilesetProperties(self, True)
+        properties_layout.addWidget(self.properties_tree_tsp, 0, 0, 1, 1)
+        self.properties_tree_tss = TilesetProperties(self, False)
+        properties_layout.addWidget(self.properties_tree_tss, 0, 1, 1, 1)
+        layout.addWidget(properties_group, 3, 2, 1, 1)
 
         seleciton_group = QGroupBox('Selection')
         selection_layout = QGridLayout()
@@ -107,7 +101,7 @@ class TilesetWidget(QWidget):
         current_block_layout.addWidget(mid_group, 1, 2, 1, 1)
         current_block_layout.addWidget(upper_group, 1, 3, 1, 1)
         self.block_properties = BlockProperties(self)
-        current_block_layout.addWidget(self.block_properties, 2, 1, 1, 2)
+        current_block_layout.addWidget(self.block_properties, 2, 1, 1, 3)
         behaviour_clipboard_layout = QGridLayout()
         current_block_layout.addLayout(behaviour_clipboard_layout, 3, 1, 1, 2)
         self.behaviour_clipboard_copy = QPushButton('Copy')
@@ -184,9 +178,9 @@ class TilesetWidget(QWidget):
 
         layout.setRowStretch(1, 0)
         layout.setRowStretch(2, 0)
-        layout.setRowStretch(3, 0)
+        layout.setRowStretch(3, 1)
         layout.setRowStretch(4, 0)
-        layout.setRowStretch(5, 1)
+        layout.setRowStretch(5, 3)
         layout.setRowStretch(6, 0)
         layout.setColumnStretch(1, 1)
         layout.setColumnStretch(2, 1)
@@ -219,8 +213,10 @@ class TilesetWidget(QWidget):
             self.behaviour_clipboard_copy.setEnabled(False)
             self.gfx_primary_combobox.setEnabled(False)
             self.gfx_secondary_combobox.setEnabled(False)
-            self.animation_primary_line_edit.setEnabled(False)
-            self.animation_secondary_line_edit.setEnabled(False)
+            # self.animation_primary_line_edit.setEnabled(False)
+            # self.animation_secondary_line_edit.setEnabled(False)
+            self.properties_tree_tsp.setEnabled(False)
+            self.properties_tree_tss.setEnabled(False)
         else:
             self.behaviour_clipboard_copy.setEnabled(True)
             self.gfx_primary_combobox.setEnabled(True)
@@ -233,16 +229,12 @@ class TilesetWidget(QWidget):
             self.gfx_secondary_combobox.blockSignals(True)
             self.gfx_secondary_combobox.setCurrentText(gfx_secondary_label)
             self.gfx_secondary_combobox.blockSignals(False)
-            self.animation_primary_line_edit.setEnabled(True)
-            self.animation_secondary_line_edit.setEnabled(True)
-            self.animation_primary_line_edit.blockSignals(True)
-            self.animation_secondary_line_edit.blockSignals(True)
-            animation_primary = properties.get_member_by_path(self.main_gui.tileset_primary, self.main_gui.project.config['pymap']['tileset_primary']['animation_path'])
-            animation_secondary = properties.get_member_by_path(self.main_gui.tileset_secondary, self.main_gui.project.config['pymap']['tileset_secondary']['animation_path'])
-            self.animation_primary_line_edit.setText(str(animation_primary))
-            self.animation_secondary_line_edit.setText(str(animation_secondary))
-            self.animation_primary_line_edit.blockSignals(False)
-            self.animation_secondary_line_edit.blockSignals(False)
+            
+            self.properties_tree_tsp.setEnabled(True)
+            self.properties_tree_tss.setEnabled(True)
+            self.properties_tree_tsp.load_tileset()
+            self.properties_tree_tss.load_tileset()
+            
             self.load_tiles()
             self.load_blocks()
             self.set_selection(np.array([[
@@ -670,6 +662,68 @@ class BlockScene(QGraphicsScene):
         elif event.button() == Qt.RightButton:
             self.selection_box = None
 
+class TilesetProperties(ParameterTree):
+    """ Tree to display additional properties of the tilesets """
+
+    def __init__(self, tileset_widget, is_primary, parent=None):
+        super().__init__(parent=parent)
+        self.tileset_widget = tileset_widget
+        self.is_primary = is_primary
+        self.header().setSectionResizeMode(QHeaderView.Interactive)
+        self.header().setStretchLastSection(True)
+        self.root = None
+
+    def load_tileset(self):
+        self.clear()
+        if self.tileset_widget.main_gui.project is None or self.tileset_widget.main_gui.header is None or self.tileset_widget.main_gui.footer is None or \
+            self.tileset_widget.main_gui.tileset_primary is None or self.tileset_widget.main_gui.tileset_secondary is None:
+            self.root = None
+        else:
+            config = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.is_primary else 'tileset_secondary']
+            datatype = config['datatype']
+            tileset = self.tileset_widget.main_gui.tileset_primary if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
+            self.root = properties.type_to_parameter(self.tileset_widget.main_gui.project, datatype)(
+                '.', self.tileset_widget.main_gui.project, datatype, tileset, [], [],
+            )
+            self.addParameters(self.root, showTop=False)
+            self.root.sigTreeStateChanged.connect(self.tree_changed)
+
+    def update(self):
+        """ Updates all values in the tree according to the current properties. """
+        # config = self.tileset_widget.main_gui.self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.is_primary else 'tileset_secondary']
+        tileset = self.tileset_widget.main_gui.tileset_primary if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
+        self.root.blockSignals(True)
+        self.root.update(tileset)
+        self.root.blockSignals(False)
+
+    def tree_changed(self, changes):
+        root = self.tileset_widget.main_gui.tileset_primary if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
+        diffs = DeepDiff(root, self.root.model_value())
+        statements_redo = []
+        statements_undo = []
+        for change in ('type_changes', 'values_changed'):
+            if change in diffs:
+                for path in diffs[change]:
+                    value_new = diffs[change][path]['new_value']
+                    value_old = diffs[change][path]['old_value']
+                    statements_redo.append(f'{path} = \'{value_new}\'')
+                    statements_undo.append(f'{path} = \'{value_old}\'')
+                    self.tileset_widget.undo_stack.push(history.ChangeTilesetProperty(
+                        self.tileset_widget, self.is_primary, statements_redo, statements_undo
+                    ))
+
+    def get_value(self):
+        """ Gets the model value of the current block or None if no block is selected. """
+        if self.root is None: return None
+        return self.root.model_value()
+
+    def set_value(self, behaviour):
+        """ Replaces the entrie properties of the current block if one is selected. """
+        if self.model is None: return
+        self.root.blockSignals(True)
+        self.root.update(behaviour)
+        self.root.blockSignals(False)
+        self.tree_changed(None)
 
 class BlockProperties(ParameterTree):
     """ Tree to display block properties. """

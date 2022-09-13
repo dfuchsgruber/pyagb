@@ -99,7 +99,7 @@ tileset_primary_type = agb.types.Structure([
     ('animation_initialize', 'u32', 0),
     ('behaviours', 'tileset.behaviour_array_primary_pointer', 0)
 ], hidden_members=set([
-    'gfx', 'behaviours', 'blocks'
+    'gfx', 'behaviours', 'blocks', 'palettes'
 ]))
 
 # Define a secondary tileset type
@@ -114,7 +114,7 @@ tileset_secondary_type = agb.types.Structure([
     ('animation_initialize', 'u32', 0),
     ('behaviours', 'tileset.behaviour_array_secondary_pointer', 0)
 ], hidden_members=set([
-    'gfx', 'behaviours', 'blocks'
+    'gfx', 'behaviours', 'blocks', 'palettes'
 ]))
 
 

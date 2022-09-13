@@ -475,6 +475,33 @@ class ChangeBlockProperty(QUndoCommand):
             exec(statement)
         self.tileset_widget.block_properties.update()
 
+class ChangeTilesetProperty(QUndoCommand):
+    """ Change a property of a tileset. """
+
+    def __init__(self, tileset_widget, is_primary, statements_redo, statements_undo):
+        super().__init__()
+        self.tileset_widget = tileset_widget
+        self.is_primary = is_primary
+        self.statements_redo = statements_redo
+        self.statements_undo = statements_undo
+
+    def redo(self):
+        """ Executes the redo statements. """
+        root = self.tileset_widget.main_gui.tileset_primary if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
+        for statement in self.statements_redo:
+            exec(statement)
+        tree_widget = self.tileset_widget.properties_tree_tsp if self.is_primary else self.tileset_widget.properties_tree_tss
+        tree_widget.update()   
+    
+    def undo(self):
+        """ Executes the redo statements. """
+        root = self.tileset_widget.main_gui.tileset_primary if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
+        for statement in self.statements_undo:
+            exec(statement)
+        tree_widget = self.tileset_widget.properties_tree_tsp if self.is_primary else self.tileset_widget.properties_tree_tss
+        tree_widget.update()   
+
+
 class SetTiles(QUndoCommand):
     """ Changes the tiles of any block. """
 
