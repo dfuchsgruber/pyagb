@@ -5,6 +5,7 @@ import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from copy import deepcopy
 
 class Resize(QUndoCommand):
     """ Resizes a set of blocks. """
@@ -512,15 +513,15 @@ class SetTiles(QUndoCommand):
         self.layer = layer
         self.x = x
         self.y = y
-        self.tiles_new = tiles_new
-        self.tiles_old = tiles_old
+        self.tiles_new = deepcopy(tiles_new)
+        self.tiles_old = deepcopy(tiles_old)
 
     def _set_tiles(self, tiles):
         """ Helper method to set tiles. """
         tileset = self.tileset_widget.main_gui.tileset_primary if self.block_idx < 0x280 else self.tileset_widget.main_gui.tileset_secondary
         path = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.block_idx < 0x280 else 'tileset_secondary']['blocks_path']
         blocks = properties.get_member_by_path(tileset, path)
-        block = np.array(blocks[self.tileset_widget.selected_block % 0x280]).reshape(3, 2, 2)
+        block = np.array(blocks[self.block_idx % 0x280]).reshape(3, 2, 2)
         block[self.layer, self.y : self.y + tiles.shape[0], self.x : self.x + tiles.shape[1]] = tiles
         blocks[self.block_idx % 0x280] = block.flatten().tolist()
         # Update the block

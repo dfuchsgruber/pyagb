@@ -110,10 +110,14 @@ class TilesetWidget(QWidget):
         self.behaviour_clipboard_paste = QPushButton('Paste')
         self.behaviour_clipboard_paste.clicked.connect(self.paste_behaviour)
         behaviour_clipboard_layout.addWidget(self.behaviour_clipboard_paste, 1, 2)
-        behaviour_clipboard_layout.addWidget(QLabel(), 1, 3)
+        self.behaviour_clipboard_clear = QPushButton('Clear')
+        self.behaviour_clipboard_clear.clicked.connect(self.clear_behaviour)
+        behaviour_clipboard_layout.addWidget(self.behaviour_clipboard_clear, 1, 3)
+        behaviour_clipboard_layout.addWidget(QLabel(), 1, 4)
         layout.setColumnStretch(1, 0)
         layout.setColumnStretch(2, 0)
-        layout.setColumnStretch(3, 1)
+        layout.setColumnStretch(3, 0)
+        layout.setColumnStretch(4, 1)
 
         current_block_layout.setRowStretch(1, 0)
         current_block_layout.setRowStretch(2, 1)
@@ -211,6 +215,7 @@ class TilesetWidget(QWidget):
         if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: 
             self.behaviour_clipboard_paste.setEnabled(False)
             self.behaviour_clipboard_copy.setEnabled(False)
+            self.behaviour_clipboard_clear.setEnabled(False)
             self.gfx_primary_combobox.setEnabled(False)
             self.gfx_secondary_combobox.setEnabled(False)
             # self.animation_primary_line_edit.setEnabled(False)
@@ -219,6 +224,7 @@ class TilesetWidget(QWidget):
             self.properties_tree_tss.setEnabled(False)
         else:
             self.behaviour_clipboard_copy.setEnabled(True)
+            self.behaviour_clipboard_clear.setEnabled(True)
             self.gfx_primary_combobox.setEnabled(True)
             self.gfx_secondary_combobox.setEnabled(True)
             gfx_primary_label = properties.get_member_by_path(self.main_gui.tileset_primary, self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'])
@@ -238,10 +244,22 @@ class TilesetWidget(QWidget):
             self.load_tiles()
             self.load_blocks()
             self.set_selection(np.array([[
-                {'tile_idx' : 0, 'palette_idx' : 0, 'horizontal_flip' : 0, 'vertical_flip' : 0}
+                self._empty_block_tile()
             ]]))
             self.set_current_block(0)
     
+    def _empty_block_tile(self):
+        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        config = self.main_gui.project.config['pymap']['tileset_primary' if self.selected_block < 0x280 else 'tileset_secondary']
+        datatype = self.main_gui.project.model[config['block_datatype']]
+        tileset = self.main_gui.tileset_primary if self.selected_block < 0x280 else self.main_gui.tileset_secondary
+        # Create a new "empty" instance
+        return datatype(
+            self.main_gui.project, 
+            config['blocks_path'] + [self.selected_block % 0x280, 0], 
+            properties.get_parents_by_path(tileset, config['blocks_path'] + [self.selected_block % 0x280, 0]),
+            )
+
     def reload(self):
         """ Reloads the entire view (in case tiles or gfx have changed). """
         if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
@@ -260,11 +278,13 @@ class TilesetWidget(QWidget):
                 # Assemble the entire picture
                 image = Image.new('RGBA', (128, 512))
                 for idx, tile_img in enumerate(self.main_gui.tiles[palette_idx]):
+                    x, y = idx % 16, idx // 16
                     if flip & HFLIP:
                         tile_img = tile_img.transpose(Image.FLIP_LEFT_RIGHT)
+                        x = 15 - x
                     if flip & VFLIP:
                         tile_img = tile_img.transpose(Image.FLIP_TOP_BOTTOM)
-                    x, y = idx % 16, idx // 16
+                        y = 63 - y
                     image.paste(tile_img, box=(8 * x, 8 * y))
                 pixmaps[flip] = QPixmap.fromImage(ImageQt(image.convert('RGB').convert('RGBA')))
             self.tile_pixmaps.append(pixmaps)
@@ -393,6 +413,20 @@ class TilesetWidget(QWidget):
         if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
         self.block_properties.set_value(self.behaviour_clipboard)
 
+    def clear_behaviour(self):
+        """ Clears the behaviour properties of the current block. """
+        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        config = self.main_gui.project.config['pymap']['tileset_primary' if self.selected_block < 0x280 else 'tileset_secondary']
+        datatype = self.main_gui.project.model[config['behaviour_datatype']]
+        tileset = self.main_gui.tileset_primary if self.selected_block < 0x280 else self.main_gui.tileset_secondary
+        # Create a new "empty" instance
+        empty = datatype(
+            self.main_gui.project, 
+            config['behaviours_path'] + [self.selected_block % 0x280], 
+            properties.get_parents_by_path(tileset, config['behaviours_path'] + [self.selected_block % 0x280]),
+            )
+        self.block_properties.set_value(empty)
+
     def import_palette(self):
         """ Prompts a dialoge that asks the user to select a 4bpp png to import a palette from. """
         if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
@@ -432,10 +466,11 @@ class SelectionScene(QGraphicsScene):
 class BlocksScene(QGraphicsScene):
     """ Scene for the individual blocks. """
 
-    def __init__(self, tileset_widget, parent=None):
+    def __init__(self, tileset_widget: 'TilesetWidget', parent=None):
         super().__init__(parent=parent)
         self.tileset_widget = tileset_widget
         self.selection_rect = None
+        self.clipboard = None
 
     def mouseMoveEvent(self, event):
         """ Event handler for moving the mouse. """
@@ -466,6 +501,68 @@ class BlocksScene(QGraphicsScene):
         x, y = int(x * size), int(y * size)
         self.selection_rect.setRect(x, y, int(size), int(size))
         self.setSceneRect(0, 0, int(8 * size), int(128 * size))
+
+    def contextMenuEvent(self, event: 'QGraphicsSceneContextMenuEvent') -> None:
+        if self.tileset_widget.main_gui.project is None or self.tileset_widget.main_gui.header is None or self.tileset_widget.main_gui.footer is None or \
+            self.tileset_widget.main_gui.tileset_primary is None or self.tileset_widget.main_gui.tileset_secondary is None: return
+        pos = event.scenePos()
+        x, y = int(pos.x() * 10 / 16 / self.tileset_widget.zoom_slider.value()), int(pos.y() * 10 / 16 / self.tileset_widget.zoom_slider.value())
+        block_idx = 8 * y + x
+        block = np.array(properties.get_member_by_path(
+            self.tileset_widget.main_gui.tileset_primary if block_idx < 0x280 else self.tileset_widget.main_gui.tileset_secondary, 
+            self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if block_idx < 0x280 else 'tileset_secondary']['blocks_path']
+            )[block_idx % 0x280]).reshape(3, 2, 2).copy()
+        def paste(paste_tiles, paste_behaviour):
+            """ Helper to paste either the block tiles and / or the block behaviour """
+            block_clipboard, behaviour_clipboard = self.clipboard
+            self.tileset_widget.undo_stack.beginMacro('Paste Block')
+            if paste_behaviour:
+                self.tileset_widget.block_properties.set_value(behaviour_clipboard)
+            if paste_tiles:
+                for layer in range(3):
+                    self.tileset_widget.undo_stack.push(history.SetTiles(
+                        self.tileset_widget, block_idx, layer, 0, 0, block_clipboard[layer].copy(), block[layer].copy()
+                    ))
+            self.tileset_widget.undo_stack.endMacro()
+
+        def clear(clear_tiles, clear_behaviour):
+            """ Helper to clear either the block tiles / or the block behaviour """
+            self.tileset_widget.undo_stack.beginMacro('Clear Block')
+            if clear_behaviour:
+                self.tileset_widget.clear_behaviour()
+            if clear_tiles:
+                for layer in range(3):
+                    self.tileset_widget.undo_stack.push(history.SetTiles(
+                        self.tileset_widget, block_idx, layer, 0, 0, np.array([self.tileset_widget._empty_block_tile() for _ in range(4)]).reshape((2, 2)), block[layer].copy()
+                    ))
+            self.tileset_widget.undo_stack.endMacro()
+
+        menu = QMenu()
+        copy_action = menu.addAction('Copy')
+        menu.addSeparator()
+        paste_action = menu.addAction('Paste')
+        paste_tiles_action = menu.addAction('Paste Tiles')
+        # Behaviour pasting / clearing should not be done here, right? Use the tree widget instead...
+        # paste_behaviour_action = menu.addAction('Paste Behaviour')
+        menu.addSeparator()
+        clear_all_action = menu.addAction('Clear')
+        clear_tiles_action = menu.addAction('Clear Tiles')
+        if self.clipboard is None:
+            paste_action.setEnabled(False)
+            paste_tiles_action.setEnabled(False)
+        action = menu.exec(event.screenPos())
+        if action == copy_action:
+            # Copy both the block data and its associated behaviour
+            self.clipboard = block, self.tileset_widget.block_properties.get_value()
+        elif action == paste_action:
+            paste(True, True)
+        elif action == paste_tiles_action:
+            paste(True, False)
+        elif action == clear_all_action:
+            clear(True, True)
+        elif action == clear_tiles_action:
+            clear(True, False)
+        
 
 class TilesScene(QGraphicsScene):
     """ Scene for the individual tiles. """
@@ -549,13 +646,18 @@ tiles = np.array([
     ]
     for pal_idx in range(13)
 ]).reshape((13, 4, 64, 16))
+for flip in range(4):
+    if flip & HFLIP:
+        tiles[:, flip, :, :] = tiles[:, flip, :, ::-1]
+    if flip & VFLIP:
+        tiles[:, flip, :, :] = tiles[:, flip, ::-1, :]
 
 
 
 class BlockScene(QGraphicsScene):
     """ Scene for the current block. """
 
-    def __init__(self, tileset_widget, layer, parent=None):
+    def __init__(self, tileset_widget: TilesetWidget, layer: int, parent=None):
         super().__init__(parent=parent)
         self.tileset_widget = tileset_widget
         self.layer = layer
@@ -589,7 +691,7 @@ class BlockScene(QGraphicsScene):
         block = np.array(properties.get_member_by_path(
             self.tileset_widget.main_gui.tileset_primary if self.tileset_widget.selected_block < 0x280 else self.tileset_widget.main_gui.tileset_secondary, 
             self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.tileset_widget.selected_block < 0x280 else 'tileset_secondary']['blocks_path']
-            )[self.tileset_widget.selected_block % 0x280]).reshape(3, 2, 2) 
+            )[self.tileset_widget.selected_block % 0x280]).reshape(3, 2, 2)
         self.tileset_widget.set_selection(render.select_blocks(
             block[int(self.layer)], *self.selection_box))
         
@@ -644,6 +746,11 @@ class BlockScene(QGraphicsScene):
                 # Select the tile in the tiles widget
                 tile_idx = self.tileset_widget.selection[0, 0]['tile_idx']
                 x, y = tile_idx % 16, tile_idx // 16
+                hflip, vflip = self.tileset_widget.tiles_mirror_horizontal_checkbox.isChecked(), self.tileset_widget.tiles_mirror_vertical_checkbox.isChecked()
+                if hflip:
+                    x = 15 - x
+                if vflip:
+                    y = 63 - y
                 self.tileset_widget.tiles_scene.selection_box = x, x + 1, y, y + 1
                 self.tileset_widget.tiles_scene.select_tiles()
                 self.tileset_widget.tiles_scene.selection_box = None
@@ -718,7 +825,7 @@ class TilesetProperties(ParameterTree):
         return self.root.model_value()
 
     def set_value(self, behaviour):
-        """ Replaces the entrie properties of the current block if one is selected. """
+        """ Replaces the entry properties of the current block if one is selected. """
         if self.model is None: return
         self.root.blockSignals(True)
         self.root.update(behaviour)
