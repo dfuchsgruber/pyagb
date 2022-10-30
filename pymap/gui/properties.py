@@ -6,7 +6,7 @@ from warnings import warn
 from functools import partial
 
 
-class ConstantComboBox(QtGui.QComboBox):
+class ConstantComboBox(QtWidgets.QComboBox):
     """ Subclass this thing in order to manually filter out undo events. """
 
     def event(self, event):
