@@ -118,6 +118,12 @@ class PymapGui(QMainWindow):
         view_menu_resource_action.triggered.connect(self.resource_tree_toggle_header_listing)
         view_menu_event_action = view_menu.addAction('Toggle Event Pictures')
         view_menu_event_action.triggered.connect(self.event_widget_toggle_pictures)
+        
+        # 'Tools' menu
+        tools_menu = self.menuBar().addMenu('Tools')
+        view_menu_save_image_action = tools_menu.addAction('Save Map Image')
+        view_menu_save_image_action.triggered.connect(self.save_map_image)
+        
 
         self.setCentralWidget(self.central_widget)
 
@@ -343,6 +349,19 @@ class PymapGui(QMainWindow):
             resource_tree.SORT_BY_NAMESPACE
         )
         self.resource_tree.load_headers()
+        
+    def save_map_image(self):
+        """ Exports an image of the current map by issuing a prompt. """
+        if self.project is None or self.header is None or self.footer is None or self.tileset_primary is None or self.tileset_secondary is None: return
+        path, suffix = QFileDialog.getSaveFileName(self, 'Save Map Image', self.settings['recent.map_image'], 'Portable Network Graphis (*.png)')
+        if len(path):
+            self.settings['recent.map_image'] = os.path.dirname(path)
+            image = QImage(self.map_widget.map_scene.sceneRect().size().toSize(), QImage.Format.Format_ARGB32)
+            painter = QPainter(image)
+            self.map_widget.map_scene.render(painter)
+            image.save(path)
+            painter.end()
+        
 
     def event_widget_toggle_pictures(self):
         """ Toggles if events are associated with pictures (potentially slower performance-wise) or not. """

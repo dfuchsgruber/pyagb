@@ -133,7 +133,7 @@ class SmartDrawing(QUndoCommand):
         # TODO:
         # map_blocks = properties.get_member_by_path(self.main_gui.footer, self.main_gui.project.config['pymap']['footer']['map_blocks_path'])
         for (y, x), b in zip(self.idxs, blocks):
-            self.main_gui.map_widget.update_map(x, y, (0,), np.array([b], dtype=np.int).reshape((1, 1, 1)))
+            self.main_gui.map_widget.update_map(x, y, (0,), np.array([b], dtype=int).reshape((1, 1, 1)))
 
     def redo(self):
         self._set_blocks(self.blocks_new)

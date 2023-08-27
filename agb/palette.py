@@ -18,7 +18,7 @@ class Palette:
         """
         if size is None:
             size = len(rgbs)
-        self.rgbs = np.zeros((size, 3), dtype=np.int)
+        self.rgbs = np.zeros((size, 3), dtype=int)
         self.rgbs[: len(rgbs)] = np.array(rgbs, dtype=int)
 
     def __getitem__(self, key):

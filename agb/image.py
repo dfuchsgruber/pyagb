@@ -25,7 +25,7 @@ class Image:
         bpp : 4 or 8
             Bits per pixel (depth). 
         """
-        self.data = np.zeros((width, height), dtype=np.int)
+        self.data = np.zeros((width, height), dtype=int)
         if data is not None:
             # Unpack the data
             tile_width = width // 8

@@ -289,8 +289,8 @@ class MapWidget(QWidget):
         self.combo_box_tileset_secondary.clear()
         self.combo_box_tileset_secondary.addItems(list(self.main_gui.project.tilesets_secondary.keys()))
         self.combo_box_tileset_secondary.blockSignals(False)
-        self.set_blocks_selection(np.zeros((1, 1, 2), dtype=np.int))
-        self.set_levels_selection(np.zeros((1, 1, 2), dtype=np.int)) 
+        self.set_blocks_selection(np.zeros((1, 1, 2), dtype=int))
+        self.set_levels_selection(np.zeros((1, 1, 2), dtype=int)) 
         self.load_header()
 
     def load_header(self, *args):
@@ -715,7 +715,7 @@ class AutoScene(QGraphicsScene):
     def __init__(self, map_widget, parent=None):
         super().__init__(parent=parent)
         self.map_widget = map_widget
-        self.auto_shape = np.zeros((3, 5, 2), dtype=np.int)
+        self.auto_shape = np.zeros((3, 5, 2), dtype=int)
 
     def mouseMoveEvent(self, event):
         """ Event handler for moving the mouse. """

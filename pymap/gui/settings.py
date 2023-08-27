@@ -17,6 +17,7 @@ default_settings = {
     'recent.tileset' : '.',
     'recent.palette' : '.',
     'recent.gfx' : '.',
+    'recent.map_image' : '.',
     'map_widget.level_opacity' : 30,
     'event_widget.show_pictures' : True,
     'connections.mirror_offset' : True,

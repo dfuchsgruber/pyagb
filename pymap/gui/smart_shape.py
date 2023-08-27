@@ -31,8 +31,8 @@ class SmartPath:
 
     def __init__(self):
         self.coordinates = []
-        self._directions = np.zeros((0,), dtype=np.int) # Idx 0 is missing as it is always treated as corresponding idx -1
-        self.shape_idxs = np.zeros((0,), dtype=np.int)
+        self._directions = np.zeros((0,), dtype=int) # Idx 0 is missing as it is always treated as corresponding idx -1
+        self.shape_idxs = np.zeros((0,), dtype=int)
 
     def __contains__(self, x):
         return tuple(x) in self.coordinates
