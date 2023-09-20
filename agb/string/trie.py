@@ -7,7 +7,7 @@ class PrefixTriemap:
     longest prefixes in a pattern.
     """
 
-    def __init__(self, depth=0):
+    def __init__(self, depth=0, max_depth=100):
         """ Creates a new trie (node). 
         
         Parameters:
@@ -16,7 +16,8 @@ class PrefixTriemap:
             The depth of the node in the trie.
         """
         self.depth = depth
-        self.children = defaultdict(lambda: PrefixTriemap(depth=self.depth + 1))
+        self.max_depth = max_depth
+        self.children = defaultdict(lambda: PrefixTriemap(depth=self.depth + 1, max_depth=max_depth))
         self.value = None
 
     def __setitem__(self, pattern, sequence):
@@ -52,7 +53,7 @@ class PrefixTriemap:
         depth : int
             The size of the longest prefix matched.
         """
-        if self.depth > 100:
+        if self.depth > self.max_depth:
             raise Exception(pattern)
         if len(pattern) > 0:
             # Try to match a longer prefix without creating new children

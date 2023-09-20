@@ -66,7 +66,7 @@ class Agbstring:
         string = ''
         size = 0
         while True:
-            pattern, pattern_size = self.hex_to_str_map[rom[offset + size:]]
+            pattern, pattern_size = self.hex_to_str_map[rom[offset + size: offset + size + self.hex_to_str_map.max_depth]]
             if pattern_size == 0:
                 raise RuntimeError(f'Unable to decrypt string at {offset + size}')
             string += pattern
