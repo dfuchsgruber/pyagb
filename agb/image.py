@@ -81,11 +81,11 @@ class Image:
         
         for color_idx in range(1, 16):
             best_distance = np.inf
-            rgb_src = sRGBColor(*(palette_src[color_idx] / 256))
+            rgb_src = sRGBColor(*(palette_src.rgbs[color_idx] / 256))
             lab_src = convert_color(rgb_src, LabColor)
-            for target_idx in range(1, len(palette)):
+            for target_idx in range(1, len(palette_target)):
                 
-                rgb_target = sRGBColor(*(palette_target[target_idx] / 256))
+                rgb_target = sRGBColor(*(palette_target.rgbs[target_idx] / 256))
                 lab_target = convert_color(rgb_target, LabColor)
                 distance = delta_e_cie2000(lab_src, lab_target)
                 if distance < best_distance:
