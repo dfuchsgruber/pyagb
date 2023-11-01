@@ -73,7 +73,8 @@ class Image:
         palette_target: agb.palette.Palette
             The target palette.
         """
-        assert len(palette) <= 2**self.depth, 'Palette is too large for image depth!'
+        assert len(palette_src) <= 2**self.depth, 'Source palette is too large for image depth!'
+        assert len(palette_target) <= 2**self.depth, 'Target palette is too large for image depth!'
         
         # remap palette
         palette_map = np.zeros(2**self.depth, dtype=int)
