@@ -8,3 +8,4 @@ appdirs
 deepdiff
 scipy
 scikit-image
+colormath

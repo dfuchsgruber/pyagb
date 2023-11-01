@@ -7,6 +7,11 @@ import png
 from . import palette
 from pathlib import Path
 
+from colormath.color_objects import sRGBColor, LabColor
+from colormath.color_conversions import convert_color
+from colormath.color_diff import delta_e_cie2000
+
+np.asscalar = float # patches deprecated function used by colormath
 class Image:
     """ Class that represents a png-based image."""
 
@@ -56,6 +61,34 @@ class Image:
         self.depth = depth
         self.width = width
         self.height = height
+    
+    def apply_palette(self, palette: palette.Palette):
+        """ Applies a palette to the image. That is, it remaps the colors of the image to the colors of the palette that
+        are perceptually closest to the original colors.
+        
+        Parameters:
+        -----------
+        palette : agb.palette.Palette
+            The palette to apply to the image.
+        """
+        assert len(palette) <= 2**self.depth, 'Palette is too large for image depth!'
+        
+        # remap palette
+        palette_map = np.zeros(2**self.depth, dtype=int)
+        
+        for color_idx in range(1, 16):
+            best_distance = np.inf
+            rgb_src = sRGBColor(*(palette.rgbs[color_idx] / 256))
+            lab_src = convert_color(rgb_src, LabColor)
+            for target_idx in range(1, len(palette)):
+                
+                rgb_target = sRGBColor(*(palette[target_idx] / 256))
+                lab_target = convert_color(rgb_target, LabColor)
+                distance = delta_e_cie2000(lab_src, lab_target)
+                if distance < best_distance:
+                    best_distance = distance
+                    palette_map[color_idx] = target_idx
+        self.data = palette_map[self.data]
     
     def to_binary(self):
         """ Returns the raw binary data of the image in GBA tile format.
