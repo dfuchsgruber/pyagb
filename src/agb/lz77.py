@@ -1,16 +1,16 @@
-#!/usr/bin python3
+"""Lz77 compression and decompression for the agb."""
 
-import sys
-import warnings
 import struct
+import warnings
+from typing import Sequence
 
-def decompress(data, offset=0):
-    """ Decompresses lz77 compressed data specified by GBATEK
-    for the agb.
+
+def decompress(data: Sequence[int], offset: int=0) -> list[int]:
+    """Decompresses lz77 compressed data specified by GBATEK for the agb.
 
     Parameters:
     -----------
-    rom : agbrom.Agbrom
+    rom : Sequence[int]
         The rom instance to obtain data from
     offset : int
         The offset of the data to decompress.
@@ -27,7 +27,8 @@ def decompress(data, offset=0):
     size = header >> 8
 
     if magic >> 4 != 1:
-        warnings.warn(f'No proper lz77 header found at {hex(offset)}. Trying to decrompess nonetheless...')
+        warnings.warn(f'No proper lz77 header found at {hex(offset)}. ' \
+            'Trying to decrompess nonetheless...')
 
     literals = [0] * size
     literal_offset = 0
@@ -48,17 +49,20 @@ def decompress(data, offset=0):
                 ref = struct.unpack_from('<H', data, offset)[0]
                 offset += 2
 
-                #Decode literal Referencodede
-                displacement = (ref >> 8) | ((ref & 0xF) << 8) # Displacement w.r.t. refered frame
+                # Decode literal Referencodede
+                # Displacement w.r.t. refered frame
+                displacement = (ref >> 8) | ((ref & 0xF) << 8)
                 if displacement == 0:
-                    warnings.warn(f'Lz77 data contains VRAM-unsafe compression (DISP=0)...')
+                    warnings.warn('Lz77 data contains VRAM-unsafe compression ' \
+                        '(DISP=0)...')
 
-                length = ((ref >> 4) & 0xF) + 3 # Length + 3 due to GBATEK speces (no frame is smaller)
-                # print(f'Copying block of size {length} with displacement {displacement}')
+                # Length + 3 due to GBATEK speces (no frame is smaller)
+                length = ((ref >> 4) & 0xF) + 3
 
                 # Copy from from the literals
                 for _ in range(length):
-                    literals[literal_offset] = literals[literal_offset - displacement - 1]
+                    literals[literal_offset] = literals[literal_offset -
+                                                        displacement - 1]
                     literal_offset += 1
                     size -= 1
             else:
@@ -67,16 +71,16 @@ def decompress(data, offset=0):
                 offset += 1
                 literal_offset += 1
                 size -= 1
-    return literals            
-                
-def compress(data):
-    """ Compresses data with lz77 compression. 
-    
+    return literals
+
+def compress(data: Sequence[int]) -> bytearray:
+    """Compresses data with lz77 compression.
+
     Paramters:
     ----------
     data : bytes
         The data to compress (char values).
-    
+
     Returns:
     -------
     compressed : bytearray
@@ -84,7 +88,7 @@ def compress(data):
     """
     # Create the header
     data = bytes(data)
-    header = 0x10 | (len(data) << 8) 
+    header = 0x10 | (len(data) << 8)
     literals = bytearray(struct.pack('<i', header))
 
     offset = 0
@@ -94,27 +98,30 @@ def compress(data):
         # Append the encoding for the next 8 factors
         encoding_offset = len(literals)
         literals.append(0)
-        
+
         for i in range(7, -1, -1):
-            if offset >= len(data): continue
-            # print(f'Factor #{ 7 - i } at {hex(len(literals))}')
+            if offset >= len(data):
+                continue
             # Create a new factor
             # Only consider literals that are in 12-bit range (-1)
             # and do not overlap with the current 8-blocks as the
             # encoding byte is not fixed yet.
-            window_start = max(0, offset - (1 << 12)) # Only consider factors within 12-bit range
-            # print(f'Window for factors spans from {hex(window_start)} to {hex(offset)} + factor_size')
+
+            # Only consider factors within 12-bit range
+            window_start = max(0, offset - (1 << 12))
 
             match_offset, match_size = -1, -1
             # The factors have minimum size of 3
             # The factors can only have a 4-bit size, but the size is 3 based
             for factor_size in range(3, 16 + 3):
-                if offset + factor_size >= len(data): break
+                if offset + factor_size >= len(data):
+                    break
                 factor = data[offset : offset + factor_size]
                 # print(f'Seraching for factor {list(factor)}')
-                # Do not allow displacements of 1 since in VRAM halfwords will be copied.
-                # Thus displacements of 1 may induce malformed data copies
-                factor_offset = data.find(factor, window_start, offset + factor_size - 2)
+                # Do not allow displacements of 1 since in VRAM halfwords will
+                # be copied. Thus displacements of 1 may induce malformed data copies
+                factor_offset = data.find(factor, window_start, offset +
+                                          factor_size - 2)
                 if factor_offset < 0:
                     # The factor is not availible -> all bigger factors won't be as well
                     break
@@ -126,9 +133,7 @@ def compress(data):
                 literals[encoding_offset] |= 1 << i
 
                 displacement = offset - match_offset - 1
-                assert(displacement) >= 1
-                # print(f'Match of size {match_size} at {hex(match_offset)} with displacement {displacement}')
-                # print(f'Displacement is {displacement}, size is {match_size}')
+                assert(displacement) >= 1, 'Displacement is 0'
                 msb = (displacement >> 8) | ((match_size - 3) << 4)
                 lsb = displacement & 0xFF
                 literals.append(msb)
