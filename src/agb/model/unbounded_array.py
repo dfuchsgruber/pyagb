@@ -1,24 +1,30 @@
-from agb.model.type import Type, associate_with_constant, label_and_align
+"""Variable length arrays, terminated by a sentiel value."""
+
+from pymap.project import Project
+
+from agb.model.type import ModelContext, ModelParents, ModelValue, Type, label_and_align
+
 
 class UnboundedArrayType(Type):
-    """ Class for arrays with a variable length. It is terminated by some particular tail instance."""
+    """Variable length arrays, terminated by a sentiel value."""
 
-    def __init__(self, datatype, tail):
-        """ Initializes the array type of variable length.
-        
+    def __init__(self, datatype: str, sentinel: ModelValue):
+        """Initializes the array type of variable length.
+
         Parameters:
         -----------
         datatype : str
             The datatype the pointer is pointing to.
-        tail : object
-            An instanciation of the datatype that serves as tail for the array.   
+        sentinel : object
+            An instanciation of the datatype that serves as sentinel for the array.   
         """
         self.datatype = datatype
-        self.tail = tail
+        self.sentinel = sentinel
 
-    def from_data(self, rom, offset, project, context, parents):
-        """ Retrieves the array type from a rom and tries to associate the constant value.
-        
+    def from_data(self, rom: bytearray, offset: int, project: Project,
+                  context: ModelContext, parents: ModelParents) -> ModelValue:
+        """Retrieves the array from a rom.
+
         Parameters:
         -----------
         rom : bytearray
@@ -34,29 +40,32 @@ class UnboundedArrayType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are explored depth-first.
-        
+
         Returns:
         --------
         values : list
             A list of values in the array.
         """
-        values = []
+        values: list[ModelValue] = []
         parents = parents + [values]
         datatype = project.model[self.datatype]
         idx = 0
         while True:
             value = datatype.from_data(rom, offset, project, context + [idx], parents)
-            if value == self.tail:
+            if value == self.sentinel:
                 break
             values.append(value)
             offset += datatype.size(value, project, context + [idx], parents)
             idx += 1
         return values
-    
-    
-    def to_assembly(self, values, project, context, parents, label=None, alignment=None, global_label=None):
-        """ Creates an assembly representation of the union type.
-        
+
+
+    def to_assembly(self, value: ModelValue, project: Project, context: ModelContext,
+                    parents: ModelParents, label: str | None=None,
+                    alignment: int | None=None,
+                    global_label: bool=False) -> tuple[str, list[str]]:
+        """Creates an assembly representation of the union type.
+
         Parameters:
         -----------
         values : list
@@ -86,20 +95,24 @@ class UnboundedArrayType(Type):
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        blocks = []
-        additional_blocks = []
-        parents = parents + [values]
+        blocks: list[str] = []
+        additional_blocks: list[str] = []
+        parents = parents + [value]
         datatype = project.model[self.datatype]
-        for i, value in enumerate(values + [self.tail]):
-            block, additional = datatype.to_assembly(value, project, context + [i], parents)
+        assert isinstance(value, list), f"Expected a list, got {value}"
+        for i, value_i in enumerate(value + [self.sentinel]):
+            block, additional = datatype.to_assembly(value_i, project, context + [i],
+                                                     parents)
             blocks.append(block)
             additional_blocks += additional
         assembly = '\n'.join(blocks)
-        return label_and_align(assembly, label, alignment, global_label), additional_blocks
+        return label_and_align(assembly, label, alignment, global_label), \
+            additional_blocks
 
-    def __call__(self, project, context, parents):
-        """ Initializes a new array. 
-        
+    def __call__(self, project: Project, context: ModelContext,
+                 parents: ModelParents) -> ModelValue:
+        """Initializes a new array.
+
         Parameters:
         -----------
         project : pymap.project.Project
@@ -119,8 +132,9 @@ class UnboundedArrayType(Type):
         """
         return []
 
-    def size(self, values, project, context, parents):
-        """ Returns the size of a specific structure instanze in bytes.
+    def size(self, value: ModelValue, project: Project, context: ModelContext,
+             parents: ModelParents) -> int:
+        """Returns the size of a specific structure instanze in bytes.
 
         Parameters:
         -----------
@@ -135,24 +149,25 @@ class UnboundedArrayType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are generated depth-first.
-        
+
         Returns:
         --------
         length : int
             The size of this type in bytes.
         """
+        assert isinstance(value, list), f"Expected a list, got {value}"
         size = 0
-        parents = parents + [values]
+        parents = parents + [value]
         datatype = project.model[self.datatype]
-        for i, value in enumerate(values + [self.tail]):
+        for i, value_i in enumerate(value + [self.sentinel]):
             # Sum each element individually (this is more clean...)
-            size += datatype.size(value, project, context + [i], parents)
+            size += datatype.size(value_i, project, context + [i], parents)
         return size
 
-    def get_constants(self, values, project, context, parents):
-        """ Returns a set of all constants that are used by this type and
-        potential subtypes.
-        
+    def get_constants(self, value: ModelValue, project: Project, context: ModelContext,
+                      parents: ModelParents) -> set[str]:
+        """All constants (recursively) required to export this value (if any).
+
         Parameters:
         -----------
         values : list
@@ -166,17 +181,19 @@ class UnboundedArrayType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are generated depth-first.
-        
+
         Returns:
         --------
         constants : set of str
             A set of all required constants.
         """
-        constants = set()
-        parents = parents + [values]
+        constants: set[str] = set()
+        parents = parents + [value]
         datatype = project.model[self.datatype]
         # Only using the first element would be faster, but this approach
         # is more clean and versatile.
-        for i, value in enumerate(values):
-            constants.update(datatype.get_constants(value, project, context + [i], parents))
+        assert isinstance(value, list), f"Expected a list, got {value}"
+        for i, value_i in enumerate(value):
+            constants.update(datatype.get_constants(value_i, project, context + [i],
+                                                    parents))
         return constants

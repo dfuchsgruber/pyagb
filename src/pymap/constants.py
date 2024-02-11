@@ -1,18 +1,23 @@
-#!/usr/bin/python3
+"""Resolving and exporting constants for C and assembly code."""
 
-""" This module is responsible for resolving constants and exporting them
-as C or assembly macros."""
-
-from email.policy import default
 import json
-from collections.abc import Mapping
 from collections import defaultdict
-class ConstantTable(Mapping):
-    """ This class represents a single constant table,
-     where strings are mapped to numerical values."""
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Iterator, Literal
 
-    def __init__(self, _type='dict', base=None, values=None):
-        """ Initializes a constant table.
+
+class ConstantTable(Mapping[str, int]):
+    """A mapping for a constants class.
+
+    This class represents a single constant table, where strings are 
+    mapped to numerical values.
+    """
+
+    def __init__(self, _type: Literal['dict'] | Literal['enum'],
+                 base: int | None=None, values: list[str] | dict[str, int] | None=None):
+        """Initializes a constant table.
+
         Parameters:
         -----------
         _type : string in 'dict', 'enum'
@@ -26,55 +31,91 @@ class ConstantTable(Mapping):
             The actual values of the constant table.
         """
         self.type = _type
-        self.base = base
+        self.base = base or 0
         if values is not None:
             # Provide a dictionary interface also for enum constants
             if self.type == 'enum':
                 if not isinstance(values, list):
-                    raise RuntimeError(f'Expected a list for values parameter for type "{self.type}"')
-                self.values = dict((constant, idx + self.base) for idx, constant in enumerate(values))
+                    raise RuntimeError(f'Expected a list for values parameter ' \
+                                       f'for type "{self.type}"')
+                self._values = {
+                    constant: idx + self.base
+                    for idx, constant in enumerate(values)
+                }
             elif self.type == 'dict':
                 if not isinstance(values, dict):
-                    raise RuntimeError(f'Expected a dict for values parameter for type "{self.type}"')
-                self.values = values
+                    raise RuntimeError(f'Expected a dict for values parameter ' \
+                                       f'for type "{self.type}"')
+                self._values = values
             else:
                 raise RuntimeError(f'Unknown constants type "{self.type}"')
-        
-    def __getitem__(self, key):
-        return self.values[key]
-    
-    def __iter__(self):
-        return iter(self.values)
-    
-    def __len__(self):
-        return len(self.values)
 
-    def inverse(self):
-        """ Inverts the mapping """
-        inverse = defaultdict(list)
-        for k, v in self.values.items():
+    def __getitem__(self, key: str) -> int:
+        """Retrieves the value of a constant.
+
+        Args:
+            key (str): The constant to retrieve.
+
+        Returns:
+            int: The value of the constant.
+        """
+        return self._values[key]
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterates over the constants.
+
+        Yields:
+            Iterator[str]: The constants.
+        """
+        return iter(self._values)
+
+    def __len__(self) -> int:
+        """Returns the number of constants.
+
+        Returns:
+            int: The number of constants.
+        """
+        return len(self._values)
+
+    def inverse(self) -> dict[int, list[str]]:
+        """Returns an inverse mapping of the constants.
+
+        Returns:
+            dict[int, list[str]]: The inverse mapping.
+        """
+        inverse: dict[int, list[str]] = defaultdict(list)
+        for k, v in self._values.items():
             inverse[v].append(k)
         return inverse
-        
-class Constants:
 
-    def __init__(self, constant_paths):
-        """ Initializes a constant instance that can resolve
-        mappings from string -> integer serving as constants
-        for the pymap project.
-        
+class Constants:
+    """A collection of constant tables."""
+
+    def __init__(self, constant_paths: dict[str, Path]):
+        """Lazy constants table initialization.
+
         Parameters:
         -----------
-        constant_paths : dict (string -> path.Path)
+        constant_paths : dict
             Mapping from constants identifier to the path of the
             constants table. The path is split into its components
             to ensure cross-plattform compatibility.
         """
         self.constant_paths = constant_paths
         # Only initialize a constant table on demand
-        self.constant_tables = dict((key, None) for key in constant_paths)
+        self.constant_tables: dict[str, ConstantTable | None] = {
+            key : None for key in constant_paths
+        }
 
-    def __getitem__(self, key):
+    def __getitem__(self, key : str) -> ConstantTable:
+        """Retrieves a constant table.
+
+        Args:
+            key (str): The identifier of the constant table.
+
+        Returns:
+            ConstantTable: The constant table.
+        """
         if key not in self.constant_tables:
             raise RuntimeError(f'Undefined constant table "{key}"')
         if self.constant_tables[key] is None:
@@ -91,9 +132,13 @@ class Constants:
                     base = content['base']
                 else:
                     base = 0
-            self.constant_tables[key] = ConstantTable(_type=content['type'], base=base, values=content['values'])
-        return self.constant_tables[key]
+            self.constant_tables[key] = ConstantTable(_type=content['type'], base=base,
+                                                      values=content['values'])
+        constants_table = self.constant_tables[key]
+        if constants_table is None:
+            raise RuntimeError(f'Could not load constants "{key}"')
+        return constants_table
 
-    def __contains__(self, key):
-        """ Checks if a constant table is defined. """
+    def __contains__(self, key: str) -> bool:
+        """Checks if a constant table is defined."""
         return key in self.constant_tables

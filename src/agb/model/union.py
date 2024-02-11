@@ -1,11 +1,24 @@
-from agb.model.type import Type, associate_with_constant, label_and_align
+"""UnionType class that represents a union type in the model."""
+
+from typing import Callable
+
+from pymap.project import Project
+
+from agb.model.type import (
+    ModelContext,
+    ModelParents,
+    ModelValue,
+    Type,
+)
+
 
 class UnionType(Type):
-    """ Class for union type. """
+    """Class for union type."""
 
-    def __init__(self, subtypes, name_get):
-        """ Initializes the union type.
-        
+    def __init__(self, subtypes: dict[str, str],
+                 name_get: Callable[[Project, ModelContext, ModelParents], str]):
+        """Initializes the union type.
+
         Parameters:
         -----------
         subtypes : dict
@@ -17,7 +30,7 @@ class UnionType(Type):
             for this type and only values for this subtype will be retrieved
             considering the from_data function. Therefore values of other
             subtypes remain default initialized.
-            
+
             Parameters:
             -----------
             project : pymap.project.Project
@@ -30,17 +43,18 @@ class UnionType(Type):
                 possibly not fully initialized as the values
                 are explored depth-first.
 
-            Returns:
+        Returns:
             --------
             active_subtype : str
                 The name of the subtype that is active in the union.
         """
         self.subtypes = subtypes
         self.name_get = name_get
-    
-    def from_data(self, rom, offset, project, context, parents):
-        """ Retrieves the constant type from a rom and tries to associate the constant value.
-        
+
+    def from_data(self, rom: bytearray, offset: int, project: Project,
+                  context: ModelContext, parents: ModelParents) -> ModelValue:
+        """Initializes the union type from a rom.
+
         Parameters:
         -----------
         rom : bytearray
@@ -56,29 +70,34 @@ class UnionType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are explored depth-first.
-        
+
         Returns:
         --------
         values : dict
             Dict that maps from the subtype names to their value instanciation.
         """
-        values = {}
+        values: dict[str, ModelValue] = {}
         if self.name_get(project, context, parents) not in self.subtypes:
-            raise RuntimeError(f'Active subtype of union {self.name_get(project, context, parents)} not part of union type.')
+            raise RuntimeError(f'Active subtype of union {self.name_get(project,
+                               context,parents)} not part of union type.')
 
         for name in self.subtypes:
             subtype = project.model[self.subtypes[name]]
             if name == self.name_get(project, context, parents):
-                value = subtype.from_data(rom, offset, project, context + [name], parents + [values])
+                value = subtype.from_data(rom, offset, project, context + [name],
+                                          parents + [values])
                 values[name] = value
             else:
                 values[name] = subtype(project, context, parents)
 
         return values
 
-    def to_assembly(self, values, project, context, parents, label=None, alignment=None, global_label=None):
-        """ Creates an assembly representation of the union type.
-        
+    def to_assembly(self, value: ModelValue, project: Project, context: ModelContext,
+                    parents: ModelParents, label: str | None=None,
+                    alignment: int | None=None,
+                    global_label: bool=False) -> tuple[str, list[str]]:
+        """Creates an assembly representation of the union type.
+
         Parameters:
         -----------
         values : dict
@@ -108,13 +127,19 @@ class UnionType(Type):
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
+        assert isinstance(value, dict), f"Expected a dict, got {value}"
         active_subtype_name = self.name_get(project, context, parents)
         active_subtype = project.model[self.subtypes[active_subtype_name]]
-        return active_subtype.to_assembly(values[active_subtype_name], project, context + [active_subtype_name], parents + [values], label=label, alignment=alignment, global_label=global_label)
+        return active_subtype.to_assembly(value[active_subtype_name], project,
+                                          context + [active_subtype_name],
+                                          parents + [value], label=label,
+                                          alignment=alignment,
+                                          global_label=global_label)
 
-    def __call__(self, project, context, parents):
-        """ Initializes a new empty union type. 
-        
+    def __call__(self, project: Project, context: ModelContext,
+                 parents: ModelParents) -> ModelValue:
+        """Initializes a new empty union type.
+
         Parameters:
         -----------
         project : pymap.project.Project
@@ -126,19 +151,21 @@ class UnionType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are generated depth-first.
-        
+
         Returns:
         --------
         value : dict
             Dict that maps from each subtype to the default initializaiton.
         """
-        value = {}
+        value: dict[str, ModelValue] = {}
         for name in self.subtypes:
-            value[name] = project.model[self.subtypes[name]](project, context + [name], parents + [value])
+            value[name] = project.model[self.subtypes[name]](project, context + [name],
+                                                             parents + [value])
         return value
 
-    def size(self, values, project, context, parents):
-        """ Returns the size of a specific structure instanze in bytes.
+    def size(self, value: ModelValue, project: Project, context: ModelContext,
+             parents: ModelParents) -> int:
+        """Returns the size of a specific structure instanze in bytes.
 
         Parameters:
         -----------
@@ -153,20 +180,22 @@ class UnionType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are generated depth-first.
-        
+
         Returns:
         --------
         length : int
             The size of this type in bytes.
         """
+        assert isinstance(value, dict), f"Expected a dict, got {value}"
         subtype_name = self.name_get(project, context, parents)
         subtype = project.model[self.subtypes[subtype_name]]
-        return subtype.size(values[subtype_name], project, context + [subtype_name], parents + [values])
+        return subtype.size(value[subtype_name], project, context + [subtype_name],
+                            parents + [value])
 
-    def get_constants(self, values, project, context, parents):
-        """ Returns a set of all constants that are used by this type and
-        potential subtypes.
-        
+    def get_constants(self, value: ModelValue, project: Project, context: ModelContext,
+                      parents: ModelParents) -> set[str]:
+        """All constants (recursively) required to export this value (if any).
+
         Parameters:
         -----------
         values : dict
@@ -180,13 +209,14 @@ class UnionType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are generated depth-first.
-        
+
         Returns:
         --------
         constants : set of str
             A set of all required constants.
         """
+        assert isinstance(value, dict), f"Expected a dict, got {value}"
         subtype_name = self.name_get(project, context, parents)
         subtype = project.model[self.subtypes[subtype_name]]
-        return subtype.get_constants(values[subtype_name], project, context + [subtype_name], parents + [values])
-     
+        return subtype.get_constants(value[subtype_name], project,
+                                     context + [subtype_name], parents + [value])

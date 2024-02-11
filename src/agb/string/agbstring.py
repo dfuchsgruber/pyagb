@@ -45,7 +45,7 @@ class Agbstring:
         self.str_to_hex_map[''] = tail
         self.hex_to_str_map[tail] = ''
         
-    def hex_to_str(self, rom, offset):
+    def hex_to_str(self, rom: bytearray, offset: int) -> str:
         """ Retrieves a string in a rom located at an offset.
         
         Parameters:
@@ -75,7 +75,7 @@ class Agbstring:
                 break
         return string, size
     
-    def str_to_hex(self, pattern):
+    def str_to_hex(self, pattern: str) -> list[int]:
         """ Enocodes a string.
         
         Parameters:

@@ -1,6 +1,8 @@
-#!/usr/bin/python3
+"""Project structure and handling of maps, tilesets, gfx..."""
 
 import json
+
+from agb.model.type import Type
 from . import constants, configuration
 from pymap.gui.properties import set_member_by_path, get_member_by_path
 import os
@@ -38,7 +40,7 @@ class Project:
             self.path = file_path
 
         # Initialize models
-        self.model = pymap.model.model.get_model(self.config['model'])
+        self.model: dict[str, Type] = pymap.model.model.get_model(self.config['model'])
 
         # Initiaize the string decoder / encoder
         charmap = self.config['string']['charmap']
@@ -71,7 +73,7 @@ class Project:
         with open(str(Path(file_path)) + '.constants') as f:
             content = json.load(f)
         paths = {key : Path(content[key]) for key in content}
-        self.constants = constants.Constants(paths)
+        self.constants: constants.Constants = constants.Constants(paths)
 
         # Initialize the configuration
         self.config = configuration.get_configuration(file_path + '.config')

@@ -39,6 +39,12 @@ dev = [
 quote-style="single"
 line-ending = "lf"
 
+[tool.ruff]
+select = ["F", "E", "D", "W", "C90", "I"]
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
 [project.urls]
 Homepage = "https://github.com/dfuchsgruber/pyagb"
 Documentation = "https://github.com/dfuchsgruber/pyagb/blob/master/docs.md"

@@ -1,12 +1,25 @@
-from agb.model.type import Type, label_and_align
+"""Datatype for arrays."""
+
+from typing import Callable
+
+from pymap.project import Project
+
+from agb.model.type import (
+    ModelContext,
+    ModelParents,
+    ModelValue,
+    ScalarModelValue,
+    Type,
+    label_and_align,
+)
 
 
 class ArrayType(Type):
-    """ Type for arrays. """
+    """Type for arrays."""
 
-    def __init__(self, datatype: str, fixed_size):
-        """ Initializes the array type.
-        
+    def __init__(self, datatype: str, fixed_size: bool):
+        """Initializes the array type.
+
         Parameters:
         -----------
         datatype : str
@@ -17,8 +30,9 @@ class ArrayType(Type):
         self.datatype = datatype
         self.fixed_size = fixed_size
 
-    def size_get(self, project, context, parents):
-        """ Retrieves the size of the array.
+    def size_get(self, project: Project, context: ModelContext,
+                 parents: ModelParents) -> int:
+        """Retrieves the size of the array.
 
         Parameters:
         -----------
@@ -38,10 +52,11 @@ class ArrayType(Type):
             The size of the array.
         """
         raise NotImplementedError()
-        
-    def from_data(self, rom, offset, project, context, parents):
-        """ Retrieves the constant type from a rom and tries to associate the constant value.
-        
+
+    def from_data(self, rom: bytearray, offset: int, project: Project,
+                  context: ModelContext, parents: ModelParents) -> list[ModelValue]:
+        """Retrieves the type value from a rom.
+
         Parameters:
         -----------
         rom : bytearray
@@ -57,25 +72,29 @@ class ArrayType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are explored depth-first.
-        
+
         Returns:
         --------
         values : list
             A list of values in the array.
         """
         num_elements = self.size_get(project, context, parents)
-        values = []
-        datatype = project.model[self.datatype]
+        values: list[ModelValue] = []
+        datatype: Type = project.model[self.datatype]
         for i in range(num_elements):
-            value = datatype.from_data(rom, offset, project, context + [i], parents + [values])
+            value = datatype.from_data(rom, offset, project, context + [i],
+                                       parents + [values])
             values.append(value)
             offset += datatype.size(value, project, context + [i], parents + [values])
         return values
-    
-    
-    def to_assembly(self, values, project, context, parents, label=None, alignment=None, global_label=None):
-        """ Creates an assembly representation of the union type.
-        
+
+
+    def to_assembly(self, value: ModelValue, project: Project, # type: ignore
+                    context: ModelContext, parents: ModelParents,
+                    label: str | None=None, alignment: int | None=None,
+                    global_label: bool = False) -> tuple[str, list[str]]:
+        """Creates an assembly representation of the union type.
+
         Parameters:
         -----------
         values : list
@@ -105,19 +124,23 @@ class ArrayType(Type):
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        blocks = []
-        additional_blocks = []
+        blocks: list[str] = []
+        additional_blocks: list[str] = []
         datatype = project.model[self.datatype]
+        assert isinstance(value, list)
         for i in range(self.size_get(project, context, parents)):
-            block, additional = datatype.to_assembly(values[i], project, context + [i], parents + [values])
+            block, additional = datatype.to_assembly(value[i], project, context + [i],
+                                                     parents + [value])
             blocks.append(block)
             additional_blocks += additional
         assembly = '\n'.join(blocks)
-        return label_and_align(assembly, label, alignment, global_label), additional_blocks
+        return label_and_align(assembly, label, alignment, global_label), \
+            additional_blocks
 
-    def __call__(self, project, context, parents):
-        """ Initializes a new array. 
-        
+    def __call__(self, project: Project, context: ModelContext,
+                 parents: ModelParents) -> list[ModelValue]:
+        """Initializes a new array.
+
         Parameters:
         -----------
         project : pymap.project.Project
@@ -135,14 +158,15 @@ class ArrayType(Type):
         values : list
             List with default initialized elements.
         """
-        values = []
+        values: list[ModelValue] = []
         datatype = project.model[self.datatype]
         for i in range(self.size_get(project, context, parents)):
             values.append(datatype(project, context + [i], parents + [values]))
         return values
 
-    def size(self, values, project, context, parents):
-        """ Returns the size of a specific structure instanze in bytes.
+    def size(self, value: ModelValue, project: Project, context: ModelContext,
+             parents: ModelParents) -> int:
+        """Returns the size of a specific structure instanze in bytes.
 
         Parameters:
         -----------
@@ -157,7 +181,7 @@ class ArrayType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are generated depth-first.
-        
+
         Returns:
         --------
         length : int
@@ -165,17 +189,18 @@ class ArrayType(Type):
         """
         num_elements = self.size_get(project, context, parents)
         size = 0
-        parents = parents + [values]
+        parents = parents + [value]
         datatype = project.model[self.datatype]
+        assert isinstance(value, list)
         for i in range(num_elements):
             # Sum each element individually (this is more clean...)
-            size += datatype.size(values[i], project, context + [i], parents)
+            size += datatype.size(value[i], project, context + [i], parents)
         return size
 
-    def get_constants(self, values, project, context, parents):
-        """ Returns a set of all constants that are used by this type and
-        potential subtypes.
-        
+    def get_constants(self, value: ModelValue, project: Project, context: ModelContext,
+                      parents: ModelParents) -> set[str]:
+        """All constants (recursively) used by that type.
+
         Parameters:
         -----------
         values : list
@@ -189,28 +214,32 @@ class ArrayType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are generated depth-first.
-        
+
         Returns:
         --------
         constants : set of str
             A set of all required constants.
         """
         num_elements = self.size_get(project, context, parents)
-        constants = set()
-        parents = parents + [values]
+        constants: set[str] = set()
+        assert isinstance(value, list)
+        parents = parents + [value]
         datatype = project.model[self.datatype]
         # Only using the first element would be faster, but this approach
         # is more clean and versatile.
         for i in range(num_elements):
-            constants.update(datatype.get_constants(values[i], project, context + [i], parents))
+            constants.update(datatype.get_constants(value[i], project, context + [i], parents))
         return constants
 
 class VariableSizeArrayType(ArrayType):
-    """ Type for variable size arrays. """
+    """Type for variable size arrays."""
 
-    def __init__(self, datatype, size_path, size_cast=lambda value, project: int(value)):
-        """ Initializes the array type.
-        
+    def __init__(self, datatype: str,
+                 size_path: tuple[int, list[str | int]],
+                 size_cast: Callable[[ScalarModelValue, Project], int]=
+                 lambda value, project: int(value)): # type: ignore
+        """Initializes the array type.
+
         Parameters:
         -----------
         datatype : str
@@ -231,8 +260,8 @@ class VariableSizeArrayType(ArrayType):
                 The value to cast.
             proj : pymap.project.Project
                 The pymap project to access e.g. constants.
-            
-            Returns:
+
+        Returns:
             --------
             size : int
                 The size of the array as integer.
@@ -241,8 +270,9 @@ class VariableSizeArrayType(ArrayType):
         self.size_path = size_path
         self.size_cast = size_cast
 
-    def size_get(self, project, context, parents):
-        """ Retrieves the size of the array.
+    def size_get(self, project: Project, context: ModelContext,
+                 parents: ModelParents) -> int:
+        """Retrieves the size of the array.
 
         Parameters:
         -----------
@@ -266,16 +296,17 @@ class VariableSizeArrayType(ArrayType):
             raise RuntimeError
         root = parents[-n_parents]
         for member in location:
-            root = root[member]
-        return self.size_cast(root, project)
+            root = root[member] # type: ignore
+        return self.size_cast(root, project) # type: ignore
 
 
 class FixedSizeArrayType(ArrayType):
-    """ Type for fixed size arrays. """
+    """Type for fixed size arrays."""
 
-    def __init__(self, datatype, size_get):
-        """ Initializes the array type with fixed size.
-        
+    def __init__(self, datatype: str,
+                 size_get: Callable[[Project, ModelContext], int]):
+        """Initializes the array type with fixed size.
+
         Parameters:
         -----------
         datatype : str
@@ -290,7 +321,7 @@ class FixedSizeArrayType(ArrayType):
             context : list of str
                 The context in which the data got initialized.
 
-            Returns:
+        Returns:
             --------
             size : int
                 The size of the array.

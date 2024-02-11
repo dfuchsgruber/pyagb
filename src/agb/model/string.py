@@ -1,13 +1,16 @@
-from agb.model.type import Type, associate_with_constant, label_and_align
-import agb.string.agbstring
-import agb.string.compile
+"""Type for strings."""
+
+from agb.model.type import ModelContext, ModelParents, ModelValue, Type, label_and_align
+from pymap.project import Project
+
 
 class StringType(Type):
-    """ Type class for strings. """
+    """Type class for strings."""
 
-    def __init__(self, fixed_size=None, box_size=None):
-        """ Initializes a string type.
-        
+    def __init__(self, fixed_size: int | None=None,
+                 box_size: tuple[int, int] | None=None):
+        """Initializes a string type.
+
         Parameters:
         -----------
         charmap : str
@@ -29,9 +32,10 @@ class StringType(Type):
         self.fixed_size = fixed_size
         self.box_size = box_size
 
-    def from_data(self, rom, offset, project, context, parents):
-        """ Retrieves the string type from a rom.
-        
+    def from_data(self, rom: bytearray, offset: int, project: Project,
+                  context: ModelContext, parents: ModelParents) -> ModelValue:
+        """Retrieves the string type from a rom.
+
         Parameters:
         -----------
         rom : bytearray
@@ -47,18 +51,22 @@ class StringType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are explored depth-first.
-        
+
         Returns:
         --------
         string : str
             The string in the rom.
         """
+        assert project.coder is not None, 'Coder is required to decode strings'
         string, _ = project.coder.hex_to_str(rom, offset)
         return string
 
-    def to_assembly(self, string, project, context, parents, label=None, alignment=None, global_label=None):
-        """ Creates an assembly representation of the pointer type.
-        
+    def to_assembly(self, value: ModelValue, project: Project, context: ModelContext,
+                    parents: ModelValue, label: str | None=None,
+                    alignment: int | None=None,
+                    global_label: bool=False) -> tuple[str, list[str]]:
+        """Creates an assembly representation of the pointer type.
+
         Parameters:
         -----------
         string : str
@@ -88,20 +96,22 @@ class StringType(Type):
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        directives = project.config['string']['as']['directives']
+        assert isinstance(value, str), f'Expected a string, got {value}'
+        directives: dict[str, str] = project.config['string']['as']['directives'] # type: ignore
         if self.fixed_size is not None:
-            assembly = f'{directives["padded"]} {self.fixed_size} "{string}"'
+            assembly = f'{directives["padded"]} {self.fixed_size} "{value}"'
         elif self.box_size is not None:
             width, height = self.box_size
-            assembly = f'{directives["auto"]} {width} {height} "{string}"'
+            assembly = f'{directives["auto"]} {width} {height} "{value}"'
         else:
-            assembly = f'{directives["std"]} "{string}"'
+            assembly = f'{directives["std"]} "{value}"'
         return label_and_align(assembly, label, alignment, global_label), []
-        
-    
-    def __call__(self, project, context, parents):
-        """ Initializes a new string. 
-        
+
+
+    def __call__(self, project: Project, context: ModelContext,
+                 parents: ModelParents) -> ModelValue:
+        """Initializes a new string.
+
         Parameters:
         -----------
         project : pymap.project.Project
@@ -120,9 +130,10 @@ class StringType(Type):
             Empty string.
         """
         return ''
-    
-    def size(self, string, project, context, parents):
-        """ Returns the size of the string.
+
+    def size(self, value: ModelValue, project: Project, context: ModelContext,
+             parents: ModelParents) -> int:
+        """Returns the size of the string.
 
         Parameters:
         -----------
@@ -137,7 +148,7 @@ class StringType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are generated depth-first.
-        
+
         Returns:
         --------
         size : int
@@ -145,12 +156,14 @@ class StringType(Type):
         """
         if self.fixed_size is not None:
             return self.fixed_size
-        return len(project.coder.str_to_hex(string))
+        assert project.coder is not None, 'Coder is required to decode strings'
+        assert isinstance(value, str), f'Expected a string, got {value}'
+        return len(project.coder.str_to_hex(value))
 
-    def get_constants(self, string, project, context, parents):
-        """ Returns a set of all constants that are used by this type and
-        potential subtypes.
-        
+    def get_constants(self, value: ModelValue, project: Project, context: ModelContext,
+                      parents: ModelParents) -> set[str]:
+        """All constants of this type (recursively) that are used by this type.
+
         Parameters:
         -----------
         string : str
@@ -164,7 +177,7 @@ class StringType(Type):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are generated depth-first.
-        
+
         Returns:
         --------
         constants : set of str
