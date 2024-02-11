@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtOpenGL import *
-from PIL.ImageQt import ImageQt
+from PIL import ImageQt
 import numpy as np
 from . import properties, history, map_widget, resource_tree
 import pyqtgraph.parametertree.ParameterTree as ParameterTree

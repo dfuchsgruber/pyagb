@@ -6,7 +6,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtOpenGL import *
 import agb.image
-from PIL.ImageQt import ImageQt
+from PIL import ImageQt
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
 import numpy as np
 from skimage.measure import label

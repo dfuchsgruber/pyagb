@@ -1,0 +1,53 @@
+[project]
+name = "pyagb"
+version = "0.1.0"
+description = "Python3 interface for Gameboy Advance ROMs (agb)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Dominik Fuchsgruber", email = "domi.erdnuss2@gmx.de"},
+]
+maintainers = [
+    {name = "Dominik Fuchsgruber", email = "domi.erdnuss2@gmx.de"},
+]
+classifiers = [
+    "Programming Language :: Python"
+]
+
+dependencies = [
+    "numpy>=1.15",
+    "pyclibrary",
+    "Pillow",
+    "pypng",
+    "pyqt5",
+    "pyqtgraph",
+    "appdirs",
+    "deepdiff",
+    "scipy",
+    "scikit-image",
+    "colormath",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pre-commit"
+]
+
+[tool.ruff.format]
+quote-style="single"
+line-ending = "lf"
+
+[project.urls]
+Homepage = "https://github.com/dfuchsgruber/pyagb"
+Documentation = "https://github.com/dfuchsgruber/pyagb/blob/master/docs.md"
+Repository = "https://github.com/dfuchsgruber/pyagb"
+Changelog = "https://github.com/dfuchsgruber/pyagb/releases/latest"
+
+[project.scripts]
+pymap = "pymap.__main__:pymap_gui_cli"
+pymap2s = "pymap.__main__:pymap2s_cli"
+pymapconstex = "pymap.__main__:pymap_export_constants_cli"
+bin2s = "pymap.__main__:bin2s_cli"
+pypreproc = "pymap.__main__:pypreproc_cli"

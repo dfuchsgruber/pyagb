@@ -3,7 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtOpenGL import *
 import numpy as np
-from PIL.ImageQt import ImageQt
+from PIL import ImageQt
 from PIL import Image
 from . import map_widget, properties, render, blocks, resource_tree, history
 import pyqtgraph.parametertree.ParameterTree as ParameterTree

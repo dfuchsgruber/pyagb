@@ -1,11 +1,10 @@
-from agb.model.type import Type, label_and_align, associate_with_constant
-from functools import partial
+from agb.model.type import Type, label_and_align
 
 
 class ArrayType(Type):
     """ Type for arrays. """
 
-    def __init__(self, datatype, fixed_size):
+    def __init__(self, datatype: str, fixed_size):
         """ Initializes the array type.
         
         Parameters:
