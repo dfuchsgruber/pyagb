@@ -3,7 +3,7 @@ name = "pyagb"
 version = "0.1.0"
 description = "Python3 interface for Gameboy Advance ROMs (agb)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = {file = "LICENSE"}
 authors = [
     {name = "Dominik Fuchsgruber", email = "domi.erdnuss2@gmx.de"},

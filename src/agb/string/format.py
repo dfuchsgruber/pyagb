@@ -1,11 +1,17 @@
-# Formats a string to fit into boxes
+"""Formats strings to fit into a box."""
 
 from warnings import warn
 
-def fit_box(sequence, width, height, coder, delimiters=(0x0,), 
-    scroll=0xFA, paragraph=0xFB, newline=0xFE, buffers=(0xFD,),
-    control_codes={0xFC : {}}, max_buffer_size=10):
-    """
+from agb.string.agbstring import Agbstring
+
+
+def fit_box(sequence: tuple[int, ...], width: int, height: int, coder: Agbstring,  # noqa: C901
+               delimiters: tuple[int]=(0x0,), scroll: int=0xFA, paragraph: int=0xFB,
+               newline: int=0xFE, buffers: tuple[int]=(0xFD,),
+                control_codes: dict[int, dict[int, int]]={0xFC : {}},
+                max_buffer_size: int=10) -> tuple[int, ...]:
+    """Fits a sequence into a box.
+
     Parameters:
     -----------
     sequence : list
@@ -36,10 +42,10 @@ def fit_box(sequence, width, height, coder, delimiters=(0x0,),
     fit_sequence : list
         The sequence fit into the box
     """
-    fit_sequence = []
+    fit_sequence: list[int] = []
     current_line_length = 0
     num_lines_displayed = 1
-    consumed = 0 # How many following characters were already consumed
+    consumed: int = 0 # How many following characters were already consumed
 
     for i, character in enumerate(sequence):
         # Take characters until the box overflows
@@ -54,7 +60,8 @@ def fit_box(sequence, width, height, coder, delimiters=(0x0,),
             num_lines_displayed = 1
         elif character == newline:
             if num_lines_displayed >= height:
-                warn(f'Forcing a box overflow with linebreaks at \'{coder.hex_to_str(sequence[i-current_line_length:i+1] + [0xFF], 0)[0]}\'')
+                warn(f'Forcing a box overflow with linebreaks at \'{coder.hex_to_str(
+                    bytearray(sequence[i-current_line_length:i+1] + (0xFF,)), 0)[0]}\'')
             current_line_length = 0
             num_lines_displayed += 1
         elif character in buffers:
@@ -64,22 +71,26 @@ def fit_box(sequence, width, height, coder, delimiters=(0x0,),
             command = sequence[i + 1]
             consumed = 1
             arglen = commands.get(command, 0)
-            # print(f'Consumed control code command {hex(command)}, Rest of string is {sequence[i + 1 + arglen :]}')
             consumed += arglen
         else:
             current_line_length += 1
-        
+
         # Check if the line overflows
         if current_line_length > width:
             # Find the last delimiter to force a line break
             for offset in range(0, min(width + 1, len(fit_sequence))):
                 if fit_sequence[-offset] in delimiters:
                     break
-            
+            else:
+                offset = -1
+
             if offset >= min(width, len(fit_sequence)):
                 # The word is longer than a line
-                raise RuntimeError(f'Could not force a linebreak because a single word exceeds the maximal line width at \'{coder.hex_to_str(sequence[i-offset:i+1] + [0xFF], 0)[0]}\'.')
-            
+                raise RuntimeError(f'Could not force a linebreak because a '
+                                   'single word  exceeds the maximal line width ' \
+                                    f'at \'{coder.hex_to_str(bytearray(
+                                        sequence[i-offset:i+1] + (0xFF,)), 0)[0]}\'.')
+
             # Replace the delimiter with a linebreak or scroll
             if num_lines_displayed < height:
                 fit_sequence[-offset] = newline
@@ -88,7 +99,7 @@ def fit_box(sequence, width, height, coder, delimiters=(0x0,),
                 fit_sequence[-offset] = scroll
             current_line_length = offset - 1
 
-    return fit_sequence 
+    return tuple(fit_sequence)
 
-        
-        
+
+

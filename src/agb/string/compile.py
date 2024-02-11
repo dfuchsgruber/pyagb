@@ -1,15 +1,24 @@
+"""Compiles strings into assembly or C(++) code."""
+
 import os
-from . import agbstring, format
+from typing import Generator, Sequence
 from warnings import warn
 
-def process_string(string, coder):
-    """ Extracts and encodes a string embedded into '' .
-    
+from pymap.project import Project
+
+from agb.string.agbstring import Agbstring
+
+from . import format
+
+
+def process_string(string: str, coder: Agbstring) -> tuple[int, ...]:
+    """Extracts and encodes a string embedded into '' .
+
     Parameters:
     -----------
     string : str
         The string to process.
-    
+
     Returns:
     --------
     encoded : list
@@ -19,9 +28,9 @@ def process_string(string, coder):
         raise RuntimeError(f'Expected string {string} to be embedded into \"\"')
     return coder.str_to_hex(string[1:-1])
 
-def preprocess_assembly_line(line, project):
-    """ Preprocesses an assembly line. 
-    
+def preprocess_assembly_line(line: str, project: Project) -> str:
+    """Preprocesses an assembly line.
+
     Paramters:
     ----------
     line : str
@@ -40,34 +49,42 @@ def preprocess_assembly_line(line, project):
     # Strip the line
     line = line.strip()
     # Check for directives
-    if tokens[0] == project.config['string']['as']['directives']['std']:
+    if tokens[0] == project.config['string']['as']['directives']['std']: # type: ignore
         string = line[line.index(tokens[1]):] # Keep multiple spaces
+        assert project.coder is not None, 'Coder is not initialized'
         sequence = process_string(string, project.coder)
-    elif tokens[0] == project.config['string']['as']['directives']['auto']:
+    elif tokens[0] == project.config['string']['as']['directives']['auto']: # type: ignore
         string = line[line.index(tokens[3]):] # Keep multiple spaces
         width = int(tokens[1], base=0)
         height = int(tokens[2], base=0)
-        characters = project.config['string']['characters']
-        sequence = format.fit_box(process_string(string, project.coder), width, height, delimiters=characters['delimiters'], 
-            scroll=characters['scroll'], paragraph=characters['paragraph'], newline=characters['newline'], buffers=characters['buffers'],
-            control_codes=characters['control_codes'], max_buffer_size=characters['max_buffer_size'], coder=project.coder)
-    elif tokens[0] == project.config['string']['as']['directives']['padded']:
+        characters = project.config['string']['characters'] # type: ignore
+        assert project.coder is not None, 'Coder is not initialized'
+        sequence = format.fit_box(process_string(string, project.coder), width, height,
+            delimiters=characters['delimiters'], # type: ignore
+            scroll=characters['scroll'], paragraph=characters['paragraph'], # type: ignore
+            newline=characters['newline'], buffers=characters['buffers'], # type: ignore
+            control_codes=characters['control_codes'], # type: ignore
+            max_buffer_size=characters['max_buffer_size'], # type: ignore
+            coder=project.coder)
+    elif tokens[0] == project.config['string']['as']['directives']['padded']: # type: ignore
         string = line[line.index(tokens[2]):] # Keep multiple spaces
         size = int(tokens[1], 0)
+        assert project.coder is not None, 'Coder is not initialized'
         sequence = process_string(string, project.coder)
         if len(sequence) > size:
-            warn(f'Sequence {string} of size {len(sequence)} extends maximal size of {size}. Truncating.')
+            warn(f'Sequence {string} of size {len(sequence)} extends maximal size ' \
+                f'of {size}. Truncating.')
             sequence = sequence[:size]
         else:
-            sequence += [0] * (size - len(sequence))
+            sequence += (0,) * (size - len(sequence))
     else:
         return line
     joined = ', '.join(map(str, sequence))
     return f'.byte {joined}'
 
-def preprocess_assembly(input, project, output):
-    """ Preprocesses an assembly file. 
-    
+def preprocess_assembly(input: str, project: Project, output: str):
+    """Preprocesses an assembly file.
+
     Parameters:
     -----------
     input : str
@@ -81,34 +98,37 @@ def preprocess_assembly(input, project, output):
         assembly = f.read()
 
     # Preprocess assembly linewise
-    processed = [preprocess_assembly_line(line, project) for line in split_continued_lines(assembly)] + ['']
+    processed = [preprocess_assembly_line(line, project) for line in
+                 split_continued_lines(assembly)] + ['']
 
     with open(output, "w+", encoding="utf-8") as f:
         f.write(os.linesep.join(processed))
 
-        
-def split_continued_lines(input):
-    """ Splits an input into its lines considering line contiuations \.
-    
+
+def split_continued_lines(input: str) -> Generator[str, None, None]:
+    r"""Splits an input into its lines considering line contiuations \.
+
     Parameters:
     -----------
     input : str
         The input to split
-    
+
     Yields:
     -------
     lines : str
         The lines.
     """
-    for line in input.splitlines():
+    iterator = iter(input.splitlines())
+    for line in iterator:
         line = line.rstrip(os.linesep)
-        while line.endswith('\\'):
-            line = line[:-1] + next(input).rstrip(os.linesep)
+        is_continued = line.endswith('\\')
+        while is_continued:
+            line = line[:-1] + next(iterator).rstrip(os.linesep)
         yield line
 
-def preprocess_cpp(input, project, outfile):
-    """ Preprocesses a C(++) file.
-    
+def preprocess_cpp(input: str, project: Project, outfile: str):  # noqa: C901
+    """Preprocesses a C(++) file.
+
     Parameters:
     -----------
     input : str
@@ -120,8 +140,8 @@ def preprocess_cpp(input, project, outfile):
     """
     with open(input, 'r', encoding='utf-8') as f:
         source = f.read()
-    tail = project.config['string']['tail']
-    macro = project.config['string']['c']['macro']
+    macro: str = project.config['string']['c']['macro'] # type: ignore
+    assert project.coder is not None, 'Coder is not initialized'
 
     sementically_irrelevant_characters = ('\t', ' ', '\\', os.linesep)
 
@@ -142,22 +162,28 @@ def preprocess_cpp(input, project, outfile):
 
             string = ''
 
-            num_skipped_chars = skip_sementically_irrelevant_characters(source, offset, sementically_irrelevant_characters)
+            num_skipped_chars = skip_sementically_irrelevant_characters(source, offset,
+                                                                        sementically_irrelevant_characters)
             if offset + num_skipped_chars >= len(source):
-                raise Exception(f'Unexpected eof while parsing macro at {source[offset:]}')
+                raise Exception(f'Unexpected eof while parsing macro at ' \
+                    f'{source[offset:]}')
             output += source[offset:offset + num_skipped_chars]
             offset += num_skipped_chars
             if source[offset] != '(':
-                raise Exception(f'Expected \'(\' after macro definition, got {source[offset]}.')
+                raise Exception(f'Expected \'(\' after macro definition, got ' \
+                                f'{source[offset]}.')
             offset += 1
             output += '('
 
-            num_skipped_chars = skip_sementically_irrelevant_characters(source, offset, sementically_irrelevant_characters)
+            num_skipped_chars = skip_sementically_irrelevant_characters(source, offset,
+                                                                        sementically_irrelevant_characters)
             if offset + num_skipped_chars >= len(source):
-                raise Exception(f'Unexpected eof while expecting quotes (start of string) at {source[offset:]}')
+                raise Exception(f'Unexpected eof while expecting quotes ' \
+                                f'(start of string) at {source[offset:]}')
             offset += num_skipped_chars
             if source[offset] != '"':
-                raise Exception(f'Expected quotes (start of string) but got {source[offset]}')
+                raise Exception(f'Expected quotes (start of string) but got ' \
+                    f'{source[offset]}')
             offset += 1
 
             # Parse and concatenate arbitraryly many "..." sequences
@@ -170,10 +196,13 @@ def preprocess_cpp(input, project, outfile):
                     else:
                         string += source[offset - 1]
                 if offset >= len(source):
-                    raise Exception(f'Unexpected eof while expecting quotes (start of string)')                
-                num_skipped_chars = skip_sementically_irrelevant_characters(source, offset, sementically_irrelevant_characters)
+                    raise Exception('Unexpected eof while expecting quotes ' \
+                        '(start of string)')
+                num_skipped_chars = skip_sementically_irrelevant_characters(source,
+                                                                            offset,
+                                                                            sementically_irrelevant_characters)
                 if offset + num_skipped_chars >= len(source):
-                    raise Exception(f'Unexpected eof while expecting ( ')
+                    raise Exception('Unexpected eof while expecting ( ')
                 offset += num_skipped_chars
                 if source[offset] == ')':
                     # No more "..." to parse
@@ -185,13 +214,17 @@ def preprocess_cpp(input, project, outfile):
                 else:
                     raise Exception(f'Expected ( but got \'{source[offset]}\'')
             output += '{' + ','.join(map(str, project.coder.str_to_hex(string))) + '})'
-                
+
     with open(outfile, 'w+', encoding='utf-8') as f:
         f.write(output)
 
-def skip_sementically_irrelevant_characters(string, offset, sementically_irrelevant_characters):
-    """ Gets the amount of sementically irrelevant characters in a string which can be omitted for C(++) parsing.
-    
+def skip_sementically_irrelevant_characters(string: str, offset: int,
+                                            sementically_irrelevant_characters:
+                                                Sequence[str], ) -> int:
+    """Gets the amount of sementically irrelevant characters in a string.
+
+    These can be omitted for C(++) parsing.
+
     Parameters:
     -----------
     string : str
@@ -200,7 +233,7 @@ def skip_sementically_irrelevant_characters(string, offset, sementically_irrelev
         The current position in the string.
     sementically_irrelevant_characters : iterable
         Characters that are sementically irrelevant.
-    
+
     Returns:
     --------
     number_of_chars : int
@@ -209,4 +242,6 @@ def skip_sementically_irrelevant_characters(string, offset, sementically_irrelev
     for number_of_chars in range(0, len(string) - offset):
         if string[offset + number_of_chars] not in sementically_irrelevant_characters:
             break
+    else:
+        return 0
     return number_of_chars
