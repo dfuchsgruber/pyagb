@@ -6,6 +6,7 @@ from typing import Sequence
 
 import numpy as np
 import PIL.Image
+import PIL.ImagePalette
 import png  # type: ignore
 from colormath.color_conversions import convert_color  # noqa: E402 # type: ignore
 from colormath.color_diff import delta_e_cie2000  # noqa: E402 # type: ignore
@@ -166,7 +167,8 @@ class Image:
             ])
         return img
 
-    def save(self, path: str, palette: Sequence[int]):
+    def save(self, path: str,
+             palette: bytes | Sequence[int] | PIL.ImagePalette.ImagePalette):
         """Saves this image with a given palette.
 
         Parameters:

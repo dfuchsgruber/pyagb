@@ -1,1 +1,1 @@
-pass
+"""Data model for pyagb."""

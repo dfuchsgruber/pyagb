@@ -1,13 +1,12 @@
+
 import pyqtgraph.parametertree.parameterTypes as parameterTypes
+from agb.model.type import ModelParents, ModelValue
 from agb.types import *
-from pymap.model.backend import BackendPointerType
 from pyqtgraph.Qt import *
-from warnings import warn
-from functools import partial
 
 
 class ConstantComboBox(QtWidgets.QComboBox):
-    """ Subclass this thing in order to manually filter out undo events. """
+    """Subclass this thing in order to manually filter out undo events."""
 
     def event(self, event):
         if event.type() == QtCore.QEvent.KeyPress:
@@ -17,7 +16,7 @@ class ConstantComboBox(QtWidgets.QComboBox):
 
 # Parameter item for parameters associated with constants
 class ConstantParameterItem(parameterTypes.WidgetParameterItem):
-    """ Inherit from the standard list parameter item class but make the widget editable. """
+    """Inherit from the standard list parameter item class but make the widget editable."""
 
     def __init__(self, param, depth):
         self.constants = param.constants
@@ -33,7 +32,7 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
         w.value = w.currentText
         w.setEditable(True)
         w.setContextMenuPolicy(0) # No context menu
-        self.widget = w  
+        self.widget = w
         w.addItems(self.constants)
         return w
 
@@ -54,8 +53,8 @@ class ConstantsTypeParameter(parameterTypes.ListParameter):
 
 
     def model_value(self):
-        """ Gets the value of this parameter according to the data model. 
-        
+        """Gets the value of this parameter according to the data model.
+
         Returns:
         --------
         value : str
@@ -64,7 +63,7 @@ class ConstantsTypeParameter(parameterTypes.ListParameter):
         return self.value()
 
     def update(self, value):
-        """ Updates this parameter. """
+        """Updates this parameter."""
         self.setValue(value)
 
 # Scalar parameter that is associated with constants
@@ -72,8 +71,8 @@ class ScalarTypeParameter(ConstantsTypeParameter):
 
     # Parameter for the tree that builds upon a scalar type
     def __init__(self, name, project, datatype_name, value, context, model_parent, **kwargs):
-        """ Initializes the ScalarType Parameter class.
-        
+        """Initializes the ScalarType Parameter class.
+
         Parameters:
         -----------
         name : str
@@ -107,8 +106,8 @@ class ScalarTypeParameter(ConstantsTypeParameter):
 class StructureTypeParameter(parameterTypes.GroupParameter):
 
     def __init__(self, name, project, datatype_name, value, context, model_parent, typecheck=True, **kwargs):
-        """ Initializes the Structure Parameter class.
-        
+        """Initializes the Structure Parameter class.
+
         Parameters:
         -----------
         name : str
@@ -136,8 +135,8 @@ class StructureTypeParameter(parameterTypes.GroupParameter):
                 self.addChild(child)
 
     def model_value(self):
-        """ Gets the value of this parameter according to the data model. 
-        
+        """Gets the value of this parameter according to the data model.
+
         Returns:
         --------
         value : dict
@@ -146,7 +145,7 @@ class StructureTypeParameter(parameterTypes.GroupParameter):
         return { name : self.child(name).model_value() for name, _, _ in self.datatype.structure if name not in self.datatype.hidden_members}
 
     def update(self, value):
-        """ Recursively updates the values of all children. """
+        """Recursively updates the values of all children."""
         for name, type_name, _ in sorted(self.datatype.structure, key=lambda x: x[2]):
             if name not in self.datatype.hidden_members:
                 self.child(name).update(value[name])
@@ -155,8 +154,8 @@ class StructureTypeParameter(parameterTypes.GroupParameter):
 class BitfieldTypeParameter(parameterTypes.GroupParameter):
 
     def __init__(self, name, project, datatype_name, value, context, model_parent, **kwargs):
-        """ Initializes the Bitifield Parameter class.
-        
+        """Initializes the Bitifield Parameter class.
+
         Parameters:
         -----------
         name : str
@@ -187,8 +186,8 @@ class BitfieldTypeParameter(parameterTypes.GroupParameter):
             if name not in self.datatype.hidden_members: self.addChild(child)
 
     def model_value(self):
-        """ Gets the value of this parameter according to the data model. 
-        
+        """Gets the value of this parameter according to the data model.
+
         Returns:
         --------
         value : dict
@@ -197,7 +196,7 @@ class BitfieldTypeParameter(parameterTypes.GroupParameter):
         return { name : self.child(name).model_value() for name, _, _ in self.datatype.structure }
 
     def update(self, value):
-        """ Recursively updates the values of all children. """
+        """Recursively updates the values of all children."""
         for name, constant, size in self.datatype.structure:
             self.child(name).update(value[name])
 
@@ -205,8 +204,8 @@ class BitfieldTypeParameter(parameterTypes.GroupParameter):
 class ArrayTypeParameter(parameterTypes.GroupParameter):
 
     def __init__(self, name, project, datatype_name, values, context, model_parent, typecheck=True, **kwargs):
-        """ Initializes the Structure Parameter class.
-        
+        """Initializes the Structure Parameter class.
+
         Parameters:
         -----------
         name : str
@@ -237,8 +236,8 @@ class ArrayTypeParameter(parameterTypes.GroupParameter):
         self.update_value()
 
     def _insert(self, idx, value=None):
-        """ Inserts a new element into the array.
-        
+        """Inserts a new element into the array.
+
         Parameters:
         -----------
         idx : int or str or None
@@ -271,8 +270,8 @@ class ArrayTypeParameter(parameterTypes.GroupParameter):
             self.addChild(self.values[int(idx)])
 
     def model_value(self):
-        """ Gets the value of this parameter according to the data model. 
-        
+        """Gets the value of this parameter according to the data model.
+
         Returns:
         --------
         value : list
@@ -281,15 +280,15 @@ class ArrayTypeParameter(parameterTypes.GroupParameter):
         return list(map(lambda child: child.model_value(), self.values))
 
     def update(self, values):
-        """ Updates the values in the array. """
+        """Updates the values in the array."""
         for child, value in zip(self.values, value):
             child.update(value)
 
 class FixedSizeArrayTypeParameter(ArrayTypeParameter):
 
     def __init__(self, name, project, datatype_name, value, context, model_parent, **kwargs):
-        """ Initializes the Array Parameter class.
-        
+        """Initializes the Array Parameter class.
+
         Parameters:
         -----------
         name : str
@@ -306,16 +305,16 @@ class FixedSizeArrayTypeParameter(ArrayTypeParameter):
             The parent of the parameter according to the data model.
         """
         super().__init__(name, project, datatype_name, value, context, model_parent, **kwargs)
-    
+
     def size_get(self):
         return self.datatype.size_get(self.project, self.context, None)
-        
+
 
 class VariableSizeArrayTypeParameter(ArrayTypeParameter):
 
     def __init__(self, name, project, datatype_name, value, context, model_parent, **kwargs):
-        """ Initializes the Array Parameter class.
-        
+        """Initializes the Array Parameter class.
+
         Parameters:
         -----------
         name : str
@@ -351,7 +350,7 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
         self.child('idx').setLimits(list(range(len(self.values))))
 
     def _append(self):
-        """ Appends a default element to the array. """
+        """Appends a default element to the array."""
         size = self.size_get()
         self._insert(size)
         # Increment size
@@ -360,8 +359,8 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
         self._adaptLimits()
 
     def _remove(self, idx):
-        """ Removes an element from the array.
-        
+        """Removes an element from the array.
+
         Parameters:
         -----------
         idx : int or str or None
@@ -375,7 +374,7 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
             self._adaptLimits()
             self.child('idx').setValue(len(self.values) - 1)
             #self.update_value()
-            
+
 
     def _size_location(self):
         # Climb up
@@ -398,8 +397,8 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
 class UnboundedArrayTypeParameter(VariableSizeArrayTypeParameter):
 
     def __init__(self, name, project, datatype_name, value, context, model_parent, **kwargs):
-        """ Initializes the Array Parameter class.
-        
+        """Initializes the Array Parameter class.
+
         Parameters:
         -----------
         name : str
@@ -420,13 +419,13 @@ class UnboundedArrayTypeParameter(VariableSizeArrayTypeParameter):
 
     def size_get(self):
         return len(self.values)
-    
+
     def size_set(self, size):
         pass
 
     def _size_location(self):
         pass
-        
+
 
 class PointerParameter(parameterTypes.GroupParameter):
 
@@ -435,8 +434,8 @@ class PointerParameter(parameterTypes.GroupParameter):
     referred = 'referred' # Name of the subtree that holds the referred values
 
     def __init__(self, name, project, datatype_name, value, context, model_parent, **kwargs):
-        """ Initializes the Pointer Parameter class.
-        
+        """Initializes the Pointer Parameter class.
+
         Parameters:
         -----------
         name : str
@@ -461,10 +460,10 @@ class PointerParameter(parameterTypes.GroupParameter):
             self.add_new(referred=value)
         else:
             self._add_add()
-        
+
     def add_new(self, referred=None):
-        """ Adds a new instance of a refered value if currently null is referred, i.e. no child is held by this group.
-        
+        """Adds a new instance of a refered value if currently null is referred, i.e. no child is held by this group.
+
         Parameters:
         -----------
         value : object or None
@@ -496,7 +495,7 @@ class PointerParameter(parameterTypes.GroupParameter):
             self._add_add()
 
     def remove(self):
-        """ Removes the instance of the referred value. """
+        """Removes the instance of the referred value."""
         if self.hasChild():
             self.child(PointerParameter.referred).remove()
         # Remove the delete button if present
@@ -506,7 +505,7 @@ class PointerParameter(parameterTypes.GroupParameter):
             pass
 
     def hasChild(self):
-        """ Checks if this parameter currently refers to a child. """
+        """Checks if this parameter currently refers to a child."""
         try:
             self.child(PointerParameter.referred)
             return True
@@ -514,7 +513,7 @@ class PointerParameter(parameterTypes.GroupParameter):
             return False
 
     def update(self, value):
-        """ Updates the pointer reference. """
+        """Updates the pointer reference."""
         if value is None:
             self.remove()
         else:
@@ -525,8 +524,8 @@ class PointerParameter(parameterTypes.GroupParameter):
 
 
     def model_value(self):
-        """ Gets the value of this parameter according to the data model. 
-        
+        """Gets the value of this parameter according to the data model.
+
         Returns:
         --------
         value : dict
@@ -540,8 +539,8 @@ class PointerParameter(parameterTypes.GroupParameter):
 class UnionTypeParameter(parameterTypes.GroupParameter):
 
     def __init__(self, name, project, datatype_name, values, context, model_parent, **kwargs):
-        """ Initializes the Union Parameter class.
-        
+        """Initializes the Union Parameter class.
+
         Parameters:
         -----------
         name : str
@@ -571,21 +570,21 @@ class UnionTypeParameter(parameterTypes.GroupParameter):
         #self.update_value()
 
     def update_value(self):
-        """ Displays the correct union subtype. """
+        """Displays the correct union subtype."""
         # Get the active name
         active_name = self.datatype.name_get(self.project, self.context, model_parents(self))
         print(f'Parent changed to {active_name}')
         for name in self.values:
             child = self.values[name]
-            if name == active_name and not child.parent() is self:
+            if name == active_name and child.parent() is not self:
                 self.addChild(child)
             elif name != active_name and child.parent() is self:
                 child.remove()
 
 
     def model_value(self):
-        """ Gets the value of this parameter according to the data model. 
-        
+        """Gets the value of this parameter according to the data model.
+
         Returns:
         --------
         value : dict
@@ -594,19 +593,19 @@ class UnionTypeParameter(parameterTypes.GroupParameter):
         return {name : self.values[name].model_value() for name in self.values}
 
     def update(self, value):
-        """ Updates all children of this parameter. """
+        """Updates all children of this parameter."""
         for name in self.values:
             self.child(self.datatype.subtypes[name]).update(value[name])
 
-        
+
 def model_parents(root):
-    """ Returns the parent values of a parameter in the serializable model format instead of a tree.
-    
+    """Returns the parent values of a parameter in the serializable model format instead of a tree.
+
     Parameters:
     -----------
     root : Parameter
         The paremeter of which the parents will be retrieved.
-    
+
     Returns:
     --------
     parents : list
@@ -619,15 +618,15 @@ def model_parents(root):
     return parents
 
 def type_to_parameter(project, datatype_name):
-    """ Translates a datatype into a parameter class.
-    
+    """Translates a datatype into a parameter class.
+
     Parameters:
     -----------
     project : pymap.project.Project
         The pymap project.
     datatype_name : str
         The name of the datatype.
-        
+
     Returns:
     --------
     parameter_class : parameterTypes.Parameter
@@ -635,7 +634,7 @@ def type_to_parameter(project, datatype_name):
     """
     datatype = project.model[datatype_name]
     if isinstance(datatype, DynamicLabelPointer):
-        raise NotImplementedError(f'Dynamic label pointers not yet supported.')
+        raise NotImplementedError('Dynamic label pointers not yet supported.')
     elif isinstance(datatype, PointerType):
         return PointerParameter
     elif isinstance(datatype, BitfieldType):
@@ -655,15 +654,16 @@ def type_to_parameter(project, datatype_name):
     else:
         raise RuntimeError(f'Unsupported datatype class {type(datatype)} of {datatype}')
 
-def get_member_by_path(value, path):
-    """ Returns an attribute of a structure by its path. """
+def get_member_by_path(value: ModelValue, path: list[str | int]) -> ModelValue:
+    """Returns an attribute of a structure by its path."""
     for edge in path:
         value = value[edge]
     return value
 
-def set_member_by_path(target, value, path):
-    """ Sets the value of a structure by its path. 
-    
+def set_member_by_path(target: ModelValue, value: ModelValue,
+                       path: list[str | int]):
+    """Sets the value of a structure by its path.
+
     Parameters:
     -----------
     target : dict
@@ -674,21 +674,29 @@ def set_member_by_path(target, value, path):
         A path to access the attribute
     """
     for edge in path[:-1]:
-        target = target[edge]
-    target[path[-1]] = value 
+        match target:
+            case list() if isinstance(edge, int):
+                target: ModelValue = target[edge] # type: ignore
+            case dict() if isinstance(edge, (str)):
+                target: ModelValue = target[edge] # type: ignore
+            case _: # type: ignore
+                raise RuntimeError(f'Unsupported edge type {type(edge)}')
+    assert isinstance(target, (dict, list))
+    target[path[-1]] = value # type: ignore
 
-def get_parents_by_path(value, path):
-    """ Builds the parents of an instance based on its path. 
+def get_parents_by_path(value: ModelValue, path: list[str | int]) -> ModelParents:
+    """Builds the parents of an instance based on its path.
+
     Note that the requested data instance is not needed to be present
     for this method to work. Just all its parent have to be.
-    
+
     Parameters:
     -----------
     value : dict
         The origin structure that contains a data instance.
     path : list
         A path to access the data instance.
-        
+
     Returns:
     --------
     parents : list

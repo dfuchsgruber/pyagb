@@ -6,7 +6,7 @@ from agb.model.pointer import DynamicLabelPointer, PointerType
 from agb.model.scalar_type import ScalarType
 from agb.model.string import StringType
 from agb.model.structure import Structure
-from agb.model.type import label_and_align
+from agb.model.type import Type, label_and_align
 from agb.model.unbounded_array import UnboundedArrayType
 from agb.model.union import UnionType
 
@@ -23,4 +23,5 @@ __all__ = [
     'UnionType',
     'UnboundedArrayType',
     'label_and_align',
+    'Type',
 ]

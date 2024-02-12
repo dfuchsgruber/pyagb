@@ -1,10 +1,21 @@
-# Creates the default models for pymap
+"""The default data model for pymap.
+
+This model can be extended per project by providing a models file.
+"""
+
 from pathlib import Path
+
 import agb.types
-import pymap.model.event, pymap.model.footer, pymap.model.header, pymap.model.tileset, pymap.model.backend, pymap.model.connection
+
+import pymap.model.backend
+import pymap.model.connection
+import pymap.model.event
+import pymap.model.footer
+import pymap.model.header
+import pymap.model.tileset
 
 # Basic scalar types
-default_model = {
+default_model: dict[str, agb.types.Type] = {
     'u8' : agb.types.ScalarType('u8'),
     's8' : agb.types.ScalarType('s8'),
     's16' : agb.types.ScalarType('s16'),
@@ -26,12 +37,11 @@ default_models = [
 ]
 
 for model in default_models:
-    for typename, datatype in model.items():
-        default_model[typename] = datatype
+    default_model |= model
 
-def get_model(models_file_paths):
-    """ Gets the models for pymap.
-    
+def get_model(models_file_paths: list[str])  -> dict[str, agb.types.Type]:
+    """Gets the models for pymap.
+
     Parameters:
     -----------
     model_files : list of str
@@ -55,8 +65,9 @@ def get_model(models_file_paths):
             # Try to get models
             try:
                 models = locals()['models_to_export']
-            except:
-                raise RuntimeError(f'{models_file_path} does not provide a \'models_to_export\' variable')
+            except Exception as e:
+                raise RuntimeError(f'{models_file_path} does not provide a ' \
+                    f'\'models_to_export\' variable (Exception: {e})')
             for key, value in models.items():
                 model[key] = value
-    return model 
+    return model
