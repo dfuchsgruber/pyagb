@@ -1,5 +1,10 @@
+"""Datamodel for map events."""
+
 import agb.types
-from functools import partial
+from agb.model import Model
+from agb.model.type import ModelContext, ModelParents
+
+from pymap.project import Project
 
 person_type = agb.types.Structure([
     ('target_index', 'u8', 0),
@@ -47,11 +52,31 @@ signpost_item_type = agb.types.BitfieldType('u32', [
     ('amount', None, 8)
 ])
 
+def signpost_get_type(project: Project, context: ModelContext,
+                      parents: ModelParents) -> str:
+    """Gets the type of a signpost value.
+
+    Args:
+        project (Project): The project to access e.g. constants.
+        context (ModelContext): The context in which the data got initialized.
+        parents (ModelParents): The parent values of this value. The last
+
+    Returns:
+        str: The type of the signpost value.
+    """
+    ancestor = parents[-1]
+    assert isinstance(ancestor, dict)
+    type_ = ancestor.get('type', None)
+    assert isinstance(type_, (int, str))
+    if int(type_) < 5:
+        return 'script'
+    return 'item'
+
 signpost_value_type = agb.types.UnionType({
         'item' : 'event.signpost_item',
         'script' : 'ow_script_pointer'
     },
-    lambda project, context, parents: 'script' if int(parents[-1]['type']) < 5 else 'item'
+    signpost_get_type,
 )
 
 signpost_type = agb.types.Structure([
@@ -121,7 +146,7 @@ event_header_type = agb.types.Structure([
 
 # These model declarations will be exported
 
-default_model = {
+default_model: Model = {
     'event.person' : person_type,
     'event.warp' : warp_type,
     'event.trigger' : trigger_type,

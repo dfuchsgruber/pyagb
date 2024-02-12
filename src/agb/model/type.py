@@ -1,6 +1,6 @@
 """Abstract Type class."""
 from abc import ABC, abstractmethod
-from typing import TypeAlias
+from typing import Mapping, TypeAlias
 from warnings import warn
 
 from pymap.project import Project
@@ -12,6 +12,9 @@ ModelContextItem: TypeAlias = int | str | bool
 ModelContext: TypeAlias = list[ModelContextItem]
 ModelParents: TypeAlias = list[ModelValue]
 
+# Each project can define models which are mappings from 
+# type names to the respective type instances.
+Model: TypeAlias = Mapping[str, 'Type']
 
 class Type(ABC):
     """Base type class."""

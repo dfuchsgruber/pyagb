@@ -1,9 +1,7 @@
-""" Module to model mapfooters. """
+"""Data model for mapfooters."""
 
-from . import event
-import json
 import agb.types
-from . import backend
+from agb.model import Model
 
 map_dimension = agb.types.ScalarType('u32', default=1)
 border_dimension = agb.types.ScalarType('u8', default=1)
@@ -58,15 +56,16 @@ footer_type = agb.types.Structure(
         ('border_width', 'footer.border_dimension', 0),
         ('border_height', 'footer.border_dimension', 0),
         ('field_1A', 'map_battle_style', 1)
-    ], 
+    ],
     # Export the width and height of the blocks and border beforehand
     hidden_members=set([
-        'border', 'blocks', 'tileset_primary', 'tileset_secondary', 'width', 'height', 'border_width', 'border_height'
+        'border', 'blocks', 'tileset_primary', 'tileset_secondary',
+        'width', 'height', 'border_width', 'border_height'
     ])
 )
 
 # These model declarations will be exported
-default_model = {
+default_model: Model = {
     'map_block' : map_block_type,
     'footer.border_line' : border_line_type,
     'footer.border_array' : border_array_type,

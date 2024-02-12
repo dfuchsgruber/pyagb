@@ -1,4 +1,7 @@
+"""Data model for map connections."""
+
 import agb.types
+from agb.model import Model
 
 # Define a type for map connections
 connection_type = agb.types.Structure([
@@ -27,7 +30,7 @@ connection_header_type = agb.types.Structure([
 ])
 
 # These model declarations will be exported
-default_model = {
+default_model: Model = {
     'connection.connection' : connection_type,
     'connection.connection_array' : connection_array_type,
     'connection.connection_array_pointer' : connection_array_pointer_type,

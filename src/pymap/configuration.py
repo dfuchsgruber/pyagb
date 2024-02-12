@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, NamedTuple, TypeAlias, TypedDict
 
-AttributePathType: TypeAlias =list[str | int]
+AttributePathType: TypeAlias = list[str | int]
 Pymap2sIncludeConfigType = TypedDict('Pymap2sIncludeConfigType', directive=str)
 Pymap2sConfigType = TypedDict('Pymap2sConfigType', include=Pymap2sIncludeConfigType)
 JsonConfigType = TypedDict('JsonConfigType', indent=str, encoding=str)

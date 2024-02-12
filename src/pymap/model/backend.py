@@ -1,10 +1,24 @@
-# Module that provides backend for various exporting and displaying stuff
-# Variables are changed during initialization of the project
+"""Model for types that can export additional assets when generated from data.
+
+Each of these types triggers a callback when exported, i.e. when `from_data`
+is called. These should be extended in your project's config file to trigger
+the desired behaviour. E.g., one can trigger the export of png files when
+gfx pointers are exported.
+"""
+
+from typing import Callable
 
 import agb.types
+from agb.model.type import Model, ModelContext, ModelParents, ModelValue
 
-def ow_script(rom, offset, project, context, parents):
-    """ Backend for exporting overworld scripts.
+from pymap.project import Project
+
+
+def ow_script(rom: bytearray, offset: int, project: Project, context: ModelContext,
+              parents: ModelParents) -> str:
+    """Callback for exporting overworld scripts.
+
+    Backend for exporting overworld scripts.
     This function is called everytime a ow_script
     type is exported from data.
 
@@ -23,7 +37,7 @@ def ow_script(rom, offset, project, context, parents):
         element is the direct parent. The parents are
         possibly not fully initialized as the values
         are explored depth-first.
-    
+
     Returns:
     --------
     label : str
@@ -33,11 +47,14 @@ def ow_script(rom, offset, project, context, parents):
     return hex(offset + 0x8000000)
 
 
-def gfx(rom, offset, project, context, parents, lz77_compressed):
-    """ Backend for exporting gfxs.
+def gfx(rom: bytearray, offset: int, project: Project, context: ModelContext,
+        parents: ModelParents, lz77_compressed: bool) -> str:
+    """Callback that is called when a gfx is exported.
+
+    Backend for exporting gfxs.
     This function is called everytime a gfx
     type is exported from data.
-    
+
     Parameters:
     -----------
     rom : agb.agbrom.Agbrom
@@ -55,7 +72,7 @@ def gfx(rom, offset, project, context, parents, lz77_compressed):
         are explored depth-first.
     lz77_compressed : bool
         If the data is lz77 compressed.
-    
+
     Returns:
     --------
     label : str
@@ -64,11 +81,14 @@ def gfx(rom, offset, project, context, parents, lz77_compressed):
     print(f'Encoutered gfx @{hex(offset)} in context {context}')
     return hex(offset + 0x8000000)
 
-def tileset(rom, offset, project, context, parents):
-    """ Backend for exporting tilesets.
+def tileset(rom: bytearray, offset: int, project: Project, context: ModelContext,
+            parents: ModelParents) -> str:
+    """Callback that is called when a tileset is exported.
+
+    Backend for exporting tilesets.
     This function is called everytime a tileset
     type is exported from data.
-    
+
     Parameters:
     -----------
     rom : agb.agbrom.Agbrom
@@ -86,7 +106,7 @@ def tileset(rom, offset, project, context, parents):
         are explored depth-first.
     lz77_compressed : bool
         If the data is lz77 compressed.
-    
+
     Returns:
     --------
     label : str
@@ -95,11 +115,14 @@ def tileset(rom, offset, project, context, parents):
     print(f'Encoutered tileset @{hex(offset)} in context {context}')
     return hex(offset + 0x08000000)
 
-def levelscript_header(rom, offset, project, context, parents):
-    """ Backend for exporting levelscript header.
+def levelscript_header(rom: bytearray, offset: int, project: Project,
+                       context: ModelContext, parents: ModelParents) -> str:
+    """Callback that is called when a levelscript header is exported.
+
+    Backend for exporting levelscript header.
     This function is called everytime a levelscript header
     type is exported from data.
-    
+
     Parameters:
     -----------
     rom : agb.agbrom.Agbrom
@@ -117,7 +140,7 @@ def levelscript_header(rom, offset, project, context, parents):
         are explored depth-first.
     lz77_compressed : bool
         If the data is lz77 compressed.
-    
+
     Returns:
     --------
     label : str
@@ -126,11 +149,14 @@ def levelscript_header(rom, offset, project, context, parents):
     print(f'Encoutered levelscript header @{hex(offset)} in context {context}')
     return hex(offset + 0x08000000)
 
-def footer(rom, offset, project, context, parents):
-    """ Backend for exporting map footer.
+def footer(rom: bytearray, offset: int, project: Project, context: ModelContext,
+           parents: ModelParents) -> str:
+    """Callback that is called when a map footer is exported.
+
+    Backend for exporting map footer.
     This function is called everytime a map footer
     type is exported from data.
-    
+
     Parameters:
     -----------
     rom : agb.agbrom.Agbrom
@@ -148,7 +174,7 @@ def footer(rom, offset, project, context, parents):
         are explored depth-first.
     lz77_compressed : bool
         If the data is lz77 compressed.
-    
+
     Returns:
     --------
     label : str
@@ -159,18 +185,24 @@ def footer(rom, offset, project, context, parents):
 
 
 class BackendPointerType(agb.types.ScalarType):
-    """ Class for pointers that represent structures that
-    may or may not be exported by the backend of pymap."""
+    """Class for pointers that invoke a callback when exported.
 
-    def __init__(self, export):
-        """ Initializes the abstract pointer type.
-        
+    This class is a wrapper around the pointer type that invokes
+    a callback when the pointer is exported from data using the
+    `from_data` method.
+    """
+
+    def __init__(self,
+                 export: Callable[[bytearray, int, Project,
+                                   ModelContext, ModelParents], str]):
+        """Initializes the abstract pointer type.
+
         Parameters:
         -----------
         export : function
             Function that is executed when the type is
             exported.
-            
+
             Parameters:
             -----------
             rom : agb.agbrom.Agbrom
@@ -186,8 +218,8 @@ class BackendPointerType(agb.types.ScalarType):
                 element is the direct parent. The parents are
                 possibly not fully initialized as the values
                 are explored depth-first.
-            
-            Returns:
+
+        Returns:
             --------
             label : str
                 The label assoicated with the type.
@@ -195,9 +227,10 @@ class BackendPointerType(agb.types.ScalarType):
         super().__init__('pointer')
         self.export = export
 
-    def from_data(self, rom, offset, project, context, parents):
-        """ Retrieves the overworld script pointer type from a rom.
-        
+    def from_data(self, rom: bytearray, offset: int, project: Project,
+                  context: ModelContext, parents: ModelParents) -> ModelValue:
+        """Retrieves the overworld script pointer type from a rom.
+
         Parameters:
         -----------
         rom : agb.agbrom.Agbrom
@@ -213,14 +246,16 @@ class BackendPointerType(agb.types.ScalarType):
             element is the direct parent. The parents are
             possibly not fully initialized as the values
             are explored depth-first.
-        
+
         Returns:
         --------
         label : str
             The label associated with the overworld script
         """
         value = super().from_data(rom, offset, project, context, parents)
-        if value is None: return '0'
+        if value is None:
+            return '0'
+        assert isinstance(value, int), f"Expected an int, got {value}"
         return self.export(rom, value, project, context, parents)
 
 # Define a type for overworld scripts
@@ -236,7 +271,7 @@ footer_pointer_type = BackendPointerType(footer)
 levelscript_header_type = BackendPointerType(levelscript_header)
 
 # These models will be exported
-default_model = {
+default_model: Model = {
     'ow_script_pointer' : ow_script_pointer_type,
     'tileset_pointer' : tileset_pointer_type,
     'footer_pointer' : footer_pointer_type,

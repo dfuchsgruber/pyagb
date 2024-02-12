@@ -4,6 +4,8 @@ from agb.model.type import ModelParents, ModelValue
 from agb.types import *
 from pyqtgraph.Qt import *
 
+from pymap.configuration import AttributePathType
+
 
 class ConstantComboBox(QtWidgets.QComboBox):
     """Subclass this thing in order to manually filter out undo events."""
@@ -654,14 +656,14 @@ def type_to_parameter(project, datatype_name):
     else:
         raise RuntimeError(f'Unsupported datatype class {type(datatype)} of {datatype}')
 
-def get_member_by_path(value: ModelValue, path: list[str | int]) -> ModelValue:
+def get_member_by_path(value: ModelValue, path: AttributePathType) -> ModelValue:
     """Returns an attribute of a structure by its path."""
     for edge in path:
         value = value[edge]
     return value
 
 def set_member_by_path(target: ModelValue, value: ModelValue,
-                       path: list[str | int]):
+                       path: AttributePathType):
     """Sets the value of a structure by its path.
 
     Parameters:
@@ -684,7 +686,7 @@ def set_member_by_path(target: ModelValue, value: ModelValue,
     assert isinstance(target, (dict, list))
     target[path[-1]] = value # type: ignore
 
-def get_parents_by_path(value: ModelValue, path: list[str | int]) -> ModelParents:
+def get_parents_by_path(value: ModelValue, path: AttributePathType) -> ModelParents:
     """Builds the parents of an instance based on its path.
 
     Note that the requested data instance is not needed to be present

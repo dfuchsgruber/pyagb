@@ -1,1 +1,1 @@
-pass
+"""Pymap's data model."""

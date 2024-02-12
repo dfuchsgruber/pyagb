@@ -2,6 +2,7 @@
 
 from typing import Callable
 
+from pymap.configuration import AttributePathType
 from pymap.project import Project
 
 from agb.model.type import (
@@ -228,14 +229,15 @@ class ArrayType(Type):
         # Only using the first element would be faster, but this approach
         # is more clean and versatile.
         for i in range(num_elements):
-            constants.update(datatype.get_constants(value[i], project, context + [i], parents))
+            constants.update(datatype.get_constants(value[i], project, context + [i],
+                                                    parents))
         return constants
 
 class VariableSizeArrayType(ArrayType):
     """Type for variable size arrays."""
 
     def __init__(self, datatype: str,
-                 size_path: tuple[int, list[str | int]],
+                 size_path: tuple[int, AttributePathType],
                  size_cast: Callable[[ScalarModelValue, Project], int]=
                  lambda value, project: int(value)): # type: ignore
         """Initializes the array type.

@@ -1,9 +1,10 @@
 """The default data model for pymap.
 
-This model can be extended per project by providing a models file.
+This model can be extended per project in its configuration file.
 """
 
 from pathlib import Path
+from typing import Mapping, TypeAlias
 
 import agb.types
 
@@ -13,6 +14,8 @@ import pymap.model.event
 import pymap.model.footer
 import pymap.model.header
 import pymap.model.tileset
+
+Model: TypeAlias = Mapping[str, agb.types.Type]
 
 # Basic scalar types
 default_model: dict[str, agb.types.Type] = {
@@ -27,7 +30,7 @@ default_model: dict[str, agb.types.Type] = {
 }
 
 # Import models from other model files
-default_models = [
+default_models: list[Model] = [
     pymap.model.event.default_model,
     pymap.model.footer.default_model,
     pymap.model.connection.default_model,
@@ -39,7 +42,7 @@ default_models = [
 for model in default_models:
     default_model |= model
 
-def get_model(models_file_paths: list[str])  -> dict[str, agb.types.Type]:
+def get_model(models_file_paths: list[str])  -> Model:
     """Gets the models for pymap.
 
     Parameters:
@@ -52,7 +55,7 @@ def get_model(models_file_paths: list[str])  -> dict[str, agb.types.Type]:
 
     Returns:
     --------
-    model : dict
+    model : Model
         Maps from strings to type classes.
     """
     model = default_model.copy()
