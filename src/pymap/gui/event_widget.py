@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtOpenGL import *
-from PIL import ImageQt
+from PIL.ImageQt import ImageQt
 import numpy as np
 from . import properties, history, map_widget, resource_tree
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
@@ -29,18 +29,18 @@ class EventWidget(QWidget):
         self.undo_stack = QUndoStack()
 
         # Layout is similar to the map widget
-        layout = QGridLayout()
+        layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
         splitter = QSplitter()
         layout.addWidget(splitter, 1, 1, 1, 1)
 
         self.map_scene = MapScene(self)
-        self.map_scene_view = QGraphicsView()
+        self.map_scene_view = QtWidgets.QGraphicsView()
         self.map_scene_view.setViewport(QGLWidget())
         self.map_scene_view.setScene(self.map_scene)
         splitter.addWidget(self.map_scene_view)
 
-        self.info_label = QLabel()
+        self.info_label = QtWidgets.QLabel()
         layout.addWidget(self.info_label, 2, 1, 1, 2)
         layout.setRowStretch(1, 1)
         layout.setRowStretch(2, 0)
@@ -138,22 +138,22 @@ class EventTab(QWidget):
         self.event_widget = event_widget
         self.event_type = event_type
 
-        layout = QGridLayout()
+        layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
-        self.idx_combobox = QComboBox()
+        self.idx_combobox = QtWidgets.QComboBox()
         layout.addWidget(self.idx_combobox, 1, 1)
-        self.add_button = QPushButton()
+        self.add_button = QtWidgets.QPushButton()
         self.add_button.setIcon(QIcon(resource_tree.icon_paths['plus']))
         self.add_button.clicked.connect(self.append_event)
         layout.addWidget(self.add_button, 1, 2)
-        self.remove_button = QPushButton()
+        self.remove_button = QtWidgets.QPushButton()
         self.remove_button.setIcon(QIcon(resource_tree.icon_paths['remove']))
         self.remove_button.clicked.connect(lambda: self.remove_event(self.idx_combobox.currentIndex()))
         layout.addWidget(self.remove_button, 1, 3)
         self.event_properties = EventProperties(self)
         layout.addWidget(self.event_properties, 2, 1, 1, 3)
         if event_type.get('goto_header_button_button_enabled', False):
-            self.goto_header_button = QPushButton('Go to target header')
+            self.goto_header_button = QtWidgets.QPushButton('Go to target header')
             self.goto_header_button.clicked.connect(lambda: self.goto_header(self.idx_combobox.currentIndex()))
             layout.addWidget(self.goto_header_button, 3, 1, 1, 3)
 

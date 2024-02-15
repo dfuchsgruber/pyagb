@@ -1,12 +1,10 @@
 """A module for working with GBA roms."""
 
 import struct
-from typing import Iterable
-
-from typing_extensions import Buffer, SupportsIndex
+from typing import Iterable, SupportsIndex
 
 
-def find(bytes: bytearray, pattern: Iterable[SupportsIndex] | Buffer | SupportsIndex,
+def find(bytes: bytearray, pattern: Iterable[SupportsIndex] | SupportsIndex,
          alignment: int=0) -> list[int]:
     """Finds all occurences of a pattern in the rom.
 

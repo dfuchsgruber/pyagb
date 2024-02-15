@@ -1,13 +1,14 @@
-# Store user settings
-from pathlib import Path
-import appdirs
-import os
-import json
-from . import resource_tree
-from collections.abc import MutableMapping
+"""Settings from the pymap gui by the user."""
 
-dir = appdirs.user_config_dir(appname='pymap')
-config_file = os.path.join(dir, 'settings.json')
+import json
+from pathlib import Path
+from typing import Any
+
+import appdirs  # type: ignore
+
+from . import resource_tree
+
+config_file = Path(appdirs.user_config_dir(appname='pymap')) / 'settings.json' # type: ignore
 
 default_settings = {
     'resource_tree.header_listing' : resource_tree.SORT_BY_NAMESPACE,
@@ -24,47 +25,43 @@ default_settings = {
     'tileset.zoom' : 20,
 }
 
-class Settings(MutableMapping):
-    """ Class to store settings for pymap. """
+class Settings(dict[str, Any]):
+    """Class to store settings for pymap."""
 
     def __init__(self):
-        self._settings = self._load_settings()
+        """Initializes the settings for pymap."""
+        super().__init__(**self._load_settings())
 
-    def __getitem__(self, key):
-        return self._settings[key]
-
-    def __setitem__(self, key, value):
-        self._settings[key] = value
+    def __setitem__(self, key: str, value: Any):
+        """Sets a setting for pymap."""
+        super().__setitem__(key, value)
         self._save_settings()
 
-    def __delitem__(self, key):
-        del self._settings[key]
+    def __delitem__(self, key: str):
+        """Deletes a setting for pymap."""
+        del self[key]
         self._save_settings()
 
-    def __iter__(self):
-        return iter(self._settings)
 
-    def __len__(self):
-        return len(self._settings)
+    def _load_settings(self) -> dict[str, Any]:
+        """Loads the settings for pymap from the last session.
 
+        If this is the first session, default settings are generated and saved.
 
-    def _load_settings(self):
-        """ Loads the settings for pymap from the last session. If
-        this is the first session, default settings are generated and saved.
-        
         Returns:
         -------
-        settings : dict
-            The settings. """
-        os.makedirs(os.path.dirname(config_file), exist_ok=True)
-        if not os.path.exists(config_file):
+        settings : dict[str, any]
+        The settings.
+        """
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        if not config_file.exists():
             # Initially create a configuration
-            with open(Path(config_file), 'w+') as f:
+            with open(config_file, 'w+') as f:
                 json.dump(default_settings, f)
             return default_settings
         else:
             settings = default_settings.copy()
-            with open(Path(config_file)) as f:
+            with open(config_file) as f:
                 override_settings = json.load(f)
                 for key in override_settings:
                     settings[key] = override_settings[key]
@@ -72,12 +69,12 @@ class Settings(MutableMapping):
 
 
     def _save_settings(self):
-        """ Saves current settings for pymap. 
-        
+        """Saves current settings for pymap.
+
         Parameters:
         -----------
         settings : dict
             The current pymap settings.
         """
-        with open(Path(config_file), 'w+') as f:
-            json.dump(self._settings, f)
+        with open(config_file, 'w+') as f:
+            json.dump(self, f)

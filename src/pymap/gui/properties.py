@@ -7,7 +7,7 @@ from pyqtgraph.Qt import *
 from pymap.configuration import AttributePathType
 
 
-class ConstantComboBox(QtWidgets.QComboBox):
+class ConstantComboBox(QtWidgets.QtWidgets.QComboBox):
     """Subclass this thing in order to manually filter out undo events."""
 
     def event(self, event):

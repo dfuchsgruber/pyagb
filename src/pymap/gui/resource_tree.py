@@ -84,7 +84,7 @@ class ResourceParameterTree(QTreeWidget):
         if self.main_gui.project is None: return
         item = self.itemAt(position)
         context = getattr(item, 'context', None)
-        menu = QMenu()
+        menu = QtWidgets.QMenu()
         if context == HEADER_ROOT:
             if len(self.main_gui.project.unused_banks()) == 0:
                 return # Spawn no context menu for the header root if there are no map banks to add

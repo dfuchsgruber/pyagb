@@ -1,16 +1,19 @@
-from pymap.gui import gui
-import agb.string.compile
 import argparse
-import pymap.project
-import os
 import json
+import os
 from pathlib import Path
+
+import agb.string.compile
+
+import pymap.project
+from pymap.gui import gui
+
 
 def pymap_gui_cli():
     """Entry point for the pymap gui application."""
     os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1' # Support for High DPI
     gui.main()
-    
+
 def pymap2s_cli():
     """Entry point for compiling pymap files."""
     parser = argparse.ArgumentParser(description='Compiles pymap files.')
@@ -34,7 +37,7 @@ def pymap2s_cli():
         with open(args.input, encoding=project.config['json']['encoding']) as f:
             input = json.load(f)
         assembly = pymap.compile.datatype_to_assembly(input['data'], input['type'], input['label'], project)
-        
+
     with open(args.output, 'w+') as f:
         f.write(assembly)
 
@@ -62,7 +65,7 @@ def pymap_export_constants_cli():
         agb.string.compile.preprocess_assembly(args.input, project, args.output)
     elif file_type in ('c', 'cpp'):
         agb.string.compile.preprocess_cpp(args.input, project, args.output)
-    else:    
+    else:
         raise RuntimeError(f'Unkown file type {file_type}')
 
 def bin2s_cli():
@@ -75,10 +78,10 @@ def bin2s_cli():
 
     if not symbol:
         symbol = Path(args.output).stem
-    
+
     with open(input, "rb") as f:
         bytes = bytearray(f.read())
-    
+
     # Create assembly
     assembly = ".align 4\n.global {0}\n{0}:\n.byte {1}\n".format(
         symbol, ", ".join(map(hex, bytes))
@@ -86,7 +89,7 @@ def bin2s_cli():
 
     with open(args.output, "w+") as f:
         f.write(assembly)
-        
+
 def pypreproc_cli():
     """Entry point for the pypreproc script."""
     parser = argparse.ArgumentParser(description='Preprocesses an assembly or C(++) file.')
@@ -111,5 +114,5 @@ def pypreproc_cli():
         agb.string.compile.preprocess_assembly(args.input, project, args.output)
     elif file_type in ('c', 'cpp'):
         agb.string.compile.preprocess_cpp(args.input, project, args.output)
-    else:    
+    else:
         raise RuntimeError(f'Unkown file type {file_type}')

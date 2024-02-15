@@ -1,9 +1,11 @@
 """Abstract Type class."""
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Mapping, TypeAlias
 from warnings import warn
-
-from pymap.project import Project
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from pymap.project import Project
 
 ScalarModelValue: TypeAlias = int | str | bool | None
 ModelValue: TypeAlias = ScalarModelValue | list['ModelValue'] | \

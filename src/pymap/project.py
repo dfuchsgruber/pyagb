@@ -1,22 +1,25 @@
 """Project structure and handling of maps, tilesets, gfx..."""
 
+from __future__ import annotations
+
+import contextlib
 import json
 import os
 from pathlib import Path
-from typing import Any, Literal, NamedTuple, Sequence, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict
 
 import agb.string.agbstring
 from agb import image
-from agb.model.type import ModelValue, Type
 
-import pymap.model.model
+if TYPE_CHECKING:
+    from agb.model.type import Model, ModelValue
+    ModelDataType = TypedDict('ModelDataType', {'data': ModelValue, 'label': str,
+                                            'type': str})
+
 from pymap.configuration import ConfigType
-from pymap.gui.properties import get_member_by_path, set_member_by_path
 
 from . import configuration, constants
 
-ModelDataType = TypedDict('ModelDataType', {'data': ModelValue, 'label': str,
-                                            'type': str})
 HeaderType = NamedTuple('HeaderType', [('label', str | None), ('path', str | None),
                                        ('namespace', str | None)])
 HeadersType = dict[str, dict[str, HeaderType]]
@@ -28,7 +31,7 @@ GfxsType = dict[str, str]
 class Project:
     """Represents the central project structure and handles maps, tilesets, gfx..."""
 
-    def __init__(self, file_path: str | None):
+    def __init__(self, file_path: str | None | Path):
         """ 
         Initializes the project.
 
@@ -49,12 +52,12 @@ class Project:
             self.constants = constants.Constants({})
             self.config: ConfigType = configuration.default_configuration.copy()
         else:
-            os.chdir(os.path.abspath(os.path.dirname(file_path)))
             self.from_file(file_path)
             self.path = file_path
 
         # Initialize models
-        self.model: dict[str, Type] = pymap.model.model.get_model(self.config['model'])
+        import pymap.model.model
+        self.model: Model = pymap.model.model.get_model(self.config['model'])
 
         # Initiaize the string decoder / encoder
         charmap = self.config['string']['charmap']
@@ -64,7 +67,14 @@ class Project:
         else:
             self.coder = None
 
-    def from_file(self, file_path: str):
+    @contextlib.contextmanager
+    def project_dir(self):
+        """Changes the working directory to the project directory."""
+        assert self.path is not None, 'Project path is not initialized'
+        with working_dir(Path(self.path).parent.resolve()):
+            yield
+
+    def from_file(self, file_path: str | Path):
         """Initializes the project from a json file.
 
         Should not be called manually but only by the constructor of the Project class.
@@ -91,7 +101,7 @@ class Project:
         self.constants: constants.Constants = constants.Constants(paths)
 
         # Initialize the configuration
-        self.config = configuration.get_configuration(file_path + '.config')
+        self.config = configuration.get_configuration(str(file_path) + '.config')
 
     def autosave(self):
         """Saves the project if it is stated in the configuration."""
@@ -99,7 +109,7 @@ class Project:
             assert self.path is not None, 'Project path is not initialized'
             self.save(self.path)
 
-    def save(self, file_path: str):
+    def save(self, file_path: str | Path):
         """Saves the project to a path.
 
         Parameters:
@@ -141,32 +151,36 @@ class Project:
         namespace : str or None
             The namespace of the header
         """
+        from pymap.gui.properties import get_member_by_path
+
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
-        if bank in self.headers and map_idx in self.headers[bank]:
-            label, path, namespace = self.headers[bank][map_idx]
-            assert path is not None, f'Path to header [{bank}, {map_idx.zfill(2)}]' \
-                ' is not initialized'
-            with open(Path(path), encoding=self.config['json']['encoding']) as f:
-                header: ModelDataType = json.load(f)
-            assert(header['label'] == label), \
-                'Header label mismatches the label stored in the project file'
-            assert(header['type'] == self.config['pymap']['header']['datatype']), \
-                'Header datatype mismatches the configuration'
-            assert namespace is not None, f'Namespace of header [{bank}, ' \
-                f'{map_idx.zfill(2)}] is not defined'
-            namespace_in_data = get_member_by_path(header['data'],
-                    self.config['pymap']['header']['namespace_path'])
-            assert isinstance(namespace_in_data, str), f'Namespace of header ' \
-                f'[{bank}, {map_idx.zfill(2)}] is not a string'
-            assert(_canonical_form(namespace) == \
-                _canonical_form(namespace_in_data)), \
-                    f'Header {bank}.{map_idx} namespace mismatches ' \
-                        'the namespaces stored in the project file'
-            return header['data'], label, namespace
-        else:
-            return None, None, None
+        with self.project_dir():
+            print(os.getcwd())
+            bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
+            if bank in self.headers and map_idx in self.headers[bank]:
+                label, path, namespace = self.headers[bank][map_idx]
+                assert path is not None, \
+                    f'Path to header [{bank}, {map_idx.zfill(2)}]' \
+                    ' is not initialized'
+                with open(Path(path), encoding=self.config['json']['encoding']) as f:
+                    header: ModelDataType = json.load(f)
+                assert(header['label'] == label), \
+                    'Header label mismatches the label stored in the project file'
+                assert(header['type'] == self.config['pymap']['header']['datatype']), \
+                    'Header datatype mismatches the configuration'
+                assert namespace is not None, f'Namespace of header [{bank}, ' \
+                    f'{map_idx.zfill(2)}] is not defined'
+                namespace_in_data = get_member_by_path(header['data'],
+                        self.config['pymap']['header']['namespace_path'])
+                assert isinstance(namespace_in_data, str), f'Namespace of header ' \
+                    f'[{bank}, {map_idx.zfill(2)}] is not a string'
+                assert(_canonical_form(namespace) == \
+                    _canonical_form(namespace_in_data)), \
+                        f'Header {bank}.{map_idx} namespace mismatches ' \
+                            'the namespaces stored in the project file'
+                return header['data'], label, namespace
+            else:
+                return None, None, None
 
     def refactor_header(self, bank: str | int, map_idx: str | int, label: str,
                         namespace: str):
@@ -185,20 +199,23 @@ class Project:
         namespace : str
             The new namespace.
         """
+        from pymap.gui.properties import set_member_by_path
+
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        if bank in self.headers and map_idx in self.headers[bank]:
-            path = self.headers[bank][map_idx][1]
-            assert path is not None, f'Path to header [{bank}, {map_idx.zfill(2)}]' \
-                ' is not set'
-            header, _, _ = self.load_header(bank, map_idx)
-            set_member_by_path(header, namespace,
-                               self.config['pymap']['header']['namespace_path'])
-            self.headers[bank][map_idx] = HeaderType(label, path, namespace)
-            self.save_header(header, bank, map_idx)
-            self.autosave()
-        else:
-            raise RuntimeError(f'Header [{bank}, {map_idx}] not existent.')
+        with self.project_dir():
+            if bank in self.headers and map_idx in self.headers[bank]:
+                path = self.headers[bank][map_idx][1]
+                assert path is not None, \
+                    f'Path to header [{bank}, {map_idx.zfill(2)}]' \
+                    ' is not set'
+                header, _, _ = self.load_header(bank, map_idx)
+                set_member_by_path(header, namespace,
+                                self.config['pymap']['header']['namespace_path'])
+                self.headers[bank][map_idx] = HeaderType(label, path, namespace)
+                self.save_header(header, bank, map_idx)
+                self.autosave()
+            else:
+                raise RuntimeError(f'Header [{bank}, {map_idx}] not existent.')
 
     def import_header(self, bank: int | str, map_idx: int | str, label: str,
                       path: str, namespace: str, footer: str):
@@ -223,32 +240,37 @@ class Project:
         footer : str
             The footer of the new map.
         """
+        from pymap.gui.properties import set_member_by_path
+
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
-        if bank in self.headers:
-            if map_idx not in self.headers[bank]:
-                with open(Path(path), encoding=self.config['json']['encoding']) as f:
-                    header = json.load(f)
-                assert(header['type'] == self.config['pymap']['header']['datatype']), \
-                    'Header datatype mismatches the configuration'
-                self.headers[bank][map_idx] = HeaderType(label, os.path.relpath(path),
-                                                         namespace)
-                if footer not in self.footers:
-                    raise RuntimeError(f'Footer {footer} is not existent.')
-                set_member_by_path(header['data'], namespace,
-                                   self.config['pymap']['header']['namespace_path'])
-                set_member_by_path(header['data'], footer,
-                                   self.config['pymap']['header']['footer_path'])
-                set_member_by_path(header['data'], int(self.footers[footer][0]),
-                                   self.config['pymap']['header']['footer_idx_path'])
-                self.save_header(header['data'], bank, map_idx)
-                self.autosave()
+        with self.project_dir():
+            bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
+            if bank in self.headers:
+                if map_idx not in self.headers[bank]:
+                    with open(Path(path),
+                              encoding=self.config['json']['encoding']) as f:
+                        header = json.load(f)
+                    assert(header['type'] == \
+                        self.config['pymap']['header']['datatype']), \
+                        'Header datatype mismatches the configuration'
+                    self.headers[bank][map_idx] = HeaderType(label,
+                                                             os.path.relpath(path),
+                                                            namespace)
+                    if footer not in self.footers:
+                        raise RuntimeError(f'Footer {footer} is not existent.')
+                    set_member_by_path(header['data'], namespace,
+                                    self.config['pymap']['header']['namespace_path'])
+                    set_member_by_path(header['data'], footer,
+                                    self.config['pymap']['header']['footer_path'])
+                    set_member_by_path(header['data'], int(self.footers[footer][0]),
+                                    self.config['pymap']['header']['footer_idx_path'])
+                    self.save_header(header['data'], bank, map_idx)
+                    self.autosave()
+                else:
+                    raise RuntimeError(f'Header [{bank}, ' \
+                        f'{map_idx.zfill(2)}] already exists.')
             else:
-                raise RuntimeError(f'Header [{bank}, ' \
-                    f'{map_idx.zfill(2)}] already exists.')
-        else:
-            raise RuntimeError(f'Bank {bank} not existent. ')
+                raise RuntimeError(f'Bank {bank} not existent. ')
 
     def remove_bank(self, bank: int | str):
         """Removes an entire mapbank from the project.
@@ -300,20 +322,21 @@ class Project:
             converted into its "canonical" form.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
-        if bank in self.headers and map_idx in self.headers[bank]:
-            label, path, _ = self.headers[bank][map_idx]
-            assert path is not None, f'Path to header [{bank}, {map_idx.zfill(2)}]' \
-                ' is not initialized'
-            with open(Path(path), 'w+', encoding=self.config['json']['encoding']) as f:
-                json.dump({
-                    'data' : header,
-                    'label' : label,
-                    'type' : self.config['pymap']['header']['datatype'],
-                }, f, indent=self.config['json']['indent'])
-        else:
-            raise RuntimeError(f'No header located at [{bank}, {map_idx}]')
+        with self.project_dir():
+            bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
+            if bank in self.headers and map_idx in self.headers[bank]:
+                label, path, _ = self.headers[bank][map_idx]
+                assert path is not None, f'Path to header [{bank}, {map_idx.zfill(2)}]'\
+                    ' is not initialized'
+                with open(Path(path), 'w+',
+                          encoding=self.config['json']['encoding']) as f:
+                    json.dump({
+                        'data' : header,
+                        'label' : label,
+                        'type' : self.config['pymap']['header']['datatype'],
+                    }, f, indent=self.config['json']['indent'])
+            else:
+                raise RuntimeError(f'No header located at [{bank}, {map_idx}]')
 
     def new_header(self, label: str, path: str, namespace: str,
                    bank: int | str, map_idx: int | str) -> ModelValue:
@@ -339,26 +362,30 @@ class Project:
         header : ModelValue
             The new header.
         """
+        from pymap.gui.properties import set_member_by_path
+
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
-        if bank in self.headers:
-            if map_idx in self.headers[bank]:
-                raise RuntimeError(f'Index {map_idx} already present in bank {bank}')
+        with self.project_dir():
+            bank, map_idx = _canonical_form(bank), _canonical_form(map_idx)
+            if bank in self.headers:
+                if map_idx in self.headers[bank]:
+                    raise RuntimeError(f'Index {map_idx} already present in ' \
+                                       f'bank {bank}')
+                else:
+                    self.headers[bank][map_idx] = HeaderType(label,
+                                                             os.path.relpath(path),
+                                                            namespace)
+                    datatype = self.config['pymap']['header']['datatype']
+                    header = self.model[datatype](self, [], [])
+                    # Assign the proper namespace
+                    set_member_by_path(header, namespace,
+                                    self.config['pymap']['header']['namespace_path'])
+                    # Save the header
+                    self.save_header(header, bank, map_idx)
+                    self.autosave()
+                    return header
             else:
-                self.headers[bank][map_idx] = HeaderType(label, os.path.relpath(path),
-                                                         namespace)
-                datatype = self.config['pymap']['header']['datatype']
-                header = self.model[datatype](self, [], [])
-                # Assign the proper namespace
-                set_member_by_path(header, namespace,
-                                   self.config['pymap']['header']['namespace_path'])
-                # Save the header
-                self.save_header(header, bank, map_idx)
-                self.autosave()
-                return header
-        else:
-            raise RuntimeError(f'Bank {bank} not existent')
+                raise RuntimeError(f'Bank {bank} not existent')
 
     def refactor_footer(self, label_old: str, label_new: str):
         """Changes the label of a footer.
@@ -372,6 +399,8 @@ class Project:
         label_new : str
             The new label of the footer.
         """
+        from pymap.gui.properties import get_member_by_path, set_member_by_path
+
         assert(label_old in self.footers), f'Footer {label_old} not existent.'
         assert(label_new not in self.footers), f'Footer label {label_new} ' \
             f'already existent.'
@@ -423,18 +452,18 @@ class Project:
             The index of the footer or -1 if no footer is present.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        if label in self.footers:
-            footer_idx, path = self.footers[label]
-            with open(Path(path), encoding=self.config['json']['encoding']) as f:
-                footer = json.load(f)
-            assert(footer['label'] == label), 'Footer label mismatches the label ' \
-                'stored in the project.'
-            assert(footer['type'] == self.config['pymap']['footer']['datatype']), \
-                'Footer datatype mismatches the configuration'
-            return (footer['data'], footer_idx)
-        else:
-            return None, -1
+        with self.project_dir():
+            if label in self.footers:
+                footer_idx, path = self.footers[label]
+                with open(Path(path), encoding=self.config['json']['encoding']) as f:
+                    footer = json.load(f)
+                assert(footer['label'] == label), 'Footer label mismatches the label ' \
+                    'stored in the project.'
+                assert(footer['type'] == self.config['pymap']['footer']['datatype']), \
+                    'Footer datatype mismatches the configuration'
+                return (footer['data'], footer_idx)
+            else:
+                return None, -1
 
     def save_footer(self, footer: ModelValue, label: str):
         """Saves a footer.
@@ -447,17 +476,18 @@ class Project:
             The label of the footer.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        if label in self.footers:
-            _, path = self.footers[label]
-            with open(Path(path), 'w+', encoding=self.config['json']['encoding']) as f:
-                json.dump({
-                    'data' : footer,
-                    'label' : label,
-                    'type' : self.config['pymap']['footer']['datatype'],
-                }, f, indent=self.config['json']['indent'])
-        else:
-            raise RuntimeError(f'No footer {label}')
+        with self.project_dir():
+            if label in self.footers:
+                _, path = self.footers[label]
+                with open(Path(path), 'w+',
+                          encoding=self.config['json']['encoding']) as f:
+                    json.dump({
+                        'data' : footer,
+                        'label' : label,
+                        'type' : self.config['pymap']['footer']['datatype'],
+                    }, f, indent=self.config['json']['indent'])
+            else:
+                raise RuntimeError(f'No footer {label}')
 
     def new_footer(self, label: str, path: str, footer_idx: int) -> ModelValue:
         """Creates a new footer.
@@ -474,19 +504,19 @@ class Project:
             The index in the footer table.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        if label in self.footers:
-            raise RuntimeError(f'Footer {label} already present.')
-        elif footer_idx not in self.unused_footer_idx():
-            raise RuntimeError(f'Footer index {footer_idx} already present.')
-        else:
-            self.footers[label] = FooterType(footer_idx, os.path.relpath(path))
-            datatype = self.config['pymap']['footer']['datatype']
-            footer = self.model[datatype](self, [], [])
-            # Save the footer
-            self.save_footer(footer, label)
-            self.autosave()
-            return footer
+        with self.project_dir():
+            if label in self.footers:
+                raise RuntimeError(f'Footer {label} already present.')
+            elif footer_idx not in self.unused_footer_idx():
+                raise RuntimeError(f'Footer index {footer_idx} already present.')
+            else:
+                self.footers[label] = FooterType(footer_idx, os.path.relpath(path))
+                datatype = self.config['pymap']['footer']['datatype']
+                footer = self.model[datatype](self, [], [])
+                # Save the footer
+                self.save_footer(footer, label)
+                self.autosave()
+                return footer
 
     def import_footer(self, label: str, path: str, footer_idx: int):
         """Imports a new footer.
@@ -502,18 +532,18 @@ class Project:
             Index of the footer.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        if label in self.footers:
-            raise RuntimeError(f'Footer {label} already existent.')
-        if footer_idx not in self.unused_footer_idx():
-            raise RuntimeError(f'Footer index {footer_idx} already in use.')
-        with open(Path(path), encoding=self.config['json']['encoding']) as f:
-            footer = json.load(f)
-        assert(footer['type'] == self.config['pymap']['footer']['datatype']), \
-            'Footer datatype mismatches the configuration'
-        self.footers[label] = FooterType(footer_idx, os.path.relpath(path))
-        self.save_footer(footer['data'], label)
-        self.autosave()
+        with self.project_dir():
+            if label in self.footers:
+                raise RuntimeError(f'Footer {label} already existent.')
+            if footer_idx not in self.unused_footer_idx():
+                raise RuntimeError(f'Footer index {footer_idx} already in use.')
+            with open(Path(path), encoding=self.config['json']['encoding']) as f:
+                footer = json.load(f)
+            assert(footer['type'] == self.config['pymap']['footer']['datatype']), \
+                'Footer datatype mismatches the configuration'
+            self.footers[label] = FooterType(footer_idx, os.path.relpath(path))
+            self.save_footer(footer['data'], label)
+            self.autosave()
 
     def remove_tileset(self, primary: bool, label: str):
         """Removes a tileset from the project.
@@ -548,21 +578,21 @@ class Project:
             The tileset structure.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        path = (self.tilesets_primary if primary else
-                self.tilesets_secondary).get(label, None)
-        if path is None:
-            return None
-        else:
-            assert path is not None
-            with open(Path(path), encoding=self.config['json']['encoding']) as f:
-                tileset = json.load(f)
-            assert(tileset['label'] == label), \
-                'Tileset label mismatches the label stored in the project'
-            assert(tileset['type'] == self.config['pymap'][('tileset_primary' \
-                if primary else 'tileset_secondary')]['datatype']), \
-                    'Tileset datatype mismatches the configuration'
-            return tileset['data']
+        with self.project_dir():
+            path = (self.tilesets_primary if primary else
+                    self.tilesets_secondary).get(label, None)
+            if path is None:
+                return None
+            else:
+                assert path is not None
+                with open(Path(path), encoding=self.config['json']['encoding']) as f:
+                    tileset = json.load(f)
+                assert(tileset['label'] == label), \
+                    'Tileset label mismatches the label stored in the project'
+                assert(tileset['type'] == self.config['pymap'][('tileset_primary' \
+                    if primary else 'tileset_secondary')]['datatype']), \
+                        'Tileset datatype mismatches the configuration'
+                return tileset['data']
 
     def save_tileset(self, primary: bool, tileset: ModelValue, label: str):
         """Saves a tileset.
@@ -577,19 +607,20 @@ class Project:
             The label of the tileset.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        tilesets = self.tilesets_primary if primary else self.tilesets_secondary
-        if label in tilesets:
-            path = tilesets[label]
-            with open(Path(path), 'w+', encoding=self.config['json']['encoding']) as f:
-                json.dump({
-                    'data' : tileset,
-                    'label' : label,
-                    'type' : self.config['pymap']['tileset_primary' if primary \
-                        else 'tileset_secondary']['datatype'],
-                }, f, indent=self.config['json']['indent'])
-        else:
-            raise RuntimeError(f'No tileset {label}')
+        with self.project_dir():
+            tilesets = self.tilesets_primary if primary else self.tilesets_secondary
+            if label in tilesets:
+                path = tilesets[label]
+                with open(Path(path), 'w+',
+                          encoding=self.config['json']['encoding']) as f:
+                    json.dump({
+                        'data' : tileset,
+                        'label' : label,
+                        'type' : self.config['pymap']['tileset_primary' if primary \
+                            else 'tileset_secondary']['datatype'],
+                    }, f, indent=self.config['json']['indent'])
+            else:
+                raise RuntimeError(f'No tileset {label}')
 
     def new_tileset(self, primary: bool, label: str, path: str,
                     gfx_compressed: bool=True,
@@ -610,24 +641,26 @@ class Project:
             The new tileset. If not given, an empty default tileset is created from the
             data model.
         """
+        from pymap.gui.properties import set_member_by_path
+
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        tilesets = self.tilesets_primary if primary else self.tilesets_secondary
-        if label in tilesets:
-            raise RuntimeError(f'Tileset {label} already present.')
-        else:
-            tilesets[label] = os.path.relpath(path)
-            config = self.config['pymap']['tileset_primary' if primary
-                                          else 'tileset_secondary']
-            if tileset is None:
-                datatype = config['datatype']
-                tileset = self.model[datatype](self, [], [])
-                set_member_by_path(tileset, str(int(gfx_compressed)),
-                                   config['gfx_compressed_path'])
-            # Save the tileset
-            self.save_tileset(primary, tileset, label)
-            self.autosave()
-            return tileset
+        with self.project_dir():
+            tilesets = self.tilesets_primary if primary else self.tilesets_secondary
+            if label in tilesets:
+                raise RuntimeError(f'Tileset {label} already present.')
+            else:
+                tilesets[label] = os.path.relpath(path)
+                config = self.config['pymap']['tileset_primary' if primary
+                                            else 'tileset_secondary']
+                if tileset is None:
+                    datatype = config['datatype']
+                    tileset = self.model[datatype](self, [], [])
+                    set_member_by_path(tileset, str(int(gfx_compressed)),
+                                    config['gfx_compressed_path'])
+                # Save the tileset
+                self.save_tileset(primary, tileset, label)
+                self.autosave()
+                return tileset
 
     def refactor_tileset(self, primary: bool, label_old: str, label_new: str):
         """Changes the label of a tileset.
@@ -643,6 +676,8 @@ class Project:
         label_new : str
             Its new label.
         """
+        from pymap.gui.properties import get_member_by_path, set_member_by_path
+
         tilesets = self.tilesets_primary if primary else self.tilesets_secondary
         assert(label_old in tilesets), f'Tileset {label_old} not existent.'
         assert(label_new not in tilesets), f'Tileset {label_new} already existent.'
@@ -675,18 +710,19 @@ class Project:
             The path to the tileset.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        tilesets = self.tilesets_primary if primary else self.tilesets_secondary
-        if label in tilesets:
-            raise RuntimeError(f'Tileset {label} already existent.')
-        with open(Path(path), encoding=self.config['json']['encoding']) as f:
-            tileset = json.load(f)
-        assert(tileset['type'] == self.config['pymap']['tileset_primary' if primary \
-            else 'tileset_secondary']['datatype']), \
-                'Tileset datatype mismatches the configuration'
-        tilesets[label] = os.path.relpath(path)
-        self.save_tileset(primary, tileset['data'], label)
-        self.autosave()
+        with self.project_dir():
+            tilesets = self.tilesets_primary if primary else self.tilesets_secondary
+            if label in tilesets:
+                raise RuntimeError(f'Tileset {label} already existent.')
+            with open(Path(path), encoding=self.config['json']['encoding']) as f:
+                tileset = json.load(f)
+            assert(tileset['type'] == \
+                self.config['pymap']['tileset_primary' if primary \
+                else 'tileset_secondary']['datatype']), \
+                    'Tileset datatype mismatches the configuration'
+            tilesets[label] = os.path.relpath(path)
+            self.save_tileset(primary, tileset['data'], label)
+            self.autosave()
 
     def load_gfx(self, primary: bool, label: str):
         """Loads a gfx and instanciates an agb image.
@@ -704,14 +740,14 @@ class Project:
             The agb image.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        gfx = self.gfxs_primary if primary else self.gfxs_secondary
-        if label not in gfx:
-            raise RuntimeError(f'No gfx associated with label {gfx}')
-        else:
-            path = gfx[label]
-            img, _ = image.from_file(path)
-            return img
+        with self.project_dir():
+            gfx = self.gfxs_primary if primary else self.gfxs_secondary
+            if label not in gfx:
+                raise RuntimeError(f'No gfx associated with label {gfx}')
+            else:
+                path = gfx[label]
+                img, _ = image.from_file(path)
+                return img
 
     def save_gfx(self, primary: bool, image: image.Image, palette: Sequence[int],
                  label: str):
@@ -729,13 +765,13 @@ class Project:
             The label the gfx is associated with.
         """
         assert self.path is not None, 'Project path is not initialized'
-        os.chdir(Path(self.path).resolve())
-        gfx = self.gfxs_primary if primary else self.gfxs_secondary
-        if label not in gfx:
-            raise RuntimeError(f'No gfx associated with label {gfx}')
-        else:
-            path = gfx[label]
-            image.save(path, palette)
+        with self.project_dir():
+            gfx = self.gfxs_primary if primary else self.gfxs_secondary
+            if label not in gfx:
+                raise RuntimeError(f'No gfx associated with label {gfx}')
+            else:
+                path = gfx[label]
+                image.save(path, palette)
 
     def refactor_gfx(self, primary: bool, label_old: str, label_new: str):
         """Changes the label of a gfx.
@@ -751,6 +787,8 @@ class Project:
         label_new : str
             Its new label.
         """
+        from pymap.gui.properties import get_member_by_path, set_member_by_path
+
         gfxs = self.gfxs_primary if primary else self.gfxs_secondary
         assert(label_old in gfxs), f'Gfx {label_old} not existent.'
         assert(label_new not in gfxs), f'Gfx {label_new} already existent.'
@@ -892,3 +930,21 @@ def _canonical_form(x: str | int) -> str:
         return str(int(str(x), 0))
     except ValueError:
         return str(x)
+
+@contextlib.contextmanager
+def working_dir(file_path: Path | os.PathLike[str]):
+    """Changes the working directory to the directory of the file path.
+
+    Parameters:
+    -----------
+    file_path : str or Path
+        The file path to change the working directory to.
+    """
+    saved_dir = Path(os.getcwd())
+    path = Path(file_path).resolve()
+    assert path.is_dir, f'{path} is not a directory'
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(saved_dir)

@@ -3,7 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtOpenGL import *
 import numpy as np
-from PIL import ImageQt
+from PIL.ImageQt import ImageQt
 from . import map_widget, properties, render, blocks, resource_tree, history
 import pyqtgraph.parametertree.ParameterTree as ParameterTree
 from deepdiff import DeepDiff
@@ -18,18 +18,18 @@ class ConnectionWidget(QWidget):
         self.undo_stack = QUndoStack()
 
         # Layout is similar to the map widget
-        layout = QGridLayout()
+        layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
         splitter = QSplitter()
         layout.addWidget(splitter, 1, 1, 1, 1)
 
         self.map_scene = MapScene(self)
-        self.map_scene_view = QGraphicsView()
+        self.map_scene_view = QtWidgets.QGraphicsView()
         self.map_scene_view.setViewport(QGLWidget())
         self.map_scene_view.setScene(self.map_scene)
         splitter.addWidget(self.map_scene_view)
 
-        self.info_label = QLabel()
+        self.info_label = QtWidgets.QLabel()
         layout.addWidget(self.info_label, 2, 1, 1, 1)
         layout.setRowStretch(1, 1)
         layout.setRowStretch(2, 0)
@@ -38,25 +38,25 @@ class ConnectionWidget(QWidget):
         splitter.addWidget(self.connection_widget)
         splitter.setSizes([4 * 10**6, 10**6]) # Ugly as hell hack to take large values
 
-        connection_layout = QGridLayout()
+        connection_layout = QtWidgets.QGridLayout()
         self.connection_widget.setLayout(connection_layout)
-        self.mirror_offset = QCheckBox('Mirror Displacement to Adjacent Map')
+        self.mirror_offset = QtWidgets.QCheckBox('Mirror Displacement to Adjacent Map')
         self.mirror_offset.setChecked(self.main_gui.settings['connections.mirror_offset'])
         self.mirror_offset.stateChanged.connect(self.mirror_offset_changed)
         connection_layout.addWidget(self.mirror_offset, 1, 1, 1, 3)
-        self.idx_combobox = QComboBox()
+        self.idx_combobox = QtWidgets.QComboBox()
         connection_layout.addWidget(self.idx_combobox, 2, 1)
-        self.add_button = QPushButton()
+        self.add_button = QtWidgets.QPushButton()
         self.add_button.setIcon(QIcon(resource_tree.icon_paths['plus']))
         self.add_button.clicked.connect(self.append_connection)
         connection_layout.addWidget(self.add_button, 2, 2)
-        self.remove_button = QPushButton()
+        self.remove_button = QtWidgets.QPushButton()
         self.remove_button.setIcon(QIcon(resource_tree.icon_paths['remove']))
         self.remove_button.clicked.connect(lambda: self.remove_connection(self.idx_combobox.currentIndex()))
         connection_layout.addWidget(self.remove_button, 2, 3)
         self.connection_properties = ConnectionProperties(self)
         connection_layout.addWidget(self.connection_properties, 3, 1, 1, 3)
-        self.open_connection = QPushButton('Open adjacent map')
+        self.open_connection = QtWidgets.QPushButton('Open adjacent map')
         connection_layout.addWidget(self.open_connection, 4, 1, 1, 3)
         self.open_connection.clicked.connect(self.open_adjacent_map)
 

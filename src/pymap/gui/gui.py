@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from pathlib import Path
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -161,9 +162,10 @@ class PymapGui(QMainWindow):
         """ Prompts a dialog to open a new project file. """
         path, suffix = QFileDialog.getOpenFileName(self, 'Open project', self.settings['recent.project'], 'Pymap projects (*.pmp)')
         if len(path):
-            os.chdir(os.path.dirname(path))
+            path = Path(path)
+            os.chdir(path.parent)
             self.project_path = path
-            self.settings['recent.project'] = path
+            self.settings['recent.project'] = str(path.absolute())
             self.project = pymap.project.Project(path)
             self.resource_tree.load_project()
             self.map_widget.load_project()

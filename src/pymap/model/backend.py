@@ -5,12 +5,11 @@ is called. These should be extended in your project's config file to trigger
 the desired behaviour. E.g., one can trigger the export of png files when
 gfx pointers are exported.
 """
-
+from __future__ import annotations
 from typing import Callable
 
-import agb.types
 from agb.model.type import Model, ModelContext, ModelParents, ModelValue
-
+from agb.model.scalar_type import ScalarType
 from pymap.project import Project
 
 
@@ -184,7 +183,7 @@ def footer(rom: bytearray, offset: int, project: Project, context: ModelContext,
     return hex(offset + 0x08000000)
 
 
-class BackendPointerType(agb.types.ScalarType):
+class BackendPointerType(ScalarType):
     """Class for pointers that invoke a callback when exported.
 
     This class is a wrapper around the pointer type that invokes
