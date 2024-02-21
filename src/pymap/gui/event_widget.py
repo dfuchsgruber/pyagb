@@ -26,7 +26,7 @@ class EventWidget(QWidget):
     def __init__(self, main_gui, parent=None):
         super().__init__(parent=parent)
         self.main_gui = main_gui
-        self.undo_stack = QUndoStack()
+        self.undo_stack = QtGui.QUndoStack()
 
         # Layout is similar to the map widget
         layout = QtWidgets.QGridLayout()
@@ -36,7 +36,7 @@ class EventWidget(QWidget):
 
         self.map_scene = MapScene(self)
         self.map_scene_view = QtWidgets.QGraphicsView()
-        self.map_scene_view.setViewport(QGLWidget())
+        self.map_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.map_scene_view.setScene(self.map_scene)
         splitter.addWidget(self.map_scene_view)
 

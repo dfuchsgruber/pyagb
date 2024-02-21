@@ -2,10 +2,9 @@ from . import properties, render, smart_shape
 from warnings import warn
 from deepdiff import DeepDiff
 import numpy as np
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
 from copy import deepcopy
+
+from PySide6.QtGui import QUndoCommand
 
 class Resize(QUndoCommand):
     """ Resizes a set of blocks. """

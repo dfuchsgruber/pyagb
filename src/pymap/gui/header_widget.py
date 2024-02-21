@@ -14,7 +14,7 @@ class HeaderWidget(ParameterTree):
         super().__init__(parent=parent)
         self.main_gui = main_gui
         self.root = None
-        self.undo_stack = QUndoStack()
+        self.undo_stack = QtGui.QUndoStack()
         self.setHeaderLabels(['Property', 'Value'])
         self.header().setSectionResizeMode(QHeaderView.Interactive)
         self.header().setStretchLastSection(True)

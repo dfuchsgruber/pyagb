@@ -25,7 +25,7 @@ class MapWidget(QWidget):
         self.blocks = None
         self.selection = None
         self.layers = np.array(0)
-        self.undo_stack = QUndoStack()
+        self.undo_stack = QtGui.QUndoStack()
         
         # (Re-)Build the ui
         layout = QtWidgets.QGridLayout()
@@ -35,7 +35,7 @@ class MapWidget(QWidget):
 
         self.map_scene = MapScene(self)
         self.map_scene_view = QtWidgets.QGraphicsView()
-        self.map_scene_view.setViewport(QGLWidget())
+        self.map_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.map_scene_view.setScene(self.map_scene)
         splitter.addWidget(self.map_scene_view)
 
@@ -72,7 +72,7 @@ class MapWidget(QWidget):
         self.levels_selection_scene = QGraphicsScene()
         self.levels_selection_scene_view = QtWidgets.QGraphicsView()
         self.levels_selection_scene_view.setScene(self.levels_selection_scene)
-        self.levels_selection_scene_view.setViewport(QGLWidget())
+        self.levels_selection_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         group_selection_layout.addWidget(self.levels_selection_scene_view, 1, 1, 2, 1)
         level_layout.addWidget(group_selection)
 
@@ -82,7 +82,7 @@ class MapWidget(QWidget):
         self.level_blocks_pixmaps = [self.level_blocks_pixmap.copy((idx % 4) * 16, (idx // 4) * 16, 16, 16) for idx in range(0x40)]
         self.level_scene = LevelBlocksScene(self)
         self.level_scene_view = QtWidgets.QGraphicsView()
-        self.level_scene_view.setViewport(QGLWidget())
+        self.level_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.level_scene_view.setScene(self.level_scene)
         level_layout.addWidget(self.level_scene_view)
         item = QGraphicsPixmapItem(self.level_blocks_pixmap.scaled(4 * 16 * 2, 16 * 16 * 2))
@@ -144,7 +144,7 @@ class MapWidget(QWidget):
         group_border.setLayout(border_layout)
         self.border_scene = BorderScene(self)
         self.border_scene_view = QtWidgets.QGraphicsView()
-        self.border_scene_view.setViewport(QGLWidget())
+        self.border_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.border_scene_view.setScene(self.border_scene)
         self.border_scene_view.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         border_layout.addWidget(self.border_scene_view, 1, 1, 1, 1)
@@ -169,7 +169,7 @@ class MapWidget(QWidget):
         self.selection_scene = QGraphicsScene()
         self.selection_scene_view = QtWidgets.QGraphicsView()
         self.selection_scene_view.setScene(self.selection_scene)
-        self.selection_scene_view.setViewport(QGLWidget())
+        self.selection_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         group_selection_layout.addWidget(self.selection_scene_view, 1, 1, 2, 1)
         self.select_levels = QtWidgets.QCheckBox('Select Levels')
         self.select_levels.setChecked(False)
@@ -182,7 +182,7 @@ class MapWidget(QWidget):
         self.auto_group.setLayout(auto_group_layout)
         self.auto_shapes_scene = AutoScene(self)
         self.auto_shapes_scene_view = QtWidgets.QGraphicsView()
-        self.auto_shapes_scene_view.setViewport(QGLWidget())
+        self.auto_shapes_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.auto_shapes_scene_view.setScene(self.auto_shapes_scene)
         self.auto_shapes_scene_view.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         auto_group_layout.addWidget(self.auto_shapes_scene_view)
@@ -195,7 +195,7 @@ class MapWidget(QWidget):
         group_blocks.setLayout(group_blocks_layout)
         self.blocks_scene = BlocksScene(self)
         self.blocks_scene_view = QtWidgets.QGraphicsView()
-        self.blocks_scene_view.setViewport(QGLWidget())
+        self.blocks_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.blocks_scene_view.setScene(self.blocks_scene)
         group_blocks_layout.addWidget(self.blocks_scene_view)
         group_blocks.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
