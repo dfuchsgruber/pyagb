@@ -65,7 +65,7 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
             datatype,
             tileset,
             [],
-            [],
+            None,
         )
         self.addParameters(self.root, showTop=False)  # type: ignore
         self.root.sigTreeStateChanged.connect(self.tree_changed)  # type: ignore
