@@ -33,13 +33,15 @@ class TilesetWidget(QtWidgets.QWidget):
     @property
     def tileset_loaded(self) -> bool:
         """If a tileset is currently loaded."""
-        return self.main_gui.project is not None and \
-            self.main_gui.header is not None and \
-            self.main_gui.footer is not None and \
-            self.main_gui.tileset_primary is not None and \
-            self.main_gui.tileset_secondary is not None
+        return (
+            self.main_gui.project is not None
+            and self.main_gui.header is not None
+            and self.main_gui.footer is not None
+            and self.main_gui.tileset_primary is not None
+            and self.main_gui.tileset_secondary is not None
+        )
 
-    def __init__(self, main_gui: PymapGui, parent: QtWidgets.QWidget | None=None):
+    def __init__(self, main_gui: PymapGui, parent: QtWidgets.QWidget | None = None):
         """Widget for editing tilesets.
 
         Args:
@@ -74,9 +76,11 @@ class TilesetWidget(QtWidgets.QWidget):
         gfx_layout.addWidget(self.gfx_secondary_combobox, 2, 2, 1, 1)
 
         self.gfx_primary_combobox.currentTextChanged.connect(
-            partial(self.main_gui.change_gfx, primary=True))
+            partial(self.main_gui.change_gfx, primary=True)
+        )
         self.gfx_secondary_combobox.currentTextChanged.connect(
-            partial(self.main_gui.change_gfx, primary=False))
+            partial(self.main_gui.change_gfx, primary=False)
+        )
         gfx_layout.setColumnStretch(1, 0)
         gfx_layout.setColumnStretch(2, 1)
         layout.addWidget(gfx_group, 2, 2, 1, 1)
@@ -220,7 +224,7 @@ class TilesetWidget(QtWidgets.QWidget):
         layout.setColumnStretch(2, 1)
         layout.setColumnStretch(3, 1)
 
-        self.load_project() # Initialize widgets as disabled
+        self.load_project()  # Initialize widgets as disabled
 
     @property
     def tiles_flip(self) -> TileFlip:
@@ -236,17 +240,21 @@ class TilesetWidget(QtWidgets.QWidget):
             flip |= TileFlip.VERTICAL
         return TileFlip(flip)
 
-
     def load_project(self):
         """Loads a new project."""
-        if self.main_gui.project is None: return
+        if self.main_gui.project is None:
+            return
         self.gfx_primary_combobox.blockSignals(True)
         self.gfx_primary_combobox.clear()
-        self.gfx_primary_combobox.addItems(list(self.main_gui.project.gfxs_primary.keys()))
+        self.gfx_primary_combobox.addItems(
+            list(self.main_gui.project.gfxs_primary.keys())
+        )
         self.gfx_primary_combobox.blockSignals(False)
         self.gfx_secondary_combobox.blockSignals(True)
         self.gfx_secondary_combobox.clear()
-        self.gfx_secondary_combobox.addItems(list(self.main_gui.project.gfxs_secondary.keys()))
+        self.gfx_secondary_combobox.addItems(
+            list(self.main_gui.project.gfxs_secondary.keys())
+        )
         self.gfx_secondary_combobox.blockSignals(False)
         self.load_header()
 
@@ -257,7 +265,13 @@ class TilesetWidget(QtWidgets.QWidget):
         self.selection_scene.clear()
         self.blocks_scene.clear()
         self.selected_block_idx = 0
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None:
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
             self.behaviour_clipboard_paste.setEnabled(False)
             self.behaviour_clipboard_copy.setEnabled(False)
             self.behaviour_clipboard_clear.setEnabled(False)
@@ -272,8 +286,14 @@ class TilesetWidget(QtWidgets.QWidget):
             self.behaviour_clipboard_clear.setEnabled(True)
             self.gfx_primary_combobox.setEnabled(True)
             self.gfx_secondary_combobox.setEnabled(True)
-            gfx_primary_label = properties.get_member_by_path(self.main_gui.tileset_primary, self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'])
-            gfx_secondary_label = properties.get_member_by_path(self.main_gui.tileset_secondary, self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'])
+            gfx_primary_label = properties.get_member_by_path(
+                self.main_gui.tileset_primary,
+                self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'],
+            )
+            gfx_secondary_label = properties.get_member_by_path(
+                self.main_gui.tileset_secondary,
+                self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'],
+            )
             self.gfx_primary_combobox.blockSignals(True)
             self.gfx_primary_combobox.setCurrentText(gfx_primary_label)
             self.gfx_primary_combobox.blockSignals(False)
@@ -288,9 +308,7 @@ class TilesetWidget(QtWidgets.QWidget):
 
             self.load_tiles()
             self.load_blocks()
-            self.set_selection(np.array([[
-                self.get_empty_block_tile()
-            ]]))
+            self.set_selection(np.array([[self.get_empty_block_tile()]]))
             self.set_current_block(0)
 
     def get_empty_block_tile(self) -> ModelValue:
@@ -299,16 +317,33 @@ class TilesetWidget(QtWidgets.QWidget):
         Returns:
             ModelValue: The empty block tile.
         """
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
-        config = self.main_gui.project.config['pymap']['tileset_primary' if self.selected_block_idx < 0x280 else 'tileset_secondary']
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
+        config = self.main_gui.project.config['pymap'][
+            'tileset_primary'
+            if self.selected_block_idx < 0x280
+            else 'tileset_secondary'
+        ]
         datatype = self.main_gui.project.model[config['block_datatype']]
-        tileset = self.main_gui.tileset_primary if self.selected_block_idx < 0x280 else self.main_gui.tileset_secondary
+        tileset = (
+            self.main_gui.tileset_primary
+            if self.selected_block_idx < 0x280
+            else self.main_gui.tileset_secondary
+        )
         # Create a new "empty" instance
         return datatype(
             self.main_gui.project,
             config['blocks_path'] + [self.selected_block_idx % 0x280, 0],
-            properties.get_parents_by_path(tileset, config['blocks_path'] + [self.selected_block_idx % 0x280, 0]),
-            )
+            properties.get_parents_by_path(
+                tileset, config['blocks_path'] + [self.selected_block_idx % 0x280, 0]
+            ),
+        )
 
     @property
     def selected_block(self) -> npt.NDArray[np.object_]:
@@ -321,7 +356,14 @@ class TilesetWidget(QtWidgets.QWidget):
 
     def reload(self):
         """Reloads the entire view (in case tiles or gfx have changed)."""
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         self.load_tiles()
         self.load_blocks()
         self.set_current_block(self.selected_block_idx)
@@ -329,7 +371,14 @@ class TilesetWidget(QtWidgets.QWidget):
 
     def load_tiles(self):
         """Reloads the tiles."""
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         self.tile_pixmaps = []
         for palette_idx in range(13):
             pixmaps = {}
@@ -345,13 +394,22 @@ class TilesetWidget(QtWidgets.QWidget):
                         tile_img = tile_img.transpose(Image.FLIP_TOP_BOTTOM)
                         y = 63 - y
                     image.paste(tile_img, box=(8 * x, 8 * y))
-                pixmaps[flip] = QPixmap.fromImage(ImageQt(image.convert('RGB').convert('RGBA')))
+                pixmaps[flip] = QPixmap.fromImage(
+                    ImageQt(image.convert('RGB').convert('RGBA'))
+                )
             self.tile_pixmaps.append(pixmaps)
         self.update_tiles()
 
     def load_blocks(self):
         """Reloads the blocks."""
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         self.blocks_image = render.draw_blocks(self.main_gui.blocks)
         self.update_blocks()
 
@@ -360,7 +418,14 @@ class TilesetWidget(QtWidgets.QWidget):
         self.block_lower_scene.clear()
         self.block_mid_scene.clear()
         self.block_upper_scene.clear()
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         self.selected_block_idx = block_idx
         self.block_lower_scene.update_block()
         self.block_mid_scene.update_block()
@@ -371,25 +436,58 @@ class TilesetWidget(QtWidgets.QWidget):
     def update_blocks(self):
         """Updates the display of the blocks."""
         self.blocks_scene.clear()
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         width, height = self.blocks_image.size
-        width, height = int(width * self.zoom_slider.value() / 10), int(height * self.zoom_slider.value() / 10)
+        width, height = (
+            int(width * self.zoom_slider.value() / 10),
+            int(height * self.zoom_slider.value() / 10),
+        )
         pixmap = QPixmap.fromImage(ImageQt(self.blocks_image)).scaled(width, height)
         item = QGraphicsPixmapItem(pixmap)
         self.blocks_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         # Add the selection rectangle
         color = QColor.fromRgbF(1.0, 0.0, 0.0, 1.0)
-        self.blocks_scene.selection_rect = self.blocks_scene.addRect(0, 0, 0, 0, pen = QPen(color, 1.0 * self.zoom_slider.value() / 10), brush = QBrush(0))
+        self.blocks_scene.selection_rect = self.blocks_scene.addRect(
+            0,
+            0,
+            0,
+            0,
+            pen=QPen(color, 1.0 * self.zoom_slider.value() / 10),
+            brush=QBrush(0),
+        )
         self.blocks_scene.update_selection_rect()
 
     def update_tiles(self):
         """Updates the display of the tiles widget."""
         self.tiles_scene.clear()
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
-        width, height = int(128 * self.zoom_slider.value() / 10), int(512 * self.zoom_slider.value() / 10)
-        flip = (HFLIP if self.tiles_mirror_horizontal_checkbox.isChecked() else 0) | (VFLIP if self.tiles_mirror_vertical_checkbox.isChecked() else 0)
-        item = QGraphicsPixmapItem(self.tile_pixmaps[self.tiles_palette_combobox.currentIndex()][flip].scaled(width, height))
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
+        width, height = (
+            int(128 * self.zoom_slider.value() / 10),
+            int(512 * self.zoom_slider.value() / 10),
+        )
+        flip = (HFLIP if self.tiles_mirror_horizontal_checkbox.isChecked() else 0) | (
+            VFLIP if self.tiles_mirror_vertical_checkbox.isChecked() else 0
+        )
+        item = QGraphicsPixmapItem(
+            self.tile_pixmaps[self.tiles_palette_combobox.currentIndex()][flip].scaled(
+                width, height
+            )
+        )
         self.tiles_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         # Add the selection rectangle
@@ -401,7 +499,14 @@ class TilesetWidget(QtWidgets.QWidget):
         """Event handler for when the zoom has changed."""
         self.zoom_label.setText(f'{self.zoom_slider.value() * 10}%')
         self.main_gui.settings['tileset.zoom'] = self.zoom_slider.value()
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         self.update_tiles()
         self.update_blocks()
         self.set_selection(self.selection)
@@ -421,8 +526,15 @@ class TilesetWidget(QtWidgets.QWidget):
             if tile['vertical_flip']:
                 tile_img = tile_img.transpose(Image.FLIP_TOP_BOTTOM)
             image.paste(tile_img, box=(8 * x, 8 * y))
-        width, height = int(8 * selection.shape[1] * self.zoom_slider.value() / 10), int(8 * selection.shape[0] * self.zoom_slider.value() / 10)
-        item = QGraphicsPixmapItem(QPixmap.fromImage(ImageQt(image.convert('RGB').convert('RGBA'))).scaled(width, height))
+        width, height = (
+            int(8 * selection.shape[1] * self.zoom_slider.value() / 10),
+            int(8 * selection.shape[0] * self.zoom_slider.value() / 10),
+        )
+        item = QGraphicsPixmapItem(
+            QPixmap.fromImage(ImageQt(image.convert('RGB').convert('RGBA'))).scaled(
+                width, height
+            )
+        )
         self.selection_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         self.selection_scene.setSceneRect(0, 0, width, height)
@@ -432,149 +544,154 @@ class TilesetWidget(QtWidgets.QWidget):
         if tile_idx is None:
             self.info_label.setText('')
         else:
-            section = 'Primary Tileset' if tile_idx < 640 else ('Secondary Tileset' if tile_idx < 1020 else 'Reserved for Doors')
+            section = (
+                'Primary Tileset'
+                if tile_idx < 640
+                else ('Secondary Tileset' if tile_idx < 1020 else 'Reserved for Doors')
+            )
             self.info_label.setText(f'Tile {hex(tile_idx)}, {section}')
 
     def export_gfx(self):
         """Prompts the user to export to export a gfx in the selected palette."""
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         message_box = QMessageBox(self)
-        message_box.setWindowTitle(f'Export Gfx in Palette {self.tiles_palette_combobox.currentIndex()}')
-        message_box.setText(f'Select which gfx to export in palette {self.tiles_palette_combobox.currentIndex()}')
+        message_box.setWindowTitle(
+            f'Export Gfx in Palette {self.tiles_palette_combobox.currentIndex()}'
+        )
+        message_box.setText(
+            f'Select which gfx to export in palette {self.tiles_palette_combobox.currentIndex()}'
+        )
         message_box.setStandardButtons(QMessageBox.Cancel)
         bt_primary = message_box.addButton('Primary', QMessageBox.AcceptRole)
         bt_secondary = message_box.addButton('Secondary', QMessageBox.AcceptRole)
         message_box.exec_()
 
         # Fetch current palettes
-        palettes_primary = properties.get_member_by_path(self.main_gui.tileset_primary, self.main_gui.project.config['pymap']['tileset_primary']['palettes_path'])
-        palettes_secondary = properties.get_member_by_path(self.main_gui.tileset_secondary, self.main_gui.project.config['pymap']['tileset_secondary']['palettes_path'])
-        palette = (render.pack_colors(palettes_primary, self.main_gui.project) + render.pack_colors(palettes_secondary, self.main_gui.project))[self.tiles_palette_combobox.currentIndex()]
+        palettes_primary = properties.get_member_by_path(
+            self.main_gui.tileset_primary,
+            self.main_gui.project.config['pymap']['tileset_primary']['palettes_path'],
+        )
+        palettes_secondary = properties.get_member_by_path(
+            self.main_gui.tileset_secondary,
+            self.main_gui.project.config['pymap']['tileset_secondary']['palettes_path'],
+        )
+        palette = (
+            render.pack_colors(palettes_primary, self.main_gui.project)
+            + render.pack_colors(palettes_secondary, self.main_gui.project)
+        )[self.tiles_palette_combobox.currentIndex()]
 
         if message_box.clickedButton() == bt_primary:
-            label = properties.get_member_by_path(self.main_gui.tileset_primary, self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'])
+            label = properties.get_member_by_path(
+                self.main_gui.tileset_primary,
+                self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'],
+            )
             img = self.main_gui.project.load_gfx(True, label)
             self.main_gui.project.save_gfx(True, img, palette, label)
         elif message_box.clickedButton() == bt_secondary:
-            label = properties.get_member_by_path(self.main_gui.tileset_secondary, self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'])
+            label = properties.get_member_by_path(
+                self.main_gui.tileset_secondary,
+                self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'],
+            )
             img = self.main_gui.project.load_gfx(False, label)
             self.main_gui.project.save_gfx(False, img, palette, label)
 
     def copy_behaviour(self):
         """Copies the behaviour properties of the current block."""
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         self.behaviour_clipboard = self.block_properties.get_value()
         self.behaviour_clipboard_paste.setEnabled(True)
 
     def paste_behaviour(self):
         """Pastes the behaviour properties in the current clipboard."""
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         self.block_properties.set_value(self.behaviour_clipboard)
 
     def clear_behaviour(self):
         """Clears the behaviour properties of the current block."""
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
-        config = self.main_gui.project.config['pymap']['tileset_primary' if self.selected_block_idx < 0x280 else 'tileset_secondary']
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
+        config = self.main_gui.project.config['pymap'][
+            'tileset_primary'
+            if self.selected_block_idx < 0x280
+            else 'tileset_secondary'
+        ]
         datatype = self.main_gui.project.model[config['behaviour_datatype']]
-        tileset = self.main_gui.tileset_primary if self.selected_block_idx < 0x280 else self.main_gui.tileset_secondary
+        tileset = (
+            self.main_gui.tileset_primary
+            if self.selected_block_idx < 0x280
+            else self.main_gui.tileset_secondary
+        )
         # Create a new "empty" instance
         empty = datatype(
             self.main_gui.project,
             config['behaviours_path'] + [self.selected_block_idx % 0x280],
-            properties.get_parents_by_path(tileset, config['behaviours_path'] + [self.selected_block_idx % 0x280]),
-            )
+            properties.get_parents_by_path(
+                tileset, config['behaviours_path'] + [self.selected_block_idx % 0x280]
+            ),
+        )
         self.block_properties.set_value(empty)
 
     def import_palette(self):
         """Prompts a dialoge that asks the user to select a 4bpp png to import a palette from."""
-        if self.main_gui.project is None or self.main_gui.header is None or self.main_gui.footer is None or self.main_gui.tileset_primary is None or self.main_gui.tileset_secondary is None: return
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
         path, suffix = QFileDialog.getOpenFileName(
-            self, 'Import Palette from File', os.path.join(os.path.dirname(self.main_gui.settings['recent.palette']),
-            'palette.png'), '4BPP PNG files (*.png)')
+            self,
+            'Import Palette from File',
+            os.path.join(
+                os.path.dirname(self.main_gui.settings['recent.palette']), 'palette.png'
+            ),
+            '4BPP PNG files (*.png)',
+        )
         self.main_gui.settings['recent.palette'] = path
         _, palette = agbimage.from_file(path)
         palette = palette.to_data()
         pal_idx = self.tiles_palette_combobox.currentIndex()
         if pal_idx < 7:
-            palette_old = properties.get_member_by_path(self.main_gui.tileset_primary, self.main_gui.project.config['pymap']['tileset_primary']['palettes_path'])[pal_idx]
+            palette_old = properties.get_member_by_path(
+                self.main_gui.tileset_primary,
+                self.main_gui.project.config['pymap']['tileset_primary'][
+                    'palettes_path'
+                ],
+            )[pal_idx]
         else:
-            palette_old = properties.get_member_by_path(self.main_gui.tileset_secondary, self.main_gui.project.config['pymap']['tileset_secondary']['palettes_path'])[pal_idx % 7]
+            palette_old = properties.get_member_by_path(
+                self.main_gui.tileset_secondary,
+                self.main_gui.project.config['pymap']['tileset_secondary'][
+                    'palettes_path'
+                ],
+            )[pal_idx % 7]
         self.undo_stack.push(history.SetPalette(self, pal_idx, palette, palette_old))
-
-
-
-
-
-
-class BlockProperties(ParameterTree):
-    """Tree to display block properties."""
-
-    def __init__(self, tileset_widget, parent=None):
-        super().__init__(parent=parent)
-        self.tileset_widget = tileset_widget
-        self.setHeaderLabels(['Property', 'Value'])
-        self.header().setSectionResizeMode(QHeaderView.Interactive)
-        self.header().setStretchLastSection(True)
-        self.root = None
-
-    def load_block(self):
-        """Loads the currently displayed blocks properties."""
-        self.clear()
-        if self.tileset_widget.main_gui.project is None or self.tileset_widget.main_gui.header is None or self.tileset_widget.main_gui.footer is None or \
-            self.tileset_widget.main_gui.tileset_primary is None or self.tileset_widget.main_gui.tileset_secondary is None:
-            self.root = None
-        else:
-            config = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.tileset_widget.selected_block_idx < 0x280 else 'tileset_secondary']
-            tileset = self.tileset_widget.main_gui.tileset_primary if self.tileset_widget.selected_block_idx < 0x280 else self.tileset_widget.main_gui.tileset_secondary
-            datatype = config['behaviour_datatype']
-            behaviours = properties.get_member_by_path(tileset, config['behaviours_path'])
-            behaviour = behaviours[self.tileset_widget.selected_block_idx % 0x280]
-            parents = properties.get_parents_by_path(tileset, config['behaviours_path'] + [self.tileset_widget.selected_block_idx % 0x280])
-
-            self.root = properties.type_to_parameter(self.tileset_widget.main_gui.project, datatype)(
-                '.', self.tileset_widget.main_gui.project, datatype, behaviour,
-                config['behaviours_path'] + [self.tileset_widget.selected_block_idx % 0x280],
-                parents)
-            self.addParameters(self.root, showTop=False)
-            self.root.sigTreeStateChanged.connect(self.tree_changed)
-
-    def update(self):
-        """Updates all values in the tree according to the current properties."""
-        config = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.tileset_widget.selected_block_idx < 0x280 else 'tileset_secondary']
-        tileset = self.tileset_widget.main_gui.tileset_primary if self.tileset_widget.selected_block_idx < 0x280 else self.tileset_widget.main_gui.tileset_secondary
-        behaviour = properties.get_member_by_path(tileset, config['behaviours_path'])[self.tileset_widget.selected_block_idx % 0x280]
-        self.root.blockSignals(True)
-        self.root.update(behaviour)
-        self.root.blockSignals(False)
-
-    def tree_changed(self, changes):
-        config = self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.tileset_widget.selected_block_idx < 0x280 else 'tileset_secondary']
-        tileset = self.tileset_widget.main_gui.tileset_primary if self.tileset_widget.selected_block_idx < 0x280 else self.tileset_widget.main_gui.tileset_secondary
-        root = properties.get_member_by_path(tileset, config['behaviours_path'])[self.tileset_widget.selected_block_idx % 0x280]
-        diffs = DeepDiff(root, self.root.model_value())
-        statements_redo = []
-        statements_undo = []
-        for change in ('type_changes', 'values_changed'):
-            if change in diffs:
-                for path in diffs[change]:
-                    value_new = diffs[change][path]['new_value']
-                    value_old = diffs[change][path]['old_value']
-                    statements_redo.append(f'{path} = \'{value_new}\'')
-                    statements_undo.append(f'{path} = \'{value_old}\'')
-                    self.tileset_widget.undo_stack.push(history.ChangeBlockProperty(
-                        self.tileset_widget, self.tileset_widget.selected_block_idx, statements_redo, statements_undo
-                    ))
-
-    def get_value(self) -> ModelValue:
-        """Gets the model value of the current block or None if no block is selected."""
-        if self.root is None:
-            return None
-        return self.root.model_value()
-
-    def set_value(self, behaviour: ModelValue):
-        """Replaces the entrie properties of the current block if one is selected."""
-        if self.model is None: return
-        self.root.blockSignals(True)
-        self.root.update(behaviour)
-        self.root.blockSignals(False)
-        self.tree_changed(None)

@@ -1,34 +1,25 @@
-"""Tree view for properties of the tileset."""
-
-"""Scene for the individual tiles."""
+"""Properties tree for the tileset."""
 
 from __future__ import annotations
 
-from enum import IntFlag, auto
 from typing import TYPE_CHECKING
 
-import numpy as np
-import numpy.typing as npt
+from agb.model.type import ModelValue
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
-
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QPen
 from PySide6.QtWidgets import (
-    QGraphicsScene,
-    QGraphicsSceneMouseEvent,
     QWidget,
 )
 from typing_extensions import ParamSpec
 
-from .. import render
-from .child import TilesetChildWidgetMixin, if_tileset_loaded
 from pymap.gui.properties import type_to_parameter
+
+from .child import TilesetChildWidgetMixin, if_tileset_loaded
 
 _P = ParamSpec("_P")
 
 if TYPE_CHECKING:
     from .tileset import TilesetWidget
-    
+
 
 class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
     """Tree to display additional properties of the tilesets."""
@@ -50,32 +41,38 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
         self.header().setStretchLastSection(True)
         self.root = None
 
+    @if_tileset_loaded
+    def _load_tileset(self):
+        """Implementation of loading the tileset into the tree."""
+        assert self.tileset_widget.main_gui.project is not None
+        config = self.tileset_widget.main_gui.project.config['pymap']\
+            ['tileset_primary'if self.is_primary else 'tileset_secondary']
+        datatype = config['datatype']
+        tileset = self.tileset_widget.main_gui.tileset_primary \
+            if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
+        self.root = type_to_parameter(self.tileset_widget.main_gui.project,
+                                        datatype)('.',
+                                                self.tileset_widget.main_gui.project,
+                                                datatype, tileset, [], None,)
+        self.addParameters(self.root, showTop=False) # type: ignore
+        self.root.sigTreeStateChanged.connect(self.tree_changed) # type: ignore
+
     def load_tileset(self):
         """Loads the current tileset into the tree."""
         self.clear()
         self.root = None
-        with if_tileset_loaded():
-            assert self.tileset_widget.main_gui.project is not None
-            config = self.tileset_widget.main_gui.project.config['pymap']\
-                ['tileset_primary'if self.is_primary else 'tileset_secondary']
-            datatype = config['datatype']
-            tileset = self.tileset_widget.main_gui.tileset_primary \
-                if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
-            self.root = type_to_parameter(self.tileset_widget.main_gui.project,
-                                          datatype)('.',
-                                                    self.tileset_widget.main_gui.project,
-                                                    datatype, tileset, [], [],)
-            self.addParameters(self.root, showTop=False) # type: ignore
-            self.root.sigTreeStateChanged.connect(self.tree_changed)
+        self._load_tileset()
 
     def update(self):
         """Updates all values in the tree according to the current properties."""
         # config = self.tileset_widget.main_gui.self.tileset_widget.main_gui.project.config['pymap']['tileset_primary' if self.is_primary else 'tileset_secondary']
-        tileset = self.tileset_widget.main_gui.tileset_primary if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
+        tileset = self.tileset_widget.main_gui.tileset_primary \
+            if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
         self.root.blockSignals(True)
         self.root.update(tileset)
         self.root.blockSignals(False)
 
+    @if_tileset_loaded
     def tree_changed(self, changes):
         root = self.tileset_widget.main_gui.tileset_primary if self.is_primary else self.tileset_widget.main_gui.tileset_secondary
         diffs = DeepDiff(root, self.root.model_value())
@@ -92,14 +89,15 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
                         self.tileset_widget, self.is_primary, statements_redo, statements_undo
                     ))
 
-    def get_value(self):
+    def get_value(self) -> ModelValue:
         """Gets the model value of the current block or None if no block is selected."""
-        if self.root is None: return None
+        if self.root is None:
+            return None
         return self.root.model_value()
 
-    def set_value(self, behaviour):
+    @if_tileset_loaded
+    def set_value(self, behaviour: ModelValue):
         """Replaces the entry properties of the current block if one is selected."""
-        if self.model is None: return
         self.root.blockSignals(True)
         self.root.update(behaviour)
         self.root.blockSignals(False)

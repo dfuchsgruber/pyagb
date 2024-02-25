@@ -1,29 +1,46 @@
 """Abstract Type class."""
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Mapping, TypeAlias
+from typing import TYPE_CHECKING, Mapping, TypeAlias
 from warnings import warn
-from typing import TYPE_CHECKING
+
+import numpy as np
+import numpy.typing as npt
+
 if TYPE_CHECKING:
     from pymap.project import Project
 
 ScalarModelValue: TypeAlias = int | str | bool | None
-ModelValue: TypeAlias = ScalarModelValue | list['ModelValue'] | \
-    dict[str, 'ModelValue'] | tuple[str, 'ModelValue']
+IntArray: TypeAlias = npt.NDArray[np.int_]
+ModelValue: TypeAlias = (
+    ScalarModelValue
+    | list['ModelValue']
+    | dict[str, 'ModelValue']
+    | tuple[str, 'ModelValue']
+    | IntArray
+)
 ModelContextItem: TypeAlias = int | str | bool
 ModelContext: TypeAlias = list[ModelContextItem]
 ModelParents: TypeAlias = list[ModelValue]
 
-# Each project can define models which are mappings from 
+# Each project can define models which are mappings from
 # type names to the respective type instances.
 Model: TypeAlias = Mapping[str, 'Type']
+
 
 class Type(ABC):
     """Base type class."""
 
     @abstractmethod
-    def from_data(self, rom: bytearray, offset: int, project: Project,
-                  context: ModelContext, parents: ModelParents) -> ModelValue:
+    def from_data(
+        self,
+        rom: bytearray,
+        offset: int,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> ModelValue:
         """Retrieves the type value from a rom.
 
         Parameters:
@@ -49,11 +66,16 @@ class Type(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def to_assembly(self, value: ModelValue, project: Project,
-                    context: ModelContext,
-                    parents: ModelParents, label: str | None=None,
-                    alignment: int | None=None,
-                    global_label: bool = False) -> tuple[str, list[str]]:
+    def to_assembly(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+        label: str | None = None,
+        alignment: int | None = None,
+        global_label: bool = False,
+    ) -> tuple[str, list[str]]:
         """Creates an assembly representation of the type.
 
         Parameters:
@@ -87,9 +109,9 @@ class Type(ABC):
         """
         raise NotImplementedError
 
-
-    def __call__(self, project: Project, context: ModelContext,
-                 parents: ModelParents) -> ModelValue:
+    def __call__(
+        self, project: Project, context: ModelContext, parents: ModelParents
+    ) -> ModelValue:
         """Initializes a new object.
 
         Parameters:
@@ -111,8 +133,13 @@ class Type(ABC):
         """
         raise NotImplementedError
 
-    def size(self, value: ModelValue, project: Project,
-             context: ModelContext, parents: ModelParents) -> int:
+    def size(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> int:
         """Returns the size of the object.
 
         Parameters:
@@ -136,8 +163,13 @@ class Type(ABC):
         """
         raise NotImplementedError
 
-    def get_constants(self, value: ModelValue, project: Project,
-                      context: ModelContext, parents: ModelParents) -> set[str]:
+    def get_constants(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> set[str]:
         """The set of all constants that are used by this type and potential subtypes.
 
         Parameters:
@@ -162,8 +194,9 @@ class Type(ABC):
         raise NotImplementedError
 
 
-def associate_with_constant(value: ScalarModelValue, proj: Project,
-                            constant: str | None) -> int | str:
+def associate_with_constant(
+    value: ScalarModelValue, proj: Project, constant: str | None
+) -> int | str:
     """Tries to associate a value form a constant table of the pymap project.
 
     Parameters:
@@ -192,8 +225,10 @@ def associate_with_constant(value: ScalarModelValue, proj: Project,
     assert isinstance(value, int)
     return value
 
-def label_and_align(assembly: str, label: str | None, alignment: int | None,
-                    global_label: bool) -> str:
+
+def label_and_align(
+    assembly: str, label: str | None, alignment: int | None, global_label: bool
+) -> str:
     """Adds label and alignment to an assembly representation of a type.
 
     Parameters:
@@ -222,5 +257,3 @@ def label_and_align(assembly: str, label: str | None, alignment: int | None,
         blocks.append(f'{label}:')
     blocks.append(assembly)
     return '\n'.join(blocks)
-
-

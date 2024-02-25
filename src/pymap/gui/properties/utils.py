@@ -2,6 +2,8 @@
 
 from typing import Type
 
+import numpy as np
+import numpy.typing as npt
 from agb.model.type import ModelParents, ModelValue
 
 from pymap.configuration import AttributePathType
@@ -28,8 +30,10 @@ def model_parents(root: ModelParameterMixin) -> ModelParents:
         parents = [root.model_value()] + parents
     return parents
 
-def type_to_parameter(project: Project, datatype_name: str) -> \
-    Type[ModelParameterMixin]:
+
+def type_to_parameter(
+    project: Project, datatype_name: str
+) -> Type[ModelParameterMixin]:
     """Translates a datatype into a parameter class.
 
     Parameters:
@@ -88,9 +92,12 @@ def type_to_parameter(project: Project, datatype_name: str) -> \
     else:
         raise RuntimeError(f'Unsupported datatype class {type(datatype)} of {datatype}')
 
+
 def get_member_by_path(value: ModelValue, path: AttributePathType) -> ModelValue:
     """Returns an attribute of a structure by its path."""
     for edge in path:
+        if isinstance(value, np.ndarray):
+            value = value[edge]  # type: ignore
         if isinstance(value, list) and isinstance(edge, int):
             value = value[edge]
         elif isinstance(value, dict) and isinstance(edge, str):
@@ -99,8 +106,12 @@ def get_member_by_path(value: ModelValue, path: AttributePathType) -> ModelValue
             raise RuntimeError(f'Unsupported edge type {type(edge)}')
     return value
 
-def set_member_by_path(target: ModelValue, value: ModelValue, # type: ignore
-                       path: AttributePathType):
+
+def set_member_by_path(
+    target: ModelValue,
+    value: ModelValue,  # type: ignore
+    path: AttributePathType,
+):
     """Sets the value of a structure by its path.
 
     Parameters:
@@ -115,13 +126,14 @@ def set_member_by_path(target: ModelValue, value: ModelValue, # type: ignore
     for edge in path[:-1]:
         match target:
             case list() if isinstance(edge, int):
-                target: ModelValue = target[edge] # type: ignore
+                target: ModelValue = target[edge]  # type: ignore
             case dict() if isinstance(edge, (str)):
-                target: ModelValue = target[edge] # type: ignore
-            case _: # type: ignore
+                target: ModelValue = target[edge]  # type: ignore
+            case _:  # type: ignore
                 raise RuntimeError(f'Unsupported edge type {type(edge)}')
     assert isinstance(target, (dict, list))
-    target[path[-1]] = value # type: ignore
+    target[path[-1]] = value  # type: ignore
+
 
 def get_parents_by_path(value: ModelValue, path: AttributePathType) -> ModelParents:
     """Builds the parents of an instance based on its path.
