@@ -2,20 +2,23 @@
 
 from __future__ import annotations
 
-import os
 from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
 from agb import image as agbimage
 from agb.model.type import ModelValue
-from deepdiff import DeepDiff  # type: ignore
 from PIL import Image
 from PIL.ImageQt import ImageQt
-from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QBrush, QColor, QPen, QPixmap
+from PySide6.QtWidgets import QFileDialog, QGraphicsPixmapItem, QMessageBox
+
+from pymap.gui.tileset.block_properties import BlockProperties
+from pymap.gui.tileset.tileset_properties import TilesetProperties
 
 from .. import history, properties, render
 from .block_scene import BlockScene
@@ -277,10 +280,8 @@ class TilesetWidget(QtWidgets.QWidget):
             self.behaviour_clipboard_clear.setEnabled(False)
             self.gfx_primary_combobox.setEnabled(False)
             self.gfx_secondary_combobox.setEnabled(False)
-            # self.animation_primary_line_edit.setEnabled(False)
-            # self.animation_secondary_line_edit.setEnabled(False)
-            self.properties_tree_tsp.setEnabled(False)
-            self.properties_tree_tss.setEnabled(False)
+            self.properties_tree_tsp.setEnabled(False)  # type: ignore
+            self.properties_tree_tss.setEnabled(False)  # type: ignore
         else:
             self.behaviour_clipboard_copy.setEnabled(True)
             self.behaviour_clipboard_clear.setEnabled(True)
@@ -294,15 +295,17 @@ class TilesetWidget(QtWidgets.QWidget):
                 self.main_gui.tileset_secondary,
                 self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'],
             )
+            assert isinstance(gfx_primary_label, str)
             self.gfx_primary_combobox.blockSignals(True)
             self.gfx_primary_combobox.setCurrentText(gfx_primary_label)
             self.gfx_primary_combobox.blockSignals(False)
+            assert isinstance(gfx_secondary_label, str)
             self.gfx_secondary_combobox.blockSignals(True)
             self.gfx_secondary_combobox.setCurrentText(gfx_secondary_label)
             self.gfx_secondary_combobox.blockSignals(False)
 
-            self.properties_tree_tsp.setEnabled(True)
-            self.properties_tree_tss.setEnabled(True)
+            self.properties_tree_tsp.setEnabled(True)  # type: ignore
+            self.properties_tree_tss.setEnabled(True)  # type: ignore
             self.properties_tree_tsp.load_tileset()
             self.properties_tree_tss.load_tileset()
 
@@ -373,24 +376,25 @@ class TilesetWidget(QtWidgets.QWidget):
         """Reloads the tiles."""
         if (
             self.main_gui.project is None
+            or self.main_gui.tiles is None
             or self.main_gui.header is None
             or self.main_gui.footer is None
             or self.main_gui.tileset_primary is None
             or self.main_gui.tileset_secondary is None
         ):
             return
-        self.tile_pixmaps = []
+        self.tile_pixmaps: list[dict[int, QPixmap]] = []
         for palette_idx in range(13):
-            pixmaps = {}
+            pixmaps: dict[int, QPixmap] = {}
             for flip in range(4):
                 # Assemble the entire picture
                 image = Image.new('RGBA', (128, 512))
                 for idx, tile_img in enumerate(self.main_gui.tiles[palette_idx]):
                     x, y = idx % 16, idx // 16
-                    if flip & HFLIP:
+                    if flip & TileFlip.HORIZONTAL:
                         tile_img = tile_img.transpose(Image.FLIP_LEFT_RIGHT)
                         x = 15 - x
-                    if flip & VFLIP:
+                    if flip & TileFlip.VERTICAL:
                         tile_img = tile_img.transpose(Image.FLIP_TOP_BOTTOM)
                         y = 63 - y
                     image.paste(tile_img, box=(8 * x, 8 * y))
@@ -410,7 +414,8 @@ class TilesetWidget(QtWidgets.QWidget):
             or self.main_gui.tileset_secondary is None
         ):
             return
-        self.blocks_image = render.draw_blocks(self.main_gui.blocks)
+        assert self.main_gui.blocks is not None
+        self.blocks_image = render.draw_blocks_pool(self.main_gui.blocks)
         self.update_blocks()
 
     def set_current_block(self, block_idx: int):
@@ -480,8 +485,12 @@ class TilesetWidget(QtWidgets.QWidget):
             int(128 * self.zoom_slider.value() / 10),
             int(512 * self.zoom_slider.value() / 10),
         )
-        flip = (HFLIP if self.tiles_mirror_horizontal_checkbox.isChecked() else 0) | (
-            VFLIP if self.tiles_mirror_vertical_checkbox.isChecked() else 0
+        flip = (
+            TileFlip.HORIZONTAL
+            if self.tiles_mirror_horizontal_checkbox.isChecked()
+            else 0
+        ) | (
+            TileFlip.VERTICAL if self.tiles_mirror_vertical_checkbox.isChecked() else 0
         )
         item = QGraphicsPixmapItem(
             self.tile_pixmaps[self.tiles_palette_combobox.currentIndex()][flip].scaled(
@@ -514,13 +523,18 @@ class TilesetWidget(QtWidgets.QWidget):
         self.block_mid_scene.update_block()
         self.block_upper_scene.update_block()
 
-    def set_selection(self, selection: npt.NDArray[np.int_]):
+    def set_selection(self, selection: npt.NDArray[np.object_]):
         """Sets the selection to a set of tiles."""
+        assert self.main_gui.tiles is not None
         self.selection = selection
         self.selection_scene.clear()
         image = Image.new('RGBA', (8 * selection.shape[1], 8 * selection.shape[0]))
         for (y, x), tile in np.ndenumerate(selection):
-            tile_img = self.main_gui.tiles[tile['palette_idx']][tile['tile_idx']]
+            assert isinstance(tile, dict)
+            palette_idx, tile_idx = tile['palette_idx'], tile['tile_idx']  # type: ignore
+            assert isinstance(palette_idx, int)
+            assert isinstance(tile_idx, int)
+            tile_img = self.main_gui.tiles[tile_idx][palette_idx]
             if tile['horizontal_flip']:
                 tile_img = tile_img.transpose(Image.FLIP_LEFT_RIGHT)
             if tile['vertical_flip']:
@@ -566,11 +580,14 @@ class TilesetWidget(QtWidgets.QWidget):
             f'Export Gfx in Palette {self.tiles_palette_combobox.currentIndex()}'
         )
         message_box.setText(
-            f'Select which gfx to export in palette {self.tiles_palette_combobox.currentIndex()}'
+            f'Select which gfx to export in palette '
+            f'{self.tiles_palette_combobox.currentIndex()}'
         )
-        message_box.setStandardButtons(QMessageBox.Cancel)
-        bt_primary = message_box.addButton('Primary', QMessageBox.AcceptRole)
-        bt_secondary = message_box.addButton('Secondary', QMessageBox.AcceptRole)
+        message_box.setStandardButtons(QMessageBox.StandardButton.Cancel)
+        bt_primary = message_box.addButton('Primary', QMessageBox.ButtonRole.AcceptRole)
+        bt_secondary = message_box.addButton(
+            'Secondary', QMessageBox.ButtonRole.AcceptRole
+        )
         message_box.exec_()
 
         # Fetch current palettes
@@ -582,9 +599,10 @@ class TilesetWidget(QtWidgets.QWidget):
             self.main_gui.tileset_secondary,
             self.main_gui.project.config['pymap']['tileset_secondary']['palettes_path'],
         )
+        assert self.main_gui.project is not None
         palette = (
-            render.pack_colors(palettes_primary, self.main_gui.project)
-            + render.pack_colors(palettes_secondary, self.main_gui.project)
+            render.pack_colors(palettes_primary)
+            + render.pack_colors(palettes_secondary)
         )[self.tiles_palette_combobox.currentIndex()]
 
         if message_box.clickedButton() == bt_primary:
@@ -592,6 +610,7 @@ class TilesetWidget(QtWidgets.QWidget):
                 self.main_gui.tileset_primary,
                 self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'],
             )
+            assert isinstance(label, str)
             img = self.main_gui.project.load_gfx(True, label)
             self.main_gui.project.save_gfx(True, img, palette, label)
         elif message_box.clickedButton() == bt_secondary:
@@ -599,6 +618,7 @@ class TilesetWidget(QtWidgets.QWidget):
                 self.main_gui.tileset_secondary,
                 self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'],
             )
+            assert isinstance(label, str)
             img = self.main_gui.project.load_gfx(False, label)
             self.main_gui.project.save_gfx(False, img, palette, label)
 
@@ -659,7 +679,7 @@ class TilesetWidget(QtWidgets.QWidget):
         self.block_properties.set_value(empty)
 
     def import_palette(self):
-        """Prompts a dialoge that asks the user to select a 4bpp png to import a palette from."""
+        """Prompts a dialoge to select an image to import a palette from."""
         if (
             self.main_gui.project is None
             or self.main_gui.header is None
@@ -668,12 +688,10 @@ class TilesetWidget(QtWidgets.QWidget):
             or self.main_gui.tileset_secondary is None
         ):
             return
-        path, suffix = QFileDialog.getOpenFileName(
+        path, _ = QFileDialog.getOpenFileName(
             self,
             'Import Palette from File',
-            os.path.join(
-                os.path.dirname(self.main_gui.settings['recent.palette']), 'palette.png'
-            ),
+            str(Path(self.main_gui.settings['recent.palette']).parent / 'palette.png'),
             '4BPP PNG files (*.png)',
         )
         self.main_gui.settings['recent.palette'] = path
@@ -681,17 +699,21 @@ class TilesetWidget(QtWidgets.QWidget):
         palette = palette.to_data()
         pal_idx = self.tiles_palette_combobox.currentIndex()
         if pal_idx < 7:
-            palette_old = properties.get_member_by_path(
+            palettes = properties.get_member_by_path(
                 self.main_gui.tileset_primary,
                 self.main_gui.project.config['pymap']['tileset_primary'][
                     'palettes_path'
                 ],
-            )[pal_idx]
+            )
+            assert isinstance(palettes, list)
+            palette_old = palettes[pal_idx]
         else:
-            palette_old = properties.get_member_by_path(
+            palettes = properties.get_member_by_path(
                 self.main_gui.tileset_secondary,
                 self.main_gui.project.config['pymap']['tileset_secondary'][
                     'palettes_path'
                 ],
-            )[pal_idx % 7]
-        self.undo_stack.push(history.SetPalette(self, pal_idx, palette, palette_old))
+            )
+            assert isinstance(palettes, list)
+            palette_old = palettes[pal_idx % 7]
+        self.undo_stack.push(history.SetPalette(self, pal_idx, palette, palette_old))  # type: ignore

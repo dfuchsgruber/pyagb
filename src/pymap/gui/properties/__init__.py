@@ -2,6 +2,7 @@
 
 from .utils import (
     get_member_by_path,
+    get_parents_by_path,
     model_parents,
     set_member_by_path,
     type_to_parameter,
@@ -12,4 +13,5 @@ __all__ = [
     'set_member_by_path',
     'model_parents',
     'type_to_parameter',
+    'get_parents_by_path',
 ]
