@@ -12,17 +12,23 @@ from pyqtgraph.parametertree.Parameter import Parameter  # type: ignore
 
 from pymap.project import Project  # type: ignore
 
-from ..utils import model_parents, type_to_parameter
+from ..utils import type_to_parameter
 from .base import ModelParameterMixin
 
 
 class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
     """A parameter for an array type."""
 
-    def __init__(self, name: str, project: Project, datatype_name: str,
-                 values: ModelValue, context: ModelContext,
-                 model_parent: 'ModelParameterMixin | None',
-                 **kwargs: dict[Any, Any]):
+    def __init__(
+        self,
+        name: str,
+        project: Project,
+        datatype_name: str,
+        values: ModelValue,
+        context: ModelContext,
+        parent_parameter: ModelParameterMixin | None,
+        **kwargs: dict[Any, Any],
+    ):
         """Initializes the Structure Parameter class.
 
         Parameters:
@@ -40,14 +46,21 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         model_parent : parameterTypes.Parameter
             The parent of the parameter according to the data model.
         """
-        parameterTypes.GroupParameter.__init__(self, name=name, **kwargs) # type: ignore
-        super().__init__(name, project, datatype_name, values, context,
-                                     model_parent, **kwargs)
+        parameterTypes.GroupParameter.__init__(self, name=name, **kwargs)  # type: ignore
+        super().__init__(
+            name, project, datatype_name, values, context, parent_parameter, **kwargs
+        )
         # Add the list that enables navigating through the array
         size: int = self.size_get()
-        self.addChild(parameterTypes.ListParameter(name='idx', title='Index', # type: ignore
-                                                   values=list(range(size)),
-                                                   value=None, default=None))
+        self.addChild(  # type: ignore
+            parameterTypes.ListParameter(
+                name='idx',
+                title='Index',  # type: ignore
+                values=list(range(size)),
+                value=None,
+                default=None,
+            )
+        )
         # Create one parameter for each value
         self.values: list[ModelParameterMixin] = []
         assert isinstance(values, list)
@@ -62,9 +75,9 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
             int: The size of the array.
         """
         assert isinstance(self.datatype, ArrayType)
-        return self.datatype.size_get(self.project, self.context, model_parents(self))
+        return self.datatype.size_get(self.project, self.context, self.model_parents)
 
-    def _insert(self, idx: int | None | str, value: ModelValue=None):
+    def _insert(self, idx: int | None | str, value: ModelValue = None):
         """Inserts a new element into the array.
 
         Parameters:
@@ -79,15 +92,23 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
             value_datatype_name = self.datatype.datatype
             value_parameter_class = type_to_parameter(self.project, value_datatype_name)
             if value is None:
-                value = self.project.model[value_datatype_name](self.project, \
+                value = self.project.model[value_datatype_name](
+                    self.project,
                     self.context + [int(idx)],
-                    model_parents(self) + [self.model_value()])
-            self.values.insert(int(idx), # type: ignore
-                               value_parameter_class(str(idx), self.project,
-                                                     value_datatype_name, value,
-                                                     self.context + [idx],
-                                                     self,
-                                                     title=f'<{value_datatype_name}>')) # type: ignore
+                    self.model_parents + [self.model_value],
+                )
+            self.values.insert(
+                int(idx),  # type: ignore
+                value_parameter_class(
+                    str(idx),
+                    self.project,
+                    value_datatype_name,
+                    value,
+                    self.context + [idx],
+                    self,
+                    title=f'<{value_datatype_name}>',
+                ),
+            )  # type: ignore
 
     def treeStateChanged(self, param: Parameter, changes: Any):
         """Called when the state of the tree changes.
@@ -96,8 +117,8 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
             param (Parameter): The parameter that changed.
             changes (Any): The changes that occured.
         """
-        super().treeStateChanged(param, changes) # type: ignore
-        if param is self.child('idx'): # type: ignore
+        super().treeStateChanged(param, changes)  # type: ignore
+        if param is self.child('idx'):  # type: ignore
             # Load the element at this index
             self.update_value()
 
@@ -106,13 +127,14 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         # Remove all subtree children
         for subtree in self.values:
             if subtree.parent() is not None:
-                assert(subtree.parent() is self)
+                assert subtree.parent() is self
                 subtree.remove()
         # Only show the child that matches the current index
-        idx: int | str | None = self.child('idx').value() # type: ignore
-        if idx is not None and idx != '' and int(idx) in range(self.size_get()): # type: ignore
-            self.addChild(self.values[int(idx)]) # type: ignore
+        idx: int | str | None = self.child('idx').value()  # type: ignore
+        if idx is not None and idx != '' and int(idx) in range(self.size_get()):  # type: ignore
+            self.addChild(self.values[int(idx)])  # type: ignore
 
+    @property
     def model_value(self) -> ModelValue:
         """Gets the value of this parameter according to the data model.
 
@@ -121,7 +143,7 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         value : list
             The value of the parameter.
         """
-        return list(map(lambda child: child.model_value(), self.values)) # type: ignore
+        return list(map(lambda child: child.model_value, self.values))  # type: ignore
 
     def update(self, values: ModelValue):
         """Updates the values in the array.
@@ -133,14 +155,22 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         """
         assert isinstance(values, list)
         for child, value in zip(self.values, values):
-            child.update(value) # type: ignore
+            child.update(value)  # type: ignore
+
 
 class FixedSizeArrayTypeParameter(ArrayTypeParameter):
     """Parameter for a fixed size array type."""
 
-    def __init__(self, name: str, project: Project, datatype_name: str,
-                 value: ModelValue, context: ModelContext,
-                 model_parent: 'ModelParameterMixin | None', **kwargs: dict[Any, Any]):
+    def __init__(
+        self,
+        name: str,
+        project: Project,
+        datatype_name: str,
+        value: ModelValue,
+        context: ModelContext,
+        parent_parameter: ModelParameterMixin | None,
+        **kwargs: dict[Any, Any],
+    ):
         """Initializes the Array Parameter class.
 
         Parameters:
@@ -159,8 +189,9 @@ class FixedSizeArrayTypeParameter(ArrayTypeParameter):
             The parent of the parameter according to the data model.
         """
         assert isinstance(self.datatype, FixedSizeArrayType)
-        super().__init__(name, project, datatype_name, value, context,
-                         model_parent, **kwargs)
+        super().__init__(
+            name, project, datatype_name, value, context, parent_parameter, **kwargs
+        )
 
     def size_get(self) -> int:
         """Gets the size of the array.
@@ -169,18 +200,24 @@ class FixedSizeArrayTypeParameter(ArrayTypeParameter):
             int: The size of the array.
         """
         assert isinstance(self.datatype, FixedSizeArrayType)
-        return self.datatype.size_get(self.project,
-                                      self.context, model_parents(self))
+        return self.datatype.size_get(self.project, self.context, self.model_parents)
+
 
 class VariableSizeArrayTypeParameter(ArrayTypeParameter):
     """Parameter for a variable size array type."""
 
     allowed_types = (VariableSizeArrayType, UnboundedArrayType)
 
-    def __init__(self, name: str, project: Project, datatype_name: str,
-                 value: ModelValue, context: ModelContext,
-                 model_parent: 'ModelParameterMixin | None',
-                 **kwargs: dict[Any, Any]):
+    def __init__(
+        self,
+        name: str,
+        project: Project,
+        datatype_name: str,
+        value: ModelValue,
+        context: ModelContext,
+        parent_parameter: ModelParameterMixin | None,
+        **kwargs: dict[Any, Any],
+    ):
         """Initializes the Array Parameter class.
 
         Parameters:
@@ -198,28 +235,32 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
         model_parent : parameterTypes.Parameter
             The parent of the parameter according to the data model.
         """
-        super().__init__(name, project, datatype_name, value, context, model_parent,
-                         **kwargs)
+        super().__init__(
+            name, project, datatype_name, value, context, parent_parameter, **kwargs
+        )
         assert isinstance(self.datatype, self.allowed_types)
         # Add widgets to add and remove elements
         remove_parameter = parameterTypes.ActionParameter(name='Remove')
-        self.addChild(remove_parameter) # type: ignore
-        remove_parameter.sigActivated.connect( # type: ignore
-            lambda: self._remove(idx=self.child('idx').value())) # type: ignore
+        self.addChild(remove_parameter)  # type: ignore
+        remove_parameter.sigActivated.connect(  # type: ignore
+            lambda: self._remove(idx=self.child('idx').value())  # type: ignore
+        )  # type: ignore
         append_parameter = parameterTypes.ActionParameter(name='Append')
-        self.addChild(append_parameter) # type: ignore
-        append_parameter.sigActivated.connect(self._append) # type: ignore
+        self.addChild(append_parameter)  # type: ignore
+        append_parameter.sigActivated.connect(self._append)  # type: ignore
         # Make length in parent read-only
-        if self._size_location() is not None: # type: ignore
+        if self._size_location() is not None:  # type: ignore
             self._size_location().setReadonly(True)
         self.update_value()
 
     def _adaptLimits(self):
         # Assert size still matches
         if self.size_get() != len(self.values):
-            raise RuntimeError(f'Size mismatch. Parent uses {self.size_get()} ' \
-                f'but array only holds {len(self.values)}')
-        self.child('idx').setLimits(list(range(len(self.values)))) # type: ignore
+            raise RuntimeError(
+                f'Size mismatch. Parent uses {self.size_get()} '
+                f'but array only holds {len(self.values)}'
+            )
+        self.child('idx').setLimits(list(range(len(self.values))))  # type: ignore
 
     def _append(self):
         """Appends a default element to the array."""
@@ -244,9 +285,8 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
             del self.values[idx]
             self.size_set(len(self.values))
             self._adaptLimits()
-            self.child('idx').setValue(len(self.values) - 1) # type: ignore
-            #self.update_value()
-
+            self.child('idx').setValue(len(self.values) - 1)  # type: ignore
+            # self.update_value()
 
     def _size_location(self) -> Parameter:
         """Gets the parameter that controls the size of the array.
@@ -257,14 +297,15 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
         assert isinstance(self.datatype, VariableSizeArrayType)
         n_parents, location = self.datatype.size_path
         if n_parents <= 0:
-            raise RuntimeError(f'Upwards parent traversals must be positive, ' \
-                f'not {n_parents}')
+            raise RuntimeError(
+                f'Upwards parent traversals must be positive, ' f'not {n_parents}'
+            )
         root = self
         for _ in range(n_parents):
-            root = root.model_parent # type: ignore
+            root = root.model_parent  # type: ignore
         for member in location:
-            root = root.child(member) # type: ignore
-        return root # type: ignore
+            root = root.child(member)  # type: ignore
+        return root  # type: ignore
 
     def size_get(self) -> int:
         """Gets the size of the array.
@@ -281,14 +322,22 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
         Args:
             size (int): The new size of the array.
         """
-        self._size_location().setValue(size) # type: ignore
+        self._size_location().setValue(size)  # type: ignore
+
 
 class UnboundedArrayTypeParameter(VariableSizeArrayTypeParameter):
     """Parameter for an unbounded array type."""
 
-    def __init__(self, name: str, project: Project,
-                 datatype_name: str, value: ModelValue, context: ModelContext,
-                 model_parent: 'ModelParameterMixin | None', **kwargs: dict[Any, Any]):
+    def __init__(
+        self,
+        name: str,
+        project: Project,
+        datatype_name: str,
+        value: ModelValue,
+        context: ModelContext,
+        parent_parameter: ModelParameterMixin | None,
+        **kwargs: dict[Any, Any],
+    ):
         """Initializes the Array Parameter class.
 
         Parameters:
@@ -309,8 +358,9 @@ class UnboundedArrayTypeParameter(VariableSizeArrayTypeParameter):
         assert isinstance(value, list)
         # First, initialize with a stub to make the size available
         self.values: list[Parameter | None] = [None] * len(value)
-        super().__init__(name, project, datatype_name, value, context, model_parent,
-                         **kwargs)
+        super().__init__(
+            name, project, datatype_name, value, context, parent_parameter, **kwargs
+        )
 
     def size_get(self) -> int:
         """Gets the size of the array.

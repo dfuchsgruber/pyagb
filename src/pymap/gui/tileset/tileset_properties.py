@@ -42,7 +42,7 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
         TilesetChildWidgetMixin.__init__(self, tileset_widget)
         self.tileset_widget = tileset_widget
         self.is_primary = is_primary
-        self.header().setSectionResizeMode(QHeaderView.Interactive)  # type: ignore
+        self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
         self.header().setStretchLastSection(True)  # type: ignore
         self.root = None
 
@@ -65,7 +65,7 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
             datatype,
             tileset,
             [],
-            None,
+            [],
         )
         self.addParameters(self.root, showTop=False)  # type: ignore
         self.root.sigTreeStateChanged.connect(self.tree_changed)  # type: ignore
@@ -101,7 +101,7 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
             else self.tileset_widget.main_gui.tileset_secondary
         )
         assert self.root is not None
-        diffs = DeepDiff(root, self.root.model_value())
+        diffs = DeepDiff(root, self.root.model_value)
         statements_redo: UndoRedoStatements = []
         statements_undo: UndoRedoStatements = []
         for change in ('type_changes', 'values_changed'):
@@ -124,7 +124,7 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
         """Gets the model value of the current block or None if no block is selected."""
         if self.root is None:
             return None
-        return self.root.model_value()
+        return self.root.model_value
 
     @if_tileset_loaded
     def set_value(self, behaviour: ModelValue):

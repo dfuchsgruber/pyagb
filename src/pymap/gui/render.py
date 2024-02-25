@@ -289,8 +289,8 @@ def pack_colors(palettes: ModelValue) -> list[PackedPalette]:
 
 
 def select_blocks(
-    blocks: npt.NDArray[np.int_], x0: int, x1: int, y0: int, y1: int
-) -> npt.NDArray[np.int_]:
+    blocks: npt.NDArray[np.object_], x0: int, x1: int, y0: int, y1: int
+) -> npt.NDArray[np.object_]:
     """Helper method to select a subset of an array by a box that may be negative.
 
     Parameters:

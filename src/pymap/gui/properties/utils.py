@@ -3,32 +3,11 @@
 from typing import Type
 
 import numpy as np
-import numpy.typing as npt
 from agb.model.type import ModelParents, ModelValue
 
 from pymap.configuration import AttributePathType
 from pymap.gui.properties.parameters.base import ModelParameterMixin
 from pymap.project import Project  # type: ignore
-
-
-def model_parents(root: ModelParameterMixin) -> ModelParents:
-    """Returns the parent values of a parameter in the serializable model format.
-
-    Parameters:
-    -----------
-    root : Parameter
-        The paremeter of which the parents will be retrieved.
-
-    Returns:
-    --------
-    parents : list
-        The parents of this value, with the last being the direct ancestor.
-    """
-    parents: ModelParents = []
-    while root.model_parent is not None:
-        root = root.model_parent
-        parents = [root.model_value()] + parents
-    return parents
 
 
 def type_to_parameter(
@@ -108,7 +87,7 @@ def get_member_by_path(value: ModelValue, path: AttributePathType) -> ModelValue
 
 
 def set_member_by_path(
-    target: ModelValue,
+    _target: ModelValue,
     value: ModelValue,  # type: ignore
     path: AttributePathType,
 ):
@@ -124,14 +103,14 @@ def set_member_by_path(
         A path to access the attribute
     """
     for edge in path[:-1]:
-        match target:
+        match _target:
             case list() if isinstance(edge, int):
-                target: ModelValue = target[edge]  # type: ignore
+                target: ModelValue = _target[edge]  # type: ignore
             case dict() if isinstance(edge, (str)):
-                target: ModelValue = target[edge]  # type: ignore
+                target: ModelValue = _target[edge]  # type: ignore
             case _:  # type: ignore
                 raise RuntimeError(f'Unsupported edge type {type(edge)}')
-    assert isinstance(target, (dict, list))
+    assert isinstance(_target, (dict, list))
     target[path[-1]] = value  # type: ignore
 
 

@@ -11,20 +11,26 @@ from pyqtgraph.parametertree import parameterTypes  # type: ignore
 from pymap.gui.properties.parameters.base import ModelParameterMixin
 from pymap.project import Project
 
-from ..utils import model_parents, type_to_parameter
+from ..utils import type_to_parameter
 
 
 class PointerParameter(ModelParameterMixin, parameterTypes.GroupParameter):
     """Parameter for a pointer."""
 
-    add_reference = 'Add reference' # Name and text of the 'Add reference'
-    remove_reference = 'Remove reference' # Name and text of the 'Remove reference'
-    referred = 'referred' # Name of the subtree that holds the referred values
+    add_reference = 'Add reference'  # Name and text of the 'Add reference'
+    remove_reference = 'Remove reference'  # Name and text of the 'Remove reference'
+    referred = 'referred'  # Name of the subtree that holds the referred values
 
-    def __init__(self, name: str, project: Project, datatype_name: str,
-                 value: ModelValue, context: ModelContext,
-                 model_parent: 'ModelParameterMixin | None',
-                 **kwargs: dict[Any, Any]):
+    def __init__(
+        self,
+        name: str,
+        project: Project,
+        datatype_name: str,
+        value: ModelValue,
+        context: ModelContext,
+        parameter_parent: ModelParameterMixin | None = None,
+        **kwargs: dict[Any, Any],
+    ):
         """Initializes the Pointer Parameter class.
 
         Parameters:
@@ -42,9 +48,10 @@ class PointerParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         model_parent : parameterTypes.Parameter
             The parent of the parameter according to the data model.
         """
-        super().__init__(name, project, datatype_name, value, context, model_parent,
-                         **kwargs)
-        parameterTypes.GroupParameter.__init__(self, name=name, **kwargs) # type: ignore
+        super().__init__(
+            name, project, datatype_name, value, context, parameter_parent, **kwargs
+        )
+        parameterTypes.GroupParameter.__init__(self, name=name, **kwargs)  # type: ignore
         if value is not None:
             self.add_new(referred=value)
         else:
@@ -62,31 +69,36 @@ class PointerParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         """
         assert isinstance(self.datatype, PointerType)
         referred_datatype_name = self.datatype.datatype
-        referred_parameter_class = type_to_parameter(self.project,
-                                                     referred_datatype_name)
+        referred_parameter_class = type_to_parameter(
+            self.project, referred_datatype_name
+        )
         if referred is None:
-            referred = self.project.model[referred_datatype_name](self.project,
-                                                                  self.context,
-                                                                  model_parents(self))
-        child = referred_parameter_class(PointerParameter.referred, self.project,
-                                         referred_datatype_name, referred,
-                                         self.context, self.model_parent,
-                                         removable=True,
-                                         title=\
-                                             f'Reference to <{referred_datatype_name}>')
+            referred = self.project.model[referred_datatype_name](
+                self.project, self.context, self.model_parents
+            )
+        child = referred_parameter_class(
+            PointerParameter.referred,
+            self.project,
+            referred_datatype_name,
+            referred,
+            self.context,
+            self.parent_parameter,
+            removable=True,
+            title=f'Reference to <{referred_datatype_name}>',
+        )
 
-        self.addChild(child) # type: ignore
+        self.addChild(child)  # type: ignore
         # Remove the add button if present
         try:
-            self.child(PointerParameter.add_reference).remove() # type: ignore
+            self.child(PointerParameter.add_reference).remove()  # type: ignore
         except Exception:
             pass
 
     def _add_add(self):
         """Adds the add-button to this parameter."""
         child_add = parameterTypes.ActionParameter(name=PointerParameter.add_reference)
-        child_add.sigActivated.connect(lambda: self.add_new(referred=None)) # type: ignore
-        self.addChild(child_add) # type: ignore
+        child_add.sigActivated.connect(lambda: self.add_new(referred=None))  # type: ignore
+        self.addChild(child_add)  # type: ignore
 
     def treeStateChanged(self, param: Any, changes: Any):
         """Called when the state of the tree changes.
@@ -95,7 +107,7 @@ class PointerParameter(ModelParameterMixin, parameterTypes.GroupParameter):
             param (Any): The parameter that changed.
             changes (Any): The changes that occured.
         """
-        super().treeStateChanged(param, changes) # type: ignore
+        super().treeStateChanged(param, changes)  # type: ignore
         if not self.hasChild():
             # We do not have a child anymore, add the add-button
             self._add_add()
@@ -103,17 +115,17 @@ class PointerParameter(ModelParameterMixin, parameterTypes.GroupParameter):
     def remove(self):
         """Removes the instance of the referred value."""
         if self.hasChild():
-            self.child(PointerParameter.referred).remove() # type: ignore
+            self.child(PointerParameter.referred).remove()  # type: ignore
         # Remove the delete button if present
         try:
-            self.child(PointerParameter.remove_reference).remove() # type: ignore
+            self.child(PointerParameter.remove_reference).remove()  # type: ignore
         except Exception:
             pass
 
     def hasChild(self):
         """Checks if this parameter currently refers to a child."""
         try:
-            self.child(PointerParameter.referred) # type: ignore
+            self.child(PointerParameter.referred)  # type: ignore
             return True
         except Exception:
             return False
@@ -124,11 +136,11 @@ class PointerParameter(ModelParameterMixin, parameterTypes.GroupParameter):
             self.remove()
         else:
             if self.hasChild():
-                self.child(PointerParameter.referred).update(value) # type: ignore
+                self.child(PointerParameter.referred).update(value)  # type: ignore
             else:
                 self.add_new(referred=value)
 
-
+    @property
     def model_value(self) -> ModelValue:
         """Gets the value of this parameter according to the data model.
 
@@ -138,6 +150,6 @@ class PointerParameter(ModelParameterMixin, parameterTypes.GroupParameter):
             The value of the parameter.
         """
         try:
-            return self.child(PointerParameter.referred).model_value() # type: ignore
+            return self.child(PointerParameter.referred).model_value  # type: ignore
         except Exception:
             return None

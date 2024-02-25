@@ -193,8 +193,8 @@ class SetTiles(QUndoCommand):
         layer: int,
         x: int,
         y: int,
-        tiles_new: npt.NDArray[np.int_],
-        tiles_old: npt.NDArray[np.int_],
+        tiles_new: npt.NDArray[np.object_],
+        tiles_old: npt.NDArray[np.object_],
     ):
         """Initializes the tile change.
 
@@ -204,8 +204,8 @@ class SetTiles(QUndoCommand):
             layer (int): which layer to change
             x (int): x coordinate
             y (int): y coordinate
-            tiles_new (npt.NDArray[np.int_]): new tiles
-            tiles_old (npt.NDArray[np.int_]): old tiles
+            tiles_new (npt.NDArray[np.object_]): new tiles
+            tiles_old (npt.NDArray[np.object_]): old tiles
         """
         super().__init__()
         self.tileset_widget = tileset_widget

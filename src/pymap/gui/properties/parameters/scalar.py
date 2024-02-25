@@ -20,10 +20,16 @@ class ScalarTypeParameter(ModelParameterMixin, ConstantsTypeParameter):
     """
 
     # Parameter for the tree that builds upon a scalar type
-    def __init__(self, name: str, project: Project, datatype_name: str,
-                 value: ModelValue, context: ModelContext,
-                 model_parent: 'ModelParameterMixin | None',
-                 **kwargs: dict[Any, Any]):
+    def __init__(
+        self,
+        name: str,
+        project: Project,
+        datatype_name: str,
+        value: ModelValue,
+        context: ModelContext,
+        parent_parameter: ModelParameterMixin | None = None,
+        **kwargs: dict[Any, Any],
+    ):
         """Initializes the ScalarType Parameter class.
 
         Parameters:
@@ -41,8 +47,9 @@ class ScalarTypeParameter(ModelParameterMixin, ConstantsTypeParameter):
         model_parent : parameterTypes.Parameter
             The parent of the parameter according to the data model.
         """
-        super().__init__(name, project, datatype_name, value, context,
-                         model_parent, **kwargs)
+        super().__init__(
+            name, project, datatype_name, value, context, parent_parameter, **kwargs
+        )
         # Make constants appear in the combo box
         constant: str | None = getattr(self.datatype, 'constant', None)
         if constant is not None:
@@ -50,4 +57,4 @@ class ScalarTypeParameter(ModelParameterMixin, ConstantsTypeParameter):
         else:
             constants = []
         ConstantsTypeParameter.__init__(self, name, constants, **kwargs)
-        self.setValue(value) # type: ignore
+        self.setValue(value)  # type: ignore

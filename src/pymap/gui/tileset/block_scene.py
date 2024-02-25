@@ -110,7 +110,7 @@ class BlockScene(QGraphicsScene, TilesetChildWidgetMixin):
                 self.tileset_widget.undo_stack.push(
                     history.SetTiles(
                         self.tileset_widget,
-                        self.tileset_widget.selected_block,
+                        self.tileset_widget.selected_block_idx,
                         int(self.layer),
                         x,
                         y,
