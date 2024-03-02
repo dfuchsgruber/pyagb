@@ -51,7 +51,7 @@ class ChangeConnectionProperty(QUndoCommand):
             ]['connections_path'],
         )
         assert isinstance(connections, list)
-        root = connections[self.connection_idx]  # noqa: F841
+        root = connections[self.connection_idx]  # type: ignore # noqa: F841
         for statement in self.statements_redo:
             exec(statement)
         self.connection_widget.update_connection(
