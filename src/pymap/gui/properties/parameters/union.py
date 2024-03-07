@@ -59,7 +59,7 @@ class UnionTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
                 self.project,
                 subtype,
                 value[name],
-                context + [name],
+                list(context) + [name],
                 self,
                 title=f'View as <{subtype}>',
             )

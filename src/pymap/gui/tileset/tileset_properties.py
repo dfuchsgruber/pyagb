@@ -129,7 +129,8 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
     @if_tileset_loaded
     def set_value(self, behaviour: ModelValue):
         """Replaces the entry properties of the current block if one is selected."""
+        assert self.root is not None
         self.root.blockSignals(True)  # type: ignore
-        self.root.update(behaviour)  # type: ignore
+        self.root.update(behaviour)
         self.root.blockSignals(False)  # type: ignore
         self.tree_changed(None)

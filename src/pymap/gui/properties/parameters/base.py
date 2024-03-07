@@ -1,6 +1,7 @@
 """Model Parameter Mixin."""
 
 from __future__ import annotations
+from abc import abstractmethod
 
 from typing import Any
 
@@ -42,6 +43,7 @@ class ModelParameterMixin(Parameter):
         self.parent_parameter = model_parent
 
     @property
+    @abstractmethod
     def model_value(self) -> ModelValue:
         """Gets the value of this parameter according to the data model.
 
@@ -65,3 +67,12 @@ class ModelParameterMixin(Parameter):
             model_parents.append(root.model_value)
             root = root.parent_parameter
         return model_parents
+
+    @abstractmethod
+    def update(self, value: ModelValue) -> None:
+        """Updates the parameter with a new value.
+
+        Args:
+            value (ModelValue): The new value.
+        """
+        raise NotImplementedError

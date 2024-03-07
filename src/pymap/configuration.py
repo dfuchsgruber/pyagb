@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any, NamedTuple, Sequence, TypeAlias, TypedDict
 
+from pymap.gui.types import ConnectionType
+
 AttributePathType: TypeAlias = Sequence[str | int]
 Pymap2sIncludeConfigType = TypedDict('Pymap2sIncludeConfigType', directive=str)
 Pymap2sConfigType = TypedDict('Pymap2sConfigType', include=Pymap2sIncludeConfigType)
@@ -134,7 +136,7 @@ PymapEventConfigType: TypeAlias = (
 )
 PymapConnectionConnectionConfigType = TypedDict(
     'PymapConnectionConnectionConfigType',
-    connections_path=list[str],
+    connections_path=str,
     connections_size_path=list[str],
     connection_types=dict[int, str],
     connection_type_path=list[str],
@@ -311,8 +313,8 @@ default_configuration = ConfigType(
                 ),
                 'header': PymapHeaderConfigType(
                     {
-                        # Define a constant name for the namespaces or None if arbitrary strings
-                        # should be allowed
+                        # Define a constant name for the namespaces or None if arbitrary
+                        # strings should be allowed
                         'namespace_constants': None,
                         # Define the datatype of the map header
                         'datatype': 'header',
@@ -345,7 +347,8 @@ default_configuration = ConfigType(
                                     # Define the path for the position of an event
                                     'x_path': ['x'],
                                     'y_path': ['y'],
-                                    # Warps enable a button in the widget to warp to a map
+                                    # Warps enable a button in the widget to warp to a
+                                    # map
                                     'goto_header_button_button_enabled': True,
                                     'target_bank_path': ['target_bank'],
                                     'target_map_idx_path': ['target_map'],
@@ -381,18 +384,18 @@ default_configuration = ConfigType(
                         ],
                         'connections': PymapConnectionConnectionConfigType(
                             {
-                                'connections_path': ['connections', 'connections'],
+                                'connections_path': 'connections',
                                 'connections_size_path': [
                                     'connections',
                                     'connection_cnt',
                                 ],
-                                # Define all type of recognized connection values that are to
-                                # represented visually on the border
+                                # Define all type of recognized connection values that
+                                # are to represented visually on the border
                                 'connection_types': {
-                                    1: 'south',
-                                    2: 'north',
-                                    3: 'west',
-                                    4: 'east',
+                                    1: ConnectionType.SOUTH,
+                                    2: ConnectionType.NORTH,
+                                    3: ConnectionType.WEST,
+                                    4: ConnectionType.EAST,
                                 },
                                 'connection_type_path': ['direction'],
                                 'connection_offset_path': ['displacement'],
@@ -405,28 +408,32 @@ default_configuration = ConfigType(
                 ),
                 'project': PymapProjectConfigType(
                     {
-                        # Automatically save project on changes to labels or added resources.
-                        # This prevents inconsistencies.
+                        # Automatically save project on changes to labels or added
+                        # resources. This prevents inconsistencies.
                         'autosave': True
                     }
                 ),
                 'display': PymapDisplayConfigType(
                     {
-                        # Show how many border blocks will be padded to the map display (x, y)
+                        # Show how many border blocks will be padded to the map display
+                        # (x, y)
                         'border_padding': [7, 5],
                         # R,G,B,Alpha value of the borders
                         'border_color': [0.0, 0.0, 0.0, 0.4],
-                        # Define a python script that provides a function to associate events
+                        # Define a python script that provides a function to associate
+                        # events
                         # with an Pilow image
                         # The event image backend should contain a function:
-                        # def get_event_to_image() that returns an object that can provide images
-                        # from events.
-                        # This object must have a method that fulfils the following interface:
+                        # def get_event_to_image() that returns an object that can
+                        # provide images from events.
+                        # This object must have a method that fulfils the following
+                        # interface:
                         # def event_to_image(self, event, event_type, project)
-                        # that either returns None if no association was found or a triplet
+                        # that either returns None if no association was found or a
+                        # triplet
                         # (PilImage, horizontal_displacement, vertical_displacement)
-                        # that indicates which image to use and how it is displaced w.r.t. to the
-                        # upper left corner of its block
+                        # that indicates which image to use and how it is displaced
+                        # w.r.t. to the upper left corner of its block
                         'event_to_image_backend': None,
                         # R,G,B,Alpha value of the connection maps
                         'connection_color': PymapColorType(1.0, 1.0, 1.0, 0.2),
@@ -434,7 +441,8 @@ default_configuration = ConfigType(
                         'connection_active_color': PymapColorType(1.0, 0.2, 0.2, 0.15),
                         # R,G,B,Alpha value of the connections maps border boxes
                         'connection_border_color': PymapColorType(1.0, 1.0, 1.0, 1.0),
-                        # R,G,B,Alpha value of the currently active connections map border boxes
+                        # R,G,B,Alpha value of the currently active connections map
+                        # border boxes
                         'connection_active_border_color': PymapColorType(
                             1.0, 0.0, 0.0, 1.0
                         ),

@@ -59,7 +59,7 @@ class StructureTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter)
                     project,  # type: ignore
                     type_name,
                     value[name],
-                    context + [name],
+                    list(context) + [name],
                     self,
                 )
                 assert child is not None
@@ -83,8 +83,10 @@ class StructureTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter)
 
     def update(self, value: ModelValue):
         """Recursively updates the values of all children."""
-        assert isinstance(value, dict)
-        assert isinstance(self.datatype, Structure)
+        assert isinstance(value, dict), f'Expected dict, got {type(value)}'
+        assert isinstance(
+            self.datatype, Structure
+        ), f'Expected Structure, got {type(self.datatype)}'
         for name, _, _ in sorted(self.datatype.structure, key=lambda x: x[2]):
             if name not in self.datatype.hidden_members:
                 self.child(name).update(value[name])  # type: ignore

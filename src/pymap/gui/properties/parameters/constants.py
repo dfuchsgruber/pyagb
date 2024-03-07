@@ -14,8 +14,11 @@ from PySide6.QtWidgets import QComboBox, QWidget
 class ConstantComboBox(QComboBox):
     """Subclass this thing in order to manually filter out undo events."""
 
-    def __init__(self, parameter: ConstantParameterItem | None = None,
-                 parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parameter: ConstantParameterItem | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
         """Initializes the combo box.
 
         Args:
@@ -48,11 +51,11 @@ class ConstantComboBox(QComboBox):
             bool: Whether the event was handled.
         """
         if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
-            if event.matches(QKeySequence.StandardKey.Undo) or \
-                event.matches(QKeySequence.StandardKey.Redo):
+            if event.matches(QKeySequence.StandardKey.Undo) or event.matches(
+                QKeySequence.StandardKey.Redo
+            ):
                 return False
         return super().eventFilter(watched, event)
-
 
 
 # Parameter item for parameters associated with constants
@@ -80,7 +83,6 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
         # TODO
         w.setEditText(w.currentText())
 
-
         # w.sigChanged = w.editTextChanged
         # w.setValue = self.setValue
         # w.value = w.currentText
@@ -99,14 +101,12 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
         self.widget.setEditText(str(val))
 
 
-
 class ConstantsTypeParameter(parameterTypes.ListParameter):
     """Parameter for a field that is associated with constants."""
 
     itemClass = ConstantParameterItem
 
-    def __init__(self, name: str, constants: list[str],
-                 **kwargs: dict[Any, Any]):
+    def __init__(self, name: str, constants: list[str], **kwargs: dict[Any, Any]):
         """Initializes the parameter.
 
         Args:
@@ -115,13 +115,16 @@ class ConstantsTypeParameter(parameterTypes.ListParameter):
             constants (list[str]): The constants.
             kwargs (dict): Additional arguments.
         """
-        super().__init__(name, **kwargs) # type: ignore
+        super().__init__(name, **kwargs)  # type: ignore
         self.constants = constants
-        parameterTypes.ListParameter.__init__(self, # type: ignore
-                                              name=name, limits=constants, **kwargs) # type: ignore
+        parameterTypes.ListParameter.__init__(  # type: ignore
+            self,  # type: ignore
+            name=name,
+            limits=constants,
+            **kwargs,
+        )  # type: ignore
 
-
-    def model_value(self)  -> ModelValue:
+    def model_value(self) -> ModelValue:
         """Gets the value of this parameter according to the data model.
 
         Returns:
@@ -131,6 +134,7 @@ class ConstantsTypeParameter(parameterTypes.ListParameter):
         """
         return self.value()
 
-    def update(self, value: str):
+    def update(self, value: ModelValue):
         """Updates this parameter."""
-        self.setValue(value) # type: ignore
+        assert isinstance(value, str), f'Expected str, got {type(value)}'
+        self.setValue(value)  # type: ignore

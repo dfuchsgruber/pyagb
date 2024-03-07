@@ -64,7 +64,7 @@ class BitfieldTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
                     self.project,
                     datatype_name,
                     value[name],
-                    self.context + [name],
+                    list(self.context) + [name],
                     self,
                 )
             if name not in self.datatype.hidden_members:

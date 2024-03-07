@@ -10,12 +10,16 @@ from typing import Iterator, Literal
 class ConstantTable(Mapping[str, int]):
     """A mapping for a constants class.
 
-    This class represents a single constant table, where strings are 
+    This class represents a single constant table, where strings are
     mapped to numerical values.
     """
 
-    def __init__(self, _type: Literal['dict'] | Literal['enum'],
-                 base: int | None=None, values: list[str] | dict[str, int] | None=None):
+    def __init__(
+        self,
+        _type: Literal['dict'] | Literal['enum'],
+        base: int | None = None,
+        values: list[str] | dict[str, int] | None = None,
+    ):
         """Initializes a constant table.
 
         Parameters:
@@ -36,16 +40,19 @@ class ConstantTable(Mapping[str, int]):
             # Provide a dictionary interface also for enum constants
             if self.type == 'enum':
                 if not isinstance(values, list):
-                    raise RuntimeError(f'Expected a list for values parameter ' \
-                                       f'for type "{self.type}"')
+                    raise RuntimeError(
+                        f'Expected a list for values parameter '
+                        f'for type "{self.type}"'
+                    )
                 self._values = {
-                    constant: idx + self.base
-                    for idx, constant in enumerate(values)
+                    constant: idx + self.base for idx, constant in enumerate(values)
                 }
             elif self.type == 'dict':
                 if not isinstance(values, dict):
-                    raise RuntimeError(f'Expected a dict for values parameter ' \
-                                       f'for type "{self.type}"')
+                    raise RuntimeError(
+                        f'Expected a dict for values parameter '
+                        f'for type "{self.type}"'
+                    )
                 self._values = values
             else:
                 raise RuntimeError(f'Unknown constants type "{self.type}"')
@@ -88,6 +95,7 @@ class ConstantTable(Mapping[str, int]):
             inverse[v].append(k)
         return inverse
 
+
 class Constants:
     """A collection of constant tables."""
 
@@ -104,10 +112,10 @@ class Constants:
         self.constant_paths = constant_paths
         # Only initialize a constant table on demand
         self.constant_tables: dict[str, ConstantTable | None] = {
-            key : None for key in constant_paths
+            key: None for key in constant_paths
         }
 
-    def __getitem__(self, key : str) -> ConstantTable:
+    def __getitem__(self, key: str) -> ConstantTable:
         """Retrieves a constant table.
 
         Args:
@@ -132,8 +140,9 @@ class Constants:
                     base = content['base']
                 else:
                     base = 0
-            self.constant_tables[key] = ConstantTable(_type=content['type'], base=base,
-                                                      values=content['values'])
+            self.constant_tables[key] = ConstantTable(
+                _type=content['type'], base=base, values=content['values']
+            )
         constants_table = self.constant_tables[key]
         if constants_table is None:
             raise RuntimeError(f'Could not load constants "{key}"')

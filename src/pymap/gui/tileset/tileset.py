@@ -212,7 +212,7 @@ class TilesetWidget(QtWidgets.QWidget):
         zoom_layout.addWidget(self.zoom_label, 1, 2, 1, 1)
         layout.addWidget(zoom_group, 1, 1, 1, 3)
         self.zoom_slider.valueChanged.connect(self.zoom_changed)
-        self.zoom_slider.setValue(self.main_gui.settings['tileset.zoom'])
+        self.zoom_slider.setValue(self.main_gui.settings.settings['tileset_zoom'])
 
         self.info_label = QtWidgets.QLabel('')
         layout.addWidget(self.info_label, 6, 1, 1, 3)
@@ -507,7 +507,7 @@ class TilesetWidget(QtWidgets.QWidget):
     def zoom_changed(self):
         """Event handler for when the zoom has changed."""
         self.zoom_label.setText(f'{self.zoom_slider.value() * 10}%')
-        self.main_gui.settings['tileset.zoom'] = self.zoom_slider.value()
+        self.main_gui.settings.settings['tileset_zoom'] = self.zoom_slider.value()
         if (
             self.main_gui.project is None
             or self.main_gui.header is None
@@ -691,10 +691,13 @@ class TilesetWidget(QtWidgets.QWidget):
         path, _ = QFileDialog.getOpenFileName(
             self,
             'Import Palette from File',
-            str(Path(self.main_gui.settings['recent.palette']).parent / 'palette.png'),
+            str(
+                Path(self.main_gui.settings.settings['recent_palette']).parent
+                / 'palette.png'
+            ),
             '4BPP PNG files (*.png)',
         )
-        self.main_gui.settings['recent.palette'] = path
+        self.main_gui.settings.settings['recent_palette'] = path
         _, palette = agbimage.from_file(path)
         palette = palette.to_data()
         pal_idx = self.tiles_palette_combobox.currentIndex()

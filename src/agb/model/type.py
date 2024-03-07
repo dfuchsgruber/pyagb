@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Mapping, TypeAlias
+from typing import TYPE_CHECKING, Mapping, Sequence, TypeAlias
 from warnings import warn
 
 import numpy as np
@@ -15,14 +15,14 @@ ScalarModelValue: TypeAlias = int | str | bool | None
 IntArray: TypeAlias = npt.NDArray[np.int_]
 ModelValue: TypeAlias = (
     ScalarModelValue
-    | list['ModelValue']
+    | Sequence['ModelValue']
     | dict[str, 'ModelValue']
     | tuple[str, 'ModelValue']
     | IntArray
 )
 ModelContextItem: TypeAlias = int | str | bool
-ModelContext: TypeAlias = list[ModelContextItem]
-ModelParents: TypeAlias = list[ModelValue]
+ModelContext: TypeAlias = Sequence[ModelContextItem]
+ModelParents: TypeAlias = Sequence[ModelValue]
 
 # Each project can define models which are mappings from
 # type names to the respective type instances.

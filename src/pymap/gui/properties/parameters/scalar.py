@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from agb.model.type import ModelContext, ModelValue
+from agb.model.type import ModelContext, ModelValue, ScalarModelValue
 
 from pymap.gui.properties.parameters.base import ModelParameterMixin
 from pymap.project import Project
@@ -57,4 +57,16 @@ class ScalarTypeParameter(ModelParameterMixin, ConstantsTypeParameter):
         else:
             constants = []
         ConstantsTypeParameter.__init__(self, name, constants, **kwargs)
+        assert isinstance(value, ScalarModelValue)
+        self.setValue(value)  # type: ignore
+
+    def update(self, value: ModelValue):
+        """Updates the value of the parameter.
+
+        Args:
+            value (ModelValue): The new value.
+        """
+        assert isinstance(
+            value, ScalarModelValue
+        ), f'Expected ScalarModelValue, got {value}'
         self.setValue(value)  # type: ignore

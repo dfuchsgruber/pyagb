@@ -150,6 +150,8 @@ class PointerParameter(ModelParameterMixin, parameterTypes.GroupParameter):
             The value of the parameter.
         """
         try:
-            return self.child(PointerParameter.referred).model_value  # type: ignore
+            child = self.child(PointerParameter.referred)  # type: ignore
+            assert isinstance(child, ModelParameterMixin)
+            return child.model_value
         except Exception:
             return None

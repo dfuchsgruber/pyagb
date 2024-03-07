@@ -91,11 +91,13 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         if idx is not None and idx != '' and int(idx) in range(self.size_get() + 1):
             value_datatype_name = self.datatype.datatype
             value_parameter_class = type_to_parameter(self.project, value_datatype_name)
+            parents = self.model_parents
+            assert isinstance(parents, list), f'Expected list, got {type(parents)}'
             if value is None:
                 value = self.project.model[value_datatype_name](
                     self.project,
-                    self.context + [int(idx)],
-                    self.model_parents + [self.model_value],
+                    list(self.context) + [int(idx)],
+                    parents + [self.model_value],
                 )
             self.values.insert(
                 int(idx),  # type: ignore
@@ -104,7 +106,7 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
                     self.project,
                     value_datatype_name,
                     value,
-                    self.context + [idx],
+                    list(self.context) + [idx],
                     self,
                     title=f'<{value_datatype_name}>',
                 ),
@@ -145,7 +147,7 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         """
         return list(map(lambda child: child.model_value, self.values))  # type: ignore
 
-    def update(self, values: ModelValue):
+    def update(self, value: ModelValue):
         """Updates the values in the array.
 
         Parameters:
@@ -153,9 +155,9 @@ class ArrayTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         values : list
             The new values.
         """
-        assert isinstance(values, list)
-        for child, value in zip(self.values, values):
-            child.update(value)  # type: ignore
+        assert isinstance(value, list)
+        for child, v in zip(self.values, value):
+            child.update(v)  # type: ignore
 
 
 class FixedSizeArrayTypeParameter(ArrayTypeParameter):
