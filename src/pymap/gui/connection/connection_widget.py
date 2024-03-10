@@ -94,26 +94,6 @@ class ConnectionWidget(QtWidgets.QWidget):
         """Returns whether a connection is loaded."""
         return self.main_gui.project is not None and self.main_gui.header is not None
 
-    def get_map_dimensions(self) -> tuple[int, int]:
-        """Gets the map dimensions.
-
-        Returns:
-            tuple[int, int]: The map dimensions (w, h).
-        """
-        assert self.main_gui.project is not None
-        map_width = properties.get_member_by_path(
-            self.main_gui.footer,
-            self.main_gui.project.config['pymap']['footer']['map_width_path'],
-        )
-        assert isinstance(map_width, int), f'Expected int, got {type(map_width)}'
-
-        map_height = properties.get_member_by_path(
-            self.main_gui.footer,
-            self.main_gui.project.config['pymap']['footer']['map_height_path'],
-        )
-        assert isinstance(map_height, int), f'Expected int, got {type(map_height)}'
-        return map_width, map_height
-
     def mirror_offset_changed(self):
         """Event handler for when the mirror offset checkbox is toggled."""
         self.main_gui.settings.settings[
@@ -172,7 +152,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         padded_width, padded_height = self.main_gui.project.config['pymap']['display'][
             'border_padding'
         ]
-        map_width, map_height = self.get_map_dimensions()
+        map_width, map_height = self.main_gui.get_map_dimensions()
 
         # Draw rectangles for the borders
         border_color = QColor.fromRgbF(
@@ -454,7 +434,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         padded_width, padded_height = self.main_gui.project.config['pymap']['display'][
             'border_padding'
         ]
-        map_width, map_height = self.get_map_dimensions()
+        map_width, map_height = self.main_gui.get_map_dimensions()
 
         connection_color = QColor.fromRgbF(
             *(self.main_gui.project.config['pymap']['display']['connection_color'])

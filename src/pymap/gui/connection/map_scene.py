@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pymap.gui.types import Connection, ConnectionType
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsSceneMouseEvent,
     QWidget,
 )
+
+from pymap.gui.types import Connection, ConnectionType
 
 from .. import history
 from .child import ConnectionChildWidgetMixin, if_connection_loaded
@@ -51,7 +52,7 @@ class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for hover events on the map image."""
         assert self.connection_widget.main_gui.project is not None
-        map_width, map_height = self.connection_widget.get_map_dimensions()
+        map_width, map_height = self.connection_widget.main_gui.get_map_dimensions()
 
         padded_x, padded_y = self.connection_widget.main_gui.project.config['pymap'][
             'display'
@@ -128,7 +129,7 @@ class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
         """Event handler for pressing the mouse."""
         assert self.connection_widget.main_gui.project is not None
 
-        map_width, map_height = self.connection_widget.get_map_dimensions()
+        map_width, map_height = self.connection_widget.main_gui.get_map_dimensions()
 
         padded_x, padded_y = self.connection_widget.main_gui.project.config['pymap'][
             'display'
@@ -200,7 +201,7 @@ class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
                 or self.connection_widget.main_gui.header is None
             ):
                 return
-            map_width, map_height = self.connection_widget.get_map_dimensions()
+            map_width, map_height = self.connection_widget.main_gui.get_map_dimensions()
             padded_x, padded_y = self.connection_widget.main_gui.project.config[
                 'pymap'
             ]['display']['border_padding']

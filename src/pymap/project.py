@@ -77,8 +77,8 @@ class Project:
     def project_dir(self):
         """Changes the working directory to the project directory."""
         assert self.path is not None, 'Project path is not initialized'
-        with working_dir(Path(self.path).parent.resolve()):
-            yield
+        with working_dir(Path(self.path).parent.resolve()) as path:
+            yield path
 
     def from_file(self, file_path: str | Path):
         """Initializes the project from a json file.
@@ -1048,6 +1048,6 @@ def working_dir(file_path: Path | os.PathLike[str]):
     assert path.is_dir, f'{path} is not a directory'
     os.chdir(path)
     try:
-        yield
+        yield path
     finally:
         os.chdir(saved_dir)

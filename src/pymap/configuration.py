@@ -80,60 +80,42 @@ PymapFooterConfigType = TypedDict(
     border_width_max=int,
     border_height_max=int,
 )
-PymapEventPersonConfigType = TypedDict(
-    'PymapEventPersonConfigType',
-    name=str,
-    datatype=str,
-    size_path=list[str],
-    events_path=list[str],
-    box_color=list[float],
-    text_color=list[float],
-    x_path=list[str],
-    y_path=list[str],
-)
-PymapEventWarpConfigType = TypedDict(
-    'PymapEventWarpConfigType',
-    name=str,
-    datatype=str,
-    size_path=list[str],
-    events_path=list[str],
-    box_color=list[float],
-    text_color=list[float],
-    x_path=list[str],
-    y_path=list[str],
-    goto_header_button_button_enabled=bool,
-    target_bank_path=list[str],
-    target_map_idx_path=list[str],
-    target_warp_idx_path=list[str],
-)
-PymapEventSignConfigType = TypedDict(
-    'PymapEventSignConfigType',
-    name=str,
-    datatype=str,
-    size_path=list[str],
-    events_path=list[str],
-    box_color=list[float],
-    text_color=list[float],
-    x_path=list[str],
-    y_path=list[str],
-)
-PymapEventTriggerConfigType = TypedDict(
-    'PymapEventTriggerConfigType',
-    name=str,
-    datatype=str,
-    size_path=list[str],
-    events_path=list[str],
-    box_color=list[float],
-    text_color=list[float],
-    x_path=list[str],
-    y_path=list[str],
-)
-PymapEventConfigType: TypeAlias = (
-    PymapEventSignConfigType
-    | PymapEventWarpConfigType
-    | PymapEventPersonConfigType
-    | PymapEventTriggerConfigType
-)
+
+
+class PymapEventConfigType(TypedDict):
+    """Configuration for an event type."""
+
+    name: str
+    datatype: str
+    size_path: list[str]
+    events_path: list[str]
+    box_color: list[float]
+    text_color: list[float]
+    x_path: list[str]
+    y_path: list[str]
+
+
+class PymapEventPersonConfigType(PymapEventConfigType):
+    """Person event type configuration."""
+
+
+class PymapEventWarpConfigType(PymapEventConfigType):
+    """Warp event type configuration."""
+
+    goto_header_button_button_enabled: bool
+    target_bank_path: list[str]
+    target_map_idx_path: list[str]
+    target_warp_idx_path: list[str]
+
+
+class PymapEventSignConfigType(PymapEventConfigType):
+    """Signpost event type configuration."""
+
+
+class PymapEventTriggerConfigType(PymapEventConfigType):
+    """Trigger event type configuration."""
+
+
 PymapConnectionConnectionConfigType = TypedDict(
     'PymapConnectionConnectionConfigType',
     connections_path=str,

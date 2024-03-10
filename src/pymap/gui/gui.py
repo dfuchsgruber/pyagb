@@ -164,6 +164,36 @@ class PymapGui(QMainWindow):
 
         self.setCentralWidget(self.central_widget)
 
+    def get_map_dimensions(self) -> tuple[int, int]:
+        """Gets the map dimensions.
+
+        Returns:
+            tuple[int, int]: The map dimensions (w, h).
+        """
+        assert self.project is not None
+        map_width = properties.get_member_by_path(
+            self.footer,
+            self.project.config['pymap']['footer']['map_width_path'],
+        )
+        assert isinstance(map_width, int), f'Expected int, got {type(map_width)}'
+
+        map_height = properties.get_member_by_path(
+            self.footer,
+            self.project.config['pymap']['footer']['map_height_path'],
+        )
+        assert isinstance(map_height, int), f'Expected int, got {type(map_height)}'
+        return map_width, map_height
+
+    def get_border_padding(self) -> tuple[int, int]:
+        """Returns how many blocks are padded to the border of the map."""
+        if self.map_widget.show_border.isChecked():
+            assert self.project is not None, 'Project is None'
+            padding = tuple(self.project.config['pymap']['display']['border_padding'])
+            assert len(padding) == 2, f'Expected 2, got {len(padding)}'
+            return padding
+        else:
+            return 0, 0
+
     def get_block(self, block_idx: int) -> npt.NDArray[np.object_]:
         """Returns the block of the currently detected tileset.
 

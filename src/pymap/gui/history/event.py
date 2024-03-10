@@ -11,7 +11,7 @@ from pymap.gui import properties
 from pymap.gui.history.statement import UndoRedoStatements
 
 if TYPE_CHECKING:
-    from pymap.gui.event_widget import EventWidget
+    from pymap.gui.event import EventWidget
 
 
 class ChangeEventProperty(QUndoCommand):
