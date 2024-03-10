@@ -164,11 +164,7 @@ class EventTab(QWidget, EventChildWidgetMixin):
         ):
             return
 
-        events = properties.get_member_by_path(
-            self.event_widget.main_gui.header, self.event_type['events_path']
-        )
-        assert isinstance(events, list), f'events is not a list, but {type(events)}'
-        event = events[event_idx]
+        event = self.event_widget.main_gui.get_event(self.event_type, event_idx)
 
         assert (
             'target_bank_path' in self.event_type
@@ -235,7 +231,7 @@ class EventTab(QWidget, EventChildWidgetMixin):
         Returns:
             QGraphicsItemGroup: The group.
         """
-        padded_x, padded_y = self.event_widget.main_gui.map_widget.get_border_padding()
+        padded_x, padded_y = self.event_widget.main_gui.get_border_padding()
         x, y = pad_coordinates(
             properties.get_member_by_path(event, self.event_type['x_path']),
             properties.get_member_by_path(event, self.event_type['y_path']),

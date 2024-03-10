@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
 
 from pymap.configuration import PymapEventConfigType
 
-from .. import properties
 from .event_to_image import EventToImage, NullEventToImage
 from .map_scene import MapScene
 from .tab import EventTab
@@ -161,12 +160,7 @@ class EventWidget(QWidget):
         self.map_scene.removeItem(
             self.map_scene.event_groups[event_type['datatype']][event_idx]
         )
-
-        events = properties.get_member_by_path(
-            self.main_gui.header, event_type['events_path']
-        )
-        assert isinstance(events, list), f'Expected list, got {type(events)}'
-        event = events[event_idx]
+        event = self.main_gui.get_event(event_type, event_idx)
 
         group = tab.event_to_group(event)
         self.map_scene.addItem(group)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from agb.model.type import ModelValue
 from deepdiff import DeepDiff  # type: ignore
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6.QtWidgets import (
@@ -40,6 +41,16 @@ class EventProperties(ParameterTree):
         self.header().setStretchLastSection(True)  # type: ignore
         self.root = None
 
+    def _get_current_event(self) -> ModelValue:
+        """Returns the currently displayed event.
+
+        Returns:
+            ModelValue: The currently displayed event.
+        """
+        return self.event_tab.event_widget.main_gui.get_event(
+            self.event_tab.event_type, self.event_tab.idx_combobox.currentIndex()
+        )
+
     def load_event(self):
         """Loads the currently displayed event."""
         self.clear()
@@ -49,18 +60,9 @@ class EventProperties(ParameterTree):
             or self.event_tab.idx_combobox.currentIndex() < 0
         ):
             self.root = None
-
         else:
             datatype = self.event_tab.event_type['datatype']
-
-            events = properties.get_member_by_path(
-                self.event_tab.event_widget.main_gui.header,
-                self.event_tab.event_type['events_path'],
-            )
-            assert isinstance(events, list), f'Expected list, got {type(events)}'
-
-            event = events[self.event_tab.idx_combobox.currentIndex()]
-
+            event = self._get_current_event()
             self.root = properties.type_to_parameter(
                 self.event_tab.event_widget.main_gui.project, datatype
             )(
@@ -77,12 +79,7 @@ class EventProperties(ParameterTree):
 
     def update(self):
         """Updates all values in the tree according to the current event."""
-        events = properties.get_member_by_path(
-            self.event_tab.event_widget.main_gui.header,
-            self.event_tab.event_type['events_path'],
-        )
-        assert isinstance(events, list), f'Expected list, got {type(events)}'
-        event = events[self.event_tab.idx_combobox.currentIndex()]
+        event = self._get_current_event()
 
         assert self.root is not None, 'Root is None'
         self.root.blockSignals(True)  # type: ignore
@@ -96,12 +93,7 @@ class EventProperties(ParameterTree):
             changes (list[tuple[object, object, object]] | None): The changes.
         """
         assert self.root is not None, 'Root is None'
-        events = properties.get_member_by_path(
-            self.event_tab.event_widget.main_gui.header,
-            self.event_tab.event_type['events_path'],
-        )
-        assert isinstance(events, list), f'Expected list, got {type(events)}'
-        root = events[self.event_tab.idx_combobox.currentIndex()]
+        root = self._get_current_event()
         diffs = DeepDiff(root, self.root.model_value)
         statements_redo: UndoRedoStatements = []
         statements_undo: UndoRedoStatements = []

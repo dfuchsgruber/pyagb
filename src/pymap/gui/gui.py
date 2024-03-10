@@ -11,6 +11,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from skimage.measure import label
+from agb.model.type import ModelValue
+from pymap.configuration import PymapEventConfigType
 
 import pymap.project
 
@@ -183,6 +185,22 @@ class PymapGui(QMainWindow):
         )
         assert isinstance(map_height, int), f'Expected int, got {type(map_height)}'
         return map_width, map_height
+
+    def get_event(self, event_type: PymapEventConfigType, event_idx: int) -> ModelValue:
+        """Gets an event from the header.
+
+        Args:
+            event_type (PymapEventConfigType): The event type to get
+            event_idx (int): The index of the event to get
+
+        Returns:
+            ModelValue: The event
+        """
+        assert self.header is not None, 'Header is None'
+        events = properties.get_member_by_path(self.header, event_type['events_path'])
+        assert isinstance(events, list), f'Expected list, got {type(events)}'
+        event = events[event_idx]
+        return event
 
     def get_border_padding(self) -> tuple[int, int]:
         """Returns how many blocks are padded to the border of the map."""

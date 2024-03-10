@@ -45,22 +45,14 @@ class ChangeEventProperty(QUndoCommand):
         """Executes the redo statements."""
         assert self.event_widget.main_gui is not None
         assert self.event_widget.main_gui.header is not None
-        events = properties.get_member_by_path(
-            self.event_widget.main_gui.header, self.event_type['events_path']
-        )
-        assert isinstance(events, list)
-        event = [self.event_idx]
+        event = self.event_widget.main_gui.get_event(self.event_type, self.event_idx)
         for statement in self.statements_redo:
             exec(statement)
         self.event_widget.update_event(self.event_type, self.event_idx)
 
     def undo(self):
         """Executes the redo statements."""
-        events = properties.get_member_by_path(
-            self.event_widget.main_gui.header, self.event_type['events_path']
-        )
-        assert isinstance(events, list)
-        event = events[self.event_idx]
+        event = self.event_widget.main_gui.get_event(self.event_type, self.event_idx)
         for statement in self.statements_undo:
             exec(statement)
         self.event_widget.update_event(self.event_type, self.event_idx)
@@ -86,11 +78,9 @@ class RemoveEvent(QUndoCommand):
         self.event_widget = event_widget
         self.event_type = event_type
         self.event_idx = event_idx
-        events = properties.get_member_by_path(
-            self.event_widget.main_gui.header, self.event_type['events_path']
+        self.event = self.event_widget.main_gui.get_event(
+            self.event_type, self.event_idx
         )
-        assert isinstance(events, list)
-        self.event = [self.event_idx]
 
     def redo(self):
         """Removes the event from the events."""
@@ -163,6 +153,7 @@ class AppendEvent(QUndoCommand):
         events = properties.get_member_by_path(
             self.event_widget.main_gui.header, self.event_type['events_path']
         )
+        assert isinstance(events, list), f'Expected list, got {type(events)}'
         events.pop()
         properties.set_member_by_path(
             self.event_widget.main_gui.header, len(events), self.event_type['size_path']

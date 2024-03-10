@@ -64,19 +64,13 @@ class MapScene(QGraphicsScene, EventChildWidgetMixin):
             return
         idx = tab.idx_combobox.currentIndex()
 
-        events = get_member_by_path(
-            self.event_widget.main_gui.header, tab.event_type['events_path']
-        )
-        assert isinstance(events, list), f'Expected list, got {type(events)}'
-
-        if idx not in range(len(events)):
-            return
+        event = self.event_widget.main_gui.get_event(tab.event_type, idx)
 
         padded_x, padded_y = self.event_widget.main_gui.get_border_padding()
 
         x, y = pad_coordinates(
-            get_member_by_path(events[idx], tab.event_type['x_path']),
-            get_member_by_path(events[idx], tab.event_type['y_path']),
+            get_member_by_path(event, tab.event_type['x_path']),
+            get_member_by_path(event, tab.event_type['y_path']),
             padded_x,
             padded_y,
         )
