@@ -1,0 +1,58 @@
+"""Widget for the border."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QGraphicsScene,
+    QGraphicsSceneMouseEvent,
+    QWidget,
+)
+
+from .child import MapChildMixin, if_header_loaded
+
+if TYPE_CHECKING:
+    from .map_widget import MapWidget
+
+
+class BorderScene(QGraphicsScene, MapChildMixin):
+    """Scene for the border view."""
+
+    def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):
+        """Initializes the border scene.
+
+        Args:
+            map_widget (MapWidget): The map widget.
+            parent (QWidget | None, optional): The parent. Defaults to None.
+        """
+        super().__init__(parent=parent)
+        MapChildMixin.__init__(self, map_widget)
+
+    @if_header_loaded
+    def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
+        """Event handler for moving the mouse."""
+        assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
+        borders = self.map_widget.main_gui.get_borders()
+        pos = event.scenePos()
+        x, y = int(pos.x() / 16), int(pos.y() / 16)
+        if x in range(borders.shape[1]) and y in range(borders.shape[0]):
+            block_idx = borders[y, x, 0]
+            self.map_widget.info_label.setText(f'Block : {hex(block_idx)}')
+        else:
+            return self.map_widget.info_label.setText('')
+
+    @if_header_loaded
+    def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
+        """Event handler for pressing the mouse."""
+        borders = self.map_widget.main_gui.get_borders()
+        pos = event.scenePos()
+        x, y = int(pos.x() / 16), int(pos.y() / 16)
+        if (
+            x in range(borders.shape[1])
+            and y in range(borders.shape[0])
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            assert self.map_widget.selection is not None, 'Selection is not set'
+            self.map_widget.main_gui.set_border(x, y, self.map_widget.selection)

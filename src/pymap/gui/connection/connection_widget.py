@@ -6,19 +6,20 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from PIL.ImageQt import ImageQt
-from pymap.gui import blocks
-from pymap.gui.icon import Icon, icon_paths
-from pymap.gui.types import Connection, ConnectionType
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtGui import QBrush, QColor, QPen, QPixmap
 from PySide6.QtWidgets import QGraphicsPixmapItem, QMessageBox
+
+from pymap.gui import blocks
+from pymap.gui.icon import Icon, icon_paths
+from pymap.gui.types import Connection, ConnectionType
 
 from .. import history, properties
 from .connection_properties import ConnectionProperties
 from .map_scene import MapScene
 
 if TYPE_CHECKING:
-    from ..gui import PymapGui
+    from ..main.gui import PymapGui
 
 
 class ConnectionWidget(QtWidgets.QWidget):

@@ -15,7 +15,7 @@ import numpy.typing as npt
 from pymap.gui.history.statement import UndoRedoStatements
 
 if TYPE_CHECKING:
-    from pymap.gui.gui import PymapGui
+    from pymap.gui.main.gui import PymapGui
     from pymap.gui.tileset import TilesetWidget
 
 

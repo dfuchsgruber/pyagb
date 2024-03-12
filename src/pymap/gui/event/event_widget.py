@@ -22,7 +22,7 @@ from .map_scene import MapScene
 from .tab import EventTab
 
 if TYPE_CHECKING:
-    from ..gui import PymapGui
+    from ..main.gui import PymapGui
 
 
 class EventWidget(QWidget):
@@ -58,6 +58,15 @@ class EventWidget(QWidget):
         self.tabs = {}
         splitter.addWidget(self.tab_widget)
         splitter.setSizes([4 * 10**6, 10**6])  # Ugly as hell hack to take large values
+
+    @property
+    def header_loaded(self) -> bool:
+        """Whether the header is loaded.
+
+        Returns:
+            bool: Whether the header is loaded.
+        """
+        return self.main_gui.header is not None and self.main_gui.project is not None
 
     def load_project(self):
         """Load a new project."""

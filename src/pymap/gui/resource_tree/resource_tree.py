@@ -36,7 +36,7 @@ from .item import (
 )
 
 if TYPE_CHECKING:
-    from pymap.gui.gui import PymapGui
+    from pymap.gui.main.gui import PymapGui
 
 
 class HeaderSorting(StrEnum):

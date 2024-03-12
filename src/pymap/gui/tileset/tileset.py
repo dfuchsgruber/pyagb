@@ -27,7 +27,7 @@ from .selection_scene import SelectionScene
 from .tiles_scene import TileFlip, TilesScene
 
 if TYPE_CHECKING:
-    from ..gui import PymapGui
+    from ..main.gui import PymapGui
 
 
 class TilesetWidget(QtWidgets.QWidget):

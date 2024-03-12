@@ -1,7 +1,7 @@
 """Specific datatypes that pymap needs."""
 
 from enum import StrEnum, unique
-from typing import NamedTuple, TypedDict
+from typing import NamedTuple, Sequence, TypeAlias, TypedDict
 
 import numpy as np
 from numpy.typing import NDArray
@@ -32,3 +32,6 @@ class Block(TypedDict):
 
     block_idx: int
     level: int
+
+
+MapLayers: TypeAlias = Sequence[int] | int | NDArray[np.int_]

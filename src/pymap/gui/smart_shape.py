@@ -88,6 +88,49 @@ class SmartPath:
         idx = idx % len(self.coordinates)
         return self.coordinates[idx], self.shape_idxs[idx]
 
+    def complete(self, x: int, y: int, max_iterations: int = 10000) -> list[Coordinate]:
+        """Completes the smart shape.
+
+        This adds all coordinates to the smart shape so that it will be a continuous shape
+        by linear interpolation.
+
+        Args:
+            x (int): the x of the final coordinate
+            y (int): the y of the final coordinate
+            max_iterations (int, optional): The maximum number of iterations to complete
+                the smart shape. Defaults to 10000.
+
+        Returns:
+            list[tuple[int, int]]: All intermediate coordinates to connect
+                the path to (x, y).
+        """
+        queue: list[Coordinate] = []
+        if len(self):
+            (y_prev, x_prev), _ = self.get_by_path_idx(-1)
+        else:
+            y_prev, x_prev = y, x  # No previous block to connect to
+
+        for _ in range(10000):
+            # The loop should terminate before 10000 iterations,
+            # this is a safety measure
+            dy, dx = np.sign((y - y_prev, x - x_prev))
+            assert isinstance(dy, int), f'Expected int, got {type(dy)}'
+            assert isinstance(dx, int), f'Expected int, got {type(dx)}'
+
+            if dx * dy > 0:  # First move x-wise
+                x_prev += dx
+            elif dx * dy < 0:  # First move y-wise
+                y_prev += dy
+            elif dy != 0:
+                y_prev += dy
+            elif dx != 0:
+                x_prev += dx
+
+            queue.append((y_prev, x_prev))
+            if y == y_prev and x == x_prev:
+                break
+        return queue
+
     def _direction(
         self, x1: npt.NDArray[np.int_], x2: npt.NDArray[np.int_]
     ) -> SmartShapeDirection:

@@ -4,6 +4,7 @@ import os
 import sys
 from copy import deepcopy
 from pathlib import Path
+from typing import Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -13,14 +14,15 @@ from PyQt5.QtWidgets import *
 from skimage.measure import label
 from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
+from pymap.gui.types import Connection
 
 import pymap.project
 
-from . import (
+from .. import (
     blocks,
     connection_widget,
     event_widget,
-    footer_widget,
+    footer,
     header_widget,
     history,
     map_widget,
@@ -28,8 +30,9 @@ from . import (
     render,
     resource_tree,
 )
-from .settings import Settings
-from .tileset import tileset
+from pymap.gui.map import MapWidget
+from ..settings import Settings
+from ..tileset import tileset
 
 
 class PymapGui(QMainWindow):
@@ -67,11 +70,11 @@ class PymapGui(QMainWindow):
 
         # Add the tabs
         self.central_widget = QTabWidget()
-        self.map_widget = map_widget.MapWidget(self)
+        self.map_widget = MapWidget(self)
         self.event_widget = event_widget.EventWidget(self)
         self.connection_widget = connection_widget.ConnectionWidget(self)
         self.header_widget = header_widget.HeaderWidget(self)
-        self.footer_widget = footer_widget.FooterWidget(self)
+        self.footer_widget = footer.FooterWidget(self)
         self.tileset_widget = tileset.TilesetWidget(self)
         self.central_widget.addTab(self.map_widget, 'Map')
         self.central_widget.addTab(self.event_widget, 'Events')
@@ -166,6 +169,21 @@ class PymapGui(QMainWindow):
 
         self.setCentralWidget(self.central_widget)
 
+    @property
+    def project_loaded(self) -> bool:
+        """Whether a project is currently loaded."""
+        return self.project is not None
+
+    @property
+    def header_loaded(self) -> bool:
+        """Returns whether a header is currently loaded."""
+        return self.header is not None and self.project_loaded
+
+    @property
+    def footer_loaded(self) -> bool:
+        """Returns whether a footer is currently loaded."""
+        return self.footer is not None and self.header_loaded
+
     def get_map_dimensions(self) -> tuple[int, int]:
         """Gets the map dimensions.
 
@@ -185,6 +203,41 @@ class PymapGui(QMainWindow):
         )
         assert isinstance(map_height, int), f'Expected int, got {type(map_height)}'
         return map_width, map_height
+
+    def get_tileset_label(self, primary: bool) -> str:
+        """Gets the label of the current tileset from the footer.
+
+        Args:
+            primary (bool): Whether to get the primary or secondary tileset.
+
+        Returns:
+            str: The label of the tileset.
+        """
+        assert self.project is not None, 'Project is None'
+        assert self.footer is not None, 'Footer is None'
+        label = properties.get_member_by_path(
+            self.footer,
+            self.project.config['pymap']['footer'][
+                'tileset_primary_path' if primary else 'tileset_secondary_path'
+            ],
+        )
+        assert isinstance(label, str), f'Expected str, got {type(label)}'
+        return label
+
+    def get_connections(self) -> Sequence[Connection]:
+        """Gets the connections of the current map.
+
+        Returns:
+            list[ModelValue]: The connections
+        """
+        assert self.project is not None, 'Project is None'
+        connections = properties.get_member_by_path(
+            self.header,
+            self.project.config['pymap']['header']['connections']['connections_path'],
+        )
+        assert isinstance(connections, list), f'Expected list, got {type(connections)}'
+        assert all(isinstance(connection, Connection) for connection in connections)
+        return connections  # type: ignore
 
     def get_event(self, event_type: PymapEventConfigType, event_idx: int) -> ModelValue:
         """Gets an event from the header.
@@ -212,6 +265,20 @@ class PymapGui(QMainWindow):
         else:
             return 0, 0
 
+    def get_borders(self) -> npt.NDArray[np.int_]:
+        """Gets the borders of the map.
+
+        Returns:
+            npt.NDArray[np.int_]: The borders
+        """
+        assert self.project is not None, 'Project is None'
+        borders = properties.get_member_by_path(
+            self.footer,
+            self.project.config['pymap']['footer']['border_path'],
+        )
+        assert isinstance(borders, np.ndarray), 'Borders are not numpy array'
+        return borders
+
     def get_block(self, block_idx: int) -> npt.NDArray[np.object_]:
         """Returns the block of the currently detected tileset.
 
@@ -232,6 +299,20 @@ class PymapGui(QMainWindow):
         )
         assert isinstance(block, list)
         return np.array(block).reshape(3, 2, 2)
+
+    def get_map_blocks(self) -> npt.NDArray[np.int_]:
+        """Gets the map blocks.
+
+        Returns:
+            npt.NDArray[np.int_]: The map blocks
+        """
+        assert self.project is not None, 'Project is None'
+        blocks = properties.get_member_by_path(
+            self.footer,
+            self.project.config['pymap']['footer']['map_blocks_path'],
+        )
+        assert isinstance(blocks, np.ndarray), 'Blocks are not numpy array'
+        return blocks
 
     def tab_changed(self):
         """Callback method for when a tab is changed."""
@@ -534,6 +615,7 @@ class PymapGui(QMainWindow):
 
     def load_blocks(self):
         """Updates blocks and their tiles."""
+        assert self.project is not None
         self.tiles = render.get_tiles(
             self.tileset_primary, self.tileset_secondary, self.project
         )
@@ -654,7 +736,7 @@ class PymapGui(QMainWindow):
         ]
         self.event_widget.load_header()
 
-    def set_border(self, x, y, blocks):
+    def set_border(self, x: int, y: int, blocks: npt.NDArray[np.int_]):
         """Sets the blocks of the border and adds an action to the history."""
         border = properties.get_member_by_path(
             self.footer, self.project.config['pymap']['footer']['border_path']
@@ -663,13 +745,20 @@ class PymapGui(QMainWindow):
         blocks = blocks[: window.shape[0], : window.shape[1]].copy()
         self.map_widget.undo_stack.push(history.SetBorder(self, x, y, blocks, window))
 
-    def set_blocks(self, x, y, layers, blocks):
+    def set_blocks(
+        self,
+        x: int,
+        y: int,
+        layers: Sequence[int] | int | npt.NDArray[np.int_],
+        blocks: npt.NDArray[np.int_],
+    ):
         """Sets the blocks on the header and adds an item to the history."""
         if self.project is None or self.header is None:
             return
         map_blocks = properties.get_member_by_path(
             self.footer, self.project.config['pymap']['footer']['map_blocks_path']
         )
+        assert isinstance(map_blocks, np.ndarray), 'Map blocks are not numpy array'
         # Truncate blocks to fit the map
         window = map_blocks[y : y + blocks.shape[0], x : x + blocks.shape[1]].copy()
         blocks = blocks[: window.shape[0], : window.shape[1]].copy()
@@ -768,22 +857,18 @@ class PymapGui(QMainWindow):
             history.ReplaceBlocks(self, idx, layer, value, map_blocks[y, x])
         )
 
-    def resize_map(self, height_new, width_new):
+    def resize_map(self, height_new: int, width_new: int):
         """Changes the map dimensions."""
-        blocks = properties.get_member_by_path(
-            self.footer, self.project.config['pymap']['footer']['map_blocks_path']
-        )
+        blocks = self.get_map_blocks()
         height, width = blocks.shape[0], blocks.shape[1]
         if height != height_new or width != width_new:
             self.map_widget.undo_stack.push(
                 history.ResizeMap(self, height_new, width_new, blocks)
             )
 
-    def resize_border(self, height_new, width_new):
+    def resize_border(self, height_new: int, width_new: int):
         """Changes the border dimensions."""
-        blocks = properties.get_member_by_path(
-            self.footer, self.project.config['pymap']['footer']['border_path']
-        )
+        blocks = self.get_borders()
         height, width = blocks.shape[0], blocks.shape[1]
         if height != height_new or width != width_new:
             self.map_widget.undo_stack.push(

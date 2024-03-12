@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Sequence
 
 import numpy as np
+import numpy.typing as npt
 from agb.model.type import IntArray
 from PySide6.QtGui import QUndoCommand
 
 from pymap.gui import properties
 
 if TYPE_CHECKING:
-    from pymap.gui.gui import PymapGui
+    from pymap.gui.main.gui import PymapGui
 
 
 class Resize(QUndoCommand):
@@ -172,7 +173,7 @@ class SetBlocks(QUndoCommand):
         main_gui: PymapGui,
         x: int,
         y: int,
-        layers: Sequence[int],
+        layers: Sequence[int] | int | npt.NDArray[np.int_],
         blocks_new: IntArray,
         blocks_old: IntArray,
     ):

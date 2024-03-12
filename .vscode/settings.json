@@ -8,4 +8,5 @@
     "editor.codeActionsOnSave": {
         "ruff.executeAutofix": "explicit"
     },
+    "python.analysis.autoImportCompletions": true,
 }
