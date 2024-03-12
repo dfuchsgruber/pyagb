@@ -23,7 +23,7 @@ from .. import (
     connection_widget,
     event_widget,
     footer,
-    header_widget,
+    header,
     history,
     map_widget,
     properties,
@@ -73,7 +73,7 @@ class PymapGui(QMainWindow):
         self.map_widget = MapWidget(self)
         self.event_widget = event_widget.EventWidget(self)
         self.connection_widget = connection_widget.ConnectionWidget(self)
-        self.header_widget = header_widget.HeaderWidget(self)
+        self.header_widget = header.HeaderWidget(self)
         self.footer_widget = footer.FooterWidget(self)
         self.tileset_widget = tileset.TilesetWidget(self)
         self.central_widget.addTab(self.map_widget, 'Map')

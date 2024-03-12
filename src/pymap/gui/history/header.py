@@ -10,7 +10,7 @@ from pymap.gui.history.statement import UndoRedoStatements
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
-    from pymap.gui.header_widget import HeaderWidget
+    from pymap.gui.header import HeaderWidget
 
 
 class AssignFooter(QUndoCommand):
