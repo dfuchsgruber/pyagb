@@ -124,14 +124,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         )
 
         # Load connections
-        connections_model = (
-            properties.get_member_by_path(
-                self.main_gui.header,
-                self.main_gui.project.config['pymap']['header']['connections'][
-                    'connections_path'
-                ],
-            ),
-        )
+        connections_model = self.main_gui.get_connections()
         self.connections = blocks.unpack_connections(
             connections_model,  # type: ignore
             self.main_gui.project,
@@ -281,12 +274,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         ):
             return
 
-        connections_model = properties.get_member_by_path(
-            self.main_gui.header,
-            self.main_gui.project.config['pymap']['header']['connections'][
-                'connections_path'
-            ],
-        )
+        connections_model = self.main_gui.get_connections()
         assert isinstance(
             connections_model, list
         ), f'Expected list, got {type(connections_model)}'
@@ -318,15 +306,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         if self.idx_combobox.currentIndex() == connection_idx:
             self.connection_properties.update()
 
-        connections_model = properties.get_member_by_path(
-            self.main_gui.header,
-            self.main_gui.project.config['pymap']['header']['connections'][
-                'connections_path'
-            ],
-        )
-        assert isinstance(
-            connections_model, list
-        ), f'Expected list, got {type(connections_model)}'
+        connections_model = self.main_gui.get_connections()
         packed = connections_model[connection_idx]
         assert isinstance(
             packed, Connection
@@ -349,13 +329,7 @@ class ConnectionWidget(QtWidgets.QWidget):
 
             if header is not None:
                 # Find the correlating connection
-                adjacent_packed = properties.get_member_by_path(
-                    header,
-                    self.main_gui.project.config['pymap']['header']['connections'][
-                        'connections_path'
-                    ],
-                )
-
+                adjacent_packed = self.main_gui.get_connections()
                 adjacent_connections = blocks.unpack_connections(
                     adjacent_packed,
                     self.main_gui.project,

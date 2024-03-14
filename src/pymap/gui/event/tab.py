@@ -97,9 +97,7 @@ class EventTab(QWidget, EventChildWidgetMixin):
             self.idx_combobox.blockSignals(False)
         else:
             # Load events
-            events = properties.get_member_by_path(
-                self.event_widget.main_gui.header, self.event_type['events_path']
-            )
+            events = self.event_widget.main_gui.get_events(self.event_type)
             assert isinstance(events, list)
             for event in events:
                 group = self.event_to_group(event)

@@ -45,14 +45,16 @@ class ChangeEventProperty(QUndoCommand):
         """Executes the redo statements."""
         assert self.event_widget.main_gui is not None
         assert self.event_widget.main_gui.header is not None
-        event = self.event_widget.main_gui.get_event(self.event_type, self.event_idx)
+        root = self.event_widget.main_gui.get_event(self.event_type, self.event_idx)  # type: ignore
         for statement in self.statements_redo:
             exec(statement)
         self.event_widget.update_event(self.event_type, self.event_idx)
 
     def undo(self):
         """Executes the redo statements."""
-        event = self.event_widget.main_gui.get_event(self.event_type, self.event_idx)
+        root = self.event_widget.main_gui.get_event(  # type: ignore
+            self.event_type, self.event_idx
+        )
         for statement in self.statements_undo:
             exec(statement)
         self.event_widget.update_event(self.event_type, self.event_idx)
@@ -84,10 +86,7 @@ class RemoveEvent(QUndoCommand):
 
     def redo(self):
         """Removes the event from the events."""
-        events = properties.get_member_by_path(
-            self.event_widget.main_gui.header, self.event_type['events_path']
-        )
-        assert isinstance(events, list)
+        events = self.event_widget.main_gui.get_events(self.event_type)
         assert self.event_widget.main_gui is not None
         assert self.event_widget.main_gui.header is not None
         events.pop(self.event_idx)
@@ -98,10 +97,7 @@ class RemoveEvent(QUndoCommand):
 
     def undo(self):
         """Reinserts the event."""
-        events = properties.get_member_by_path(
-            self.event_widget.main_gui.header, self.event_type['events_path']
-        )
-        assert isinstance(events, list)
+        events = self.event_widget.main_gui.get_events(self.event_type)
         events.insert(self.event_idx, self.event)
         assert self.event_widget.main_gui is not None
         assert self.event_widget.main_gui.header is not None
@@ -131,10 +127,7 @@ class AppendEvent(QUndoCommand):
         assert self.event_widget.main_gui.project is not None
         project = self.event_widget.main_gui.project
         datatype = self.event_type['datatype']
-        events = properties.get_member_by_path(
-            self.event_widget.main_gui.header, self.event_type['events_path']
-        )
-        assert isinstance(events, list)
+        events = self.event_widget.main_gui.get_events(self.event_type)
         context = self.event_type['events_path'] + [len(events)]
         assert self.event_widget.main_gui.header is not None
         parents = properties.get_parents_by_path(
@@ -150,9 +143,7 @@ class AppendEvent(QUndoCommand):
         """Removes the last event."""
         assert self.event_widget.main_gui is not None
         assert self.event_widget.main_gui.header is not None
-        events = properties.get_member_by_path(
-            self.event_widget.main_gui.header, self.event_type['events_path']
-        )
+        events = self.event_widget.main_gui.get_events(self.event_type)
         assert isinstance(events, list), f'Expected list, got {type(events)}'
         events.pop()
         properties.set_member_by_path(

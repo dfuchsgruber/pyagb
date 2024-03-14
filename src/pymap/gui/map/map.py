@@ -4,17 +4,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QApplication,
     QGraphicsScene,
     QGraphicsSceneMouseEvent,
     QWidget,
-    QApplication,
 )
 
-import numpy as np
 import pymap.gui.render as render
 from pymap.gui.smart_shape import SmartPath
+
 from .child import MapChildMixin, if_header_loaded
 from .level_blocks import level_to_info
 
@@ -59,7 +60,8 @@ class MapScene(QGraphicsScene, MapChildMixin):
                     block = self.map_widget.blocks[y, x]
                     self.map_widget.info_label.setText(
                         (
-                            f'x : {hex(x - border_width)}, y : {hex(y - border_height)}, '
+                            f'x : {hex(x - border_width)}, '
+                            f'y : {hex(y - border_height)}, '
                             f'Block : {hex(block[0])}, Level : {hex(block[1])}'
                         )
                     )
@@ -163,31 +165,16 @@ class MapScene(QGraphicsScene, MapChildMixin):
                     render.select_blocks(self.map_widget.blocks, *self.selection_box)
                 )
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for pressing the mouse."""
-
         if (
             self.map_widget.main_gui.project is None
             or self.map_widget.main_gui.header is None
         ):
             return
 
-        map_width = properties.get_member_by_path(
-            self.map_widget.main_gui.footer,
-            self.map_widget.main_gui.project.config['pymap']['footer'][
-                'map_width_path'
-            ],
-        )
-
-        map_height = properties.get_member_by_path(
-            self.map_widget.main_gui.footer,
-            self.map_widget.main_gui.project.config['pymap']['footer'][
-                'map_height_path'
-            ],
-        )
-
-        border_width, border_height = self.map_widget.get_border_padding()
-
+        map_width, map_height = self.map_widget.main_gui.get_map_dimensions()
+        border_width, border_height = self.map_widget.main_gui.get_border_padding()
         pos = event.scenePos()
 
         x, y = int(pos.x() / 16), int(pos.y() / 16)
@@ -200,17 +187,17 @@ class MapScene(QGraphicsScene, MapChildMixin):
         ):
             return
 
-        if event.button() == Qt.RightButton:
+        if event.button() == Qt.MouseButton.RightButton:
             self.selection_box = x, x + 1, y, y + 1
-
+            assert self.map_widget.blocks is not None, 'Blocks are not set'
             self.map_widget.set_selection(self.map_widget.blocks[y : y + 1, x : x + 1])
 
-        elif event.button() == Qt.LeftButton:
+        elif event.button() == Qt.MouseButton.LeftButton:
             modifiers = QApplication.keyboardModifiers()
 
-            if modifiers == Qt.ShiftModifier:
-                # Replace all blocks of this type with the selection, this is only allowed for 1-block selections
-
+            if modifiers == Qt.KeyboardModifier.ShiftModifier:
+                # Replace all blocks of this type with the selection, this is only
+                # allowed for 1-block selections
                 # Also only one layer is permitted
 
                 layer = self.map_widget.tabs.currentIndex()
@@ -220,6 +207,7 @@ class MapScene(QGraphicsScene, MapChildMixin):
                     if self.map_widget.tabs.currentIndex() == 0
                     else self.map_widget.levels_selection
                 )
+                assert selection is not None, 'Selection is not set'
 
                 selection_height, selection_width, _ = selection.shape
 
@@ -229,6 +217,7 @@ class MapScene(QGraphicsScene, MapChildMixin):
                     and x in range(border_height, border_width + map_width)
                     and y in range(border_height, border_height + map_height)
                 ):
+                    assert selection is not None, 'Selection is not set'
                     self.map_widget.main_gui.replace_blocks(
                         x - border_width,
                         y - border_height,
@@ -236,7 +225,7 @@ class MapScene(QGraphicsScene, MapChildMixin):
                         selection[0, 0, layer],
                     )
 
-            elif modifiers == Qt.ControlModifier:
+            elif modifiers == Qt.KeyboardModifier.ControlModifier:
                 # Flood fill is only allowed for 1-block selections
 
                 # Also only one layer is permitted
@@ -248,7 +237,7 @@ class MapScene(QGraphicsScene, MapChildMixin):
                     if self.map_widget.tabs.currentIndex() == 0
                     else self.map_widget.levels_selection
                 )
-
+                assert selection is not None, 'Selection is not set'
                 selection_height, selection_width, _ = selection.shape
 
                 if (
@@ -257,6 +246,7 @@ class MapScene(QGraphicsScene, MapChildMixin):
                     and x in range(border_height, border_width + map_width)
                     and y in range(border_height, border_height + map_height)
                 ):
+                    assert selection is not None, 'Selection is not set'
                     self.map_widget.main_gui.flood_fill(
                         x - border_width,
                         y - border_height,
@@ -264,15 +254,10 @@ class MapScene(QGraphicsScene, MapChildMixin):
                         selection[0, 0, layer],
                     )
 
-            elif modifiers == Qt.AltModifier:  # Start Smart drawing
+            elif modifiers == Qt.KeyboardModifier.AltModifier:  # Start Smart drawing
                 self.smart_drawing = SmartPath()
-
-                # print('Start smart drawing.')
-
                 self.last_draw = -1, -1  # This triggers the drawing routine
-
                 self.map_widget.undo_stack.beginMacro('Drawing Smart Shapes')
-
                 self.mouseMoveEvent(event)
 
             else:
@@ -282,16 +267,12 @@ class MapScene(QGraphicsScene, MapChildMixin):
 
                 self.mouseMoveEvent(event)
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for releasing the mouse."""
-
-        if event.button() == Qt.RightButton:
+        if event.button() == Qt.MouseButton.RightButton:
             self.selection_box = None
-
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.last_draw = None
-
-            # self.map_widget.history.close()
 
             self.map_widget.undo_stack.endMacro()
 

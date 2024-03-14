@@ -60,17 +60,10 @@ class BlockProperties(ParameterTree, TilesetChildWidgetMixin):
                 if self.tileset_widget.selected_block_idx < 0x280
                 else 'tileset_secondary'
             ]
-            tileset = (
-                self.tileset_widget.main_gui.tileset_primary
-                if self.tileset_widget.selected_block_idx < 0x280
-                else self.tileset_widget.main_gui.tileset_secondary
-            )
             datatype = config['behaviour_datatype']
-            behaviours = properties.get_member_by_path(
-                tileset, config['behaviours_path']
+            behaviour = self.tileset_widget.main_gui.get_tileset_behaviour(
+                self.tileset_widget.selected_block_idx
             )
-            assert isinstance(behaviours, list)
-            behaviour = behaviours[self.tileset_widget.selected_block_idx % 0x280]
 
             self.root = properties.type_to_parameter(
                 self.tileset_widget.main_gui.project, datatype
@@ -95,14 +88,9 @@ class BlockProperties(ParameterTree, TilesetChildWidgetMixin):
             if self.tileset_widget.selected_block_idx < 0x280
             else 'tileset_secondary'
         ]
-        tileset = (
-            self.tileset_widget.main_gui.tileset_primary
-            if self.tileset_widget.selected_block_idx < 0x280
-            else self.tileset_widget.main_gui.tileset_secondary
+        behaviour = self.tileset_widget.main_gui.get_tileset_behaviour(
+            self.tileset_widget.selected_block_idx
         )
-        behaviours = properties.get_member_by_path(tileset, config['behaviours_path'])
-        assert isinstance(behaviours, list)
-        behaviour = behaviours[self.tileset_widget.selected_block_idx % 0x280]
         self.root.blockSignals(True)  # type: ignore
         self.root.update(behaviour)  # type: ignore
         self.root.blockSignals(False)  # type: ignore
@@ -114,21 +102,9 @@ class BlockProperties(ParameterTree, TilesetChildWidgetMixin):
         Args:
             changes (list[tuple[object, object, object]] | None): The changes.
         """
-        assert self.tileset_widget.main_gui.project is not None
-
-        config = self.tileset_widget.main_gui.project.config['pymap'][
-            'tileset_primary'
-            if self.tileset_widget.selected_block_idx < 0x280
-            else 'tileset_secondary'
-        ]
-        tileset = (
-            self.tileset_widget.main_gui.tileset_primary
-            if self.tileset_widget.selected_block_idx < 0x280
-            else self.tileset_widget.main_gui.tileset_secondary
+        root = self.tileset_widget.main_gui.get_tileset_behaviour(
+            self.tileset_widget.selected_block_idx
         )
-        behvaiours = properties.get_member_by_path(tileset, config['behaviours_path'])
-        assert isinstance(behvaiours, list)
-        root = behvaiours[self.tileset_widget.selected_block_idx % 0x280]
         assert self.root is not None
         diffs = DeepDiff(root, self.root.model_value)
         statements_redo: UndoRedoStatements = []

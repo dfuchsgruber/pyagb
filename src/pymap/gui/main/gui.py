@@ -33,31 +33,14 @@ from .. import (
 from pymap.gui.map import MapWidget
 from ..settings import Settings
 from ..tileset import tileset
+from .model import PymapGuiModel
 
 
-class PymapGui(QMainWindow):
-    def __init__(self, parent=None):
+class PymapGui(QMainWindow, PymapGuiModel):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
+        PymapGuiModel.__init__(self)
         self.settings = Settings()
-        self.project = None
-        self.project_path = None
-        self.header = None
-        self.header_bank = None
-        self.header_map_idx = None
-        self.footer = None
-        self.footer_label = None
-        self.tileset_primary = None
-        self.tileset_primary_label = None
-        self.tileset_secondary = None
-        self.tileset_secondary_label = None
-
-        # Central storage for blocks and tiles, subwidget access it via parent references
-        self.blocks = None
-        self.tiles = None
-
-        self.setup_ui()
-
-    def setup_ui(self):
         # Add the project tree widget
         self.resource_tree_widget = QDockWidget('Project Resources')
         self.resource_tree = resource_tree.ResourceParameterTree(self)
@@ -170,149 +153,9 @@ class PymapGui(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
     @property
-    def project_loaded(self) -> bool:
-        """Whether a project is currently loaded."""
-        return self.project is not None
-
-    @property
-    def header_loaded(self) -> bool:
-        """Returns whether a header is currently loaded."""
-        return self.header is not None and self.project_loaded
-
-    @property
-    def footer_loaded(self) -> bool:
-        """Returns whether a footer is currently loaded."""
-        return self.footer is not None and self.header_loaded
-
-    def get_map_dimensions(self) -> tuple[int, int]:
-        """Gets the map dimensions.
-
-        Returns:
-            tuple[int, int]: The map dimensions (w, h).
-        """
-        assert self.project is not None
-        map_width = properties.get_member_by_path(
-            self.footer,
-            self.project.config['pymap']['footer']['map_width_path'],
-        )
-        assert isinstance(map_width, int), f'Expected int, got {type(map_width)}'
-
-        map_height = properties.get_member_by_path(
-            self.footer,
-            self.project.config['pymap']['footer']['map_height_path'],
-        )
-        assert isinstance(map_height, int), f'Expected int, got {type(map_height)}'
-        return map_width, map_height
-
-    def get_tileset_label(self, primary: bool) -> str:
-        """Gets the label of the current tileset from the footer.
-
-        Args:
-            primary (bool): Whether to get the primary or secondary tileset.
-
-        Returns:
-            str: The label of the tileset.
-        """
-        assert self.project is not None, 'Project is None'
-        assert self.footer is not None, 'Footer is None'
-        label = properties.get_member_by_path(
-            self.footer,
-            self.project.config['pymap']['footer'][
-                'tileset_primary_path' if primary else 'tileset_secondary_path'
-            ],
-        )
-        assert isinstance(label, str), f'Expected str, got {type(label)}'
-        return label
-
-    def get_connections(self) -> Sequence[Connection]:
-        """Gets the connections of the current map.
-
-        Returns:
-            list[ModelValue]: The connections
-        """
-        assert self.project is not None, 'Project is None'
-        connections = properties.get_member_by_path(
-            self.header,
-            self.project.config['pymap']['header']['connections']['connections_path'],
-        )
-        assert isinstance(connections, list), f'Expected list, got {type(connections)}'
-        assert all(isinstance(connection, Connection) for connection in connections)
-        return connections  # type: ignore
-
-    def get_event(self, event_type: PymapEventConfigType, event_idx: int) -> ModelValue:
-        """Gets an event from the header.
-
-        Args:
-            event_type (PymapEventConfigType): The event type to get
-            event_idx (int): The index of the event to get
-
-        Returns:
-            ModelValue: The event
-        """
-        assert self.header is not None, 'Header is None'
-        events = properties.get_member_by_path(self.header, event_type['events_path'])
-        assert isinstance(events, list), f'Expected list, got {type(events)}'
-        event = events[event_idx]
-        return event
-
-    def get_border_padding(self) -> tuple[int, int]:
-        """Returns how many blocks are padded to the border of the map."""
-        if self.map_widget.show_border.isChecked():
-            assert self.project is not None, 'Project is None'
-            padding = tuple(self.project.config['pymap']['display']['border_padding'])
-            assert len(padding) == 2, f'Expected 2, got {len(padding)}'
-            return padding
-        else:
-            return 0, 0
-
-    def get_borders(self) -> npt.NDArray[np.int_]:
-        """Gets the borders of the map.
-
-        Returns:
-            npt.NDArray[np.int_]: The borders
-        """
-        assert self.project is not None, 'Project is None'
-        borders = properties.get_member_by_path(
-            self.footer,
-            self.project.config['pymap']['footer']['border_path'],
-        )
-        assert isinstance(borders, np.ndarray), 'Borders are not numpy array'
-        return borders
-
-    def get_block(self, block_idx: int) -> npt.NDArray[np.object_]:
-        """Returns the block of the currently detected tileset.
-
-        Args:
-            block_idx (int): The index of the block.
-
-        Returns:
-            npt.NDArray[np.object_]: The block of shape [layer, h, w]
-        """
-        assert self.project is not None
-        block = properties.get_member_by_path(
-            self.tileset_primary
-            if block_idx < 0x280
-            else self.tileset_widget.main_gui.tileset_secondary,
-            self.project.config['pymap'][
-                'tileset_primary' if block_idx < 0x280 else 'tileset_secondary'
-            ]['blocks_path'],
-        )
-        assert isinstance(block, list)
-        return np.array(block).reshape(3, 2, 2)
-
-    def get_map_blocks(self) -> npt.NDArray[np.int_]:
-        """Gets the map blocks.
-
-        Returns:
-            npt.NDArray[np.int_]: The map blocks
-        """
-        assert self.project is not None, 'Project is None'
-        blocks = properties.get_member_by_path(
-            self.footer,
-            self.project.config['pymap']['footer']['map_blocks_path'],
-        )
-        assert isinstance(blocks, np.ndarray), 'Blocks are not numpy array'
-        return blocks
+    def show_borders(self) -> bool:
+        """Returns whether the borders are shown."""
+        return self.map_widget.show_border.isChecked()
 
     def tab_changed(self):
         """Callback method for when a tab is changed."""
@@ -830,7 +673,7 @@ class PymapGui(QMainWindow):
                 )
         self.event_widget.undo_stack.endMacro()
 
-    def flood_fill(self, x, y, layer, value):
+    def flood_fill(self, x: int, y: int, layer: int, value: npt.NDArray[np.int_]):
         """Flood fills with origin (x, y) and a certain layer with a new value."""
         if self.project is None or self.header is None:
             return
@@ -845,7 +688,9 @@ class PymapGui(QMainWindow):
             history.ReplaceBlocks(self, idx, layer, value, map_blocks[y, x])
         )
 
-    def replace_blocks(self, x, y, layer, value):
+    def replace_blocks(
+        self, x: int, y: int, layer: int, value: npt.NDArray[np.int_]
+    ) -> None:
         """Replaces all blocks that are like (x, y) w.r.t. to the layer by the new value."""
         if self.project is None or self.header is None:
             return

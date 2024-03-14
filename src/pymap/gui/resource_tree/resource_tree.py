@@ -593,7 +593,7 @@ class ResourceParameterTree(QTreeWidget):
                     )
                     for header in headers
                 ]
-                return QMessageBox.critical(
+                QMessageBox.critical(
                     self,
                     'Confirm footer removal',
                     (
@@ -602,6 +602,7 @@ class ResourceParameterTree(QTreeWidget):
                         'to those headers first.'
                     ),
                 )
+                return
             self.main_gui.project.remove_footer(footer)
             self.load_footers()
             self.main_gui.update()
@@ -817,7 +818,7 @@ class ResourceParameterTree(QTreeWidget):
                     ):
                         footers.append(footer_label)
             if len(footers) > 0:
-                return QMessageBox.critical(
+                QMessageBox.critical(
                     self,
                     'Tileset Removal',
                     (
@@ -826,6 +827,7 @@ class ResourceParameterTree(QTreeWidget):
                         'Assign different tilesets to those footers first.'
                     ),
                 )
+                return
             self.main_gui.project.remove_tileset(primary, label)
             self.load_tilesets()
             self.main_gui.update()
@@ -905,33 +907,18 @@ class ResourceParameterTree(QTreeWidget):
             if label_new is None:
                 return
         self.main_gui.project.refactor_gfx(primary, label_old, label_new)
-        # If the current tileset refers to this gfx, change the label as well
-        if primary:
-            gfx_primary_label = get_member_by_path(
-                self.main_gui.tileset_primary,
-                self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'],
+
+        gfx_label = self.main_gui.get_tileset_gfx_label(primary)
+        if gfx_label == label_old:
+            set_member_by_path(
+                self.main_gui.tileset_primary
+                if primary
+                else self.main_gui.tileset_secondary,
+                label_new,
+                self.main_gui.project.config['pymap'][
+                    'tileset_primary' if primary else 'tileset_secondary'
+                ]['gfx_path'],
             )
-            if gfx_primary_label == label_old:
-                set_member_by_path(
-                    self.main_gui.tileset_primary,
-                    label_new,
-                    self.main_gui.project.config['pymap']['tileset_primary'][
-                        'gfx_path'
-                    ],
-                )
-        else:
-            gfx_secondary_label = get_member_by_path(
-                self.main_gui.tileset_secondary,
-                self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'],
-            )
-            if gfx_secondary_label == label_old:
-                set_member_by_path(
-                    self.main_gui.tileset_secondary,
-                    label_new,
-                    self.main_gui.project.config['pymap']['tileset_secondary'][
-                        'gfx_path'
-                    ],
-                )
         self.load_gfx()
         self.main_gui.update()
 

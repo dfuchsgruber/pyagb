@@ -149,10 +149,7 @@ class MapScene(QGraphicsScene, EventChildWidgetMixin):
             for event_type in self.event_widget.main_gui.project.config['pymap'][
                 'header'
             ]['events']:
-                events = get_member_by_path(
-                    self.event_widget.main_gui.header, event_type['events_path']
-                )
-                assert isinstance(events, list), f'Expected list, got {type(events)}'
+                events = self.event_widget.main_gui.get_events(event_type)
                 for event_idx, event in enumerate(events):
                     event_x, event_y = pad_coordinates(
                         get_member_by_path(event, event_type['x_path']),

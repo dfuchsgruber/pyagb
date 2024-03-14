@@ -145,11 +145,7 @@ class SetBorder(QUndoCommand):
     def _set_blocks(self, blocks: IntArray):
         # Helper method for setting a set of blocks
         assert self.main_gui.project is not None
-        footer_blocks = properties.get_member_by_path(
-            self.main_gui.footer,
-            self.main_gui.project.config['pymap']['footer']['border_path'],
-        )
-        assert isinstance(footer_blocks, np.ndarray)
+        footer_blocks = self.main_gui.get_borders()
         footer_blocks[
             self.y : self.y + blocks.shape[0], self.x : self.x + blocks.shape[1], 0
         ] = blocks[:, :, 0]
@@ -197,12 +193,7 @@ class SetBlocks(QUndoCommand):
 
     def _set_blocks(self, blocks: IntArray):
         # Helper method for setting a set of blocks
-        assert self.main_gui.project is not None
-        footer_blocks = properties.get_member_by_path(
-            self.main_gui.footer,
-            self.main_gui.project.config['pymap']['footer']['map_blocks_path'],
-        )
-        assert isinstance(footer_blocks, np.ndarray)
+        footer_blocks = self.main_gui.get_map_blocks()
         footer_blocks[
             self.y : self.y + blocks.shape[0],
             self.x : self.x + blocks.shape[1],
@@ -217,40 +208,6 @@ class SetBlocks(QUndoCommand):
     def undo(self):
         """Undos setting of blocks."""
         self._set_blocks(self.blocks_old)
-
-
-# class SmartDrawing(QUndoCommand):
-#     """Smart drawing of blocks."""
-
-#     def __init__(
-#         self,
-#         main_gui: PymapGui,
-#         idxs: IntArray,
-#         blocks_old: IntArray,
-#         auto_shape: IntArray,
-#     ):
-#         super().__init__()
-#         self.main_gui = main_gui
-#         self.idxs = idxs  # Shape [N, 2]
-#         self.blocks_old = blocks_old  # Shape [N]
-#         # self.blocks_new = smart_shape.path_to_shape(self.idxs, auto_shape)
-#         self.blocks_new = smart_shape.path_to_shape2(self.idxs, auto_shape)
-
-#     def _set_blocks(self, blocks):
-#         """Draws a smart map."""
-#         # TODO:
-#         # map_blocks = properties.get_member_by_path(self.main_gui.footer,
-# self.main_gui.project.config['pymap']['footer']['map_blocks_path'])
-#         for (y, x), b in zip(self.idxs, blocks):
-#             self.main_gui.map_widget.update_map(
-#                 x, y, (0,), np.array([b], dtype=int).reshape((1, 1, 1))
-#             )
-
-#     def redo(self):
-#         self._set_blocks(self.blocks_new)
-
-#     def undo(self):
-#         self._set_blocks(self.blocks_old)
 
 
 class ReplaceBlocks(QUndoCommand):
@@ -282,22 +239,14 @@ class ReplaceBlocks(QUndoCommand):
 
     def redo(self):
         """Performs the flood fill."""
-        assert self.main_gui.project is not None
-        map_blocks = properties.get_member_by_path(
-            self.main_gui.footer,
-            self.main_gui.project.config['pymap']['footer']['map_blocks_path'],
-        )
+        map_blocks = self.main_gui.get_map_blocks()
         assert isinstance(map_blocks, np.ndarray)
         map_blocks[:, :, self.layer][self.idx] = self.value_new
         self.main_gui.map_widget.load_map()
 
     def undo(self):
         """Performs the flood fill."""
-        assert self.main_gui.project is not None
-        map_blocks = properties.get_member_by_path(
-            self.main_gui.footer,
-            self.main_gui.project.config['pymap']['footer']['map_blocks_path'],
-        )
+        map_blocks = self.main_gui.get_map_blocks()
         assert isinstance(map_blocks, np.ndarray)
         map_blocks[:, :, self.layer][self.idx] = self.value_old
         self.main_gui.map_widget.load_map()

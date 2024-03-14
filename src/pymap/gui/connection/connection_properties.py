@@ -5,16 +5,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from deepdiff import DeepDiff  # type: ignore
-from pymap.gui import properties
-from pymap.gui.history import (
-    ChangeConnectionProperty,
-    UndoRedoStatements,
-)
-from pymap.gui.types import Connection
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6.QtWidgets import (
     QHeaderView,
     QWidget,
+)
+
+from pymap.gui import properties
+from pymap.gui.history import (
+    ChangeConnectionProperty,
+    UndoRedoStatements,
 )
 
 from .child import ConnectionChildWidgetMixin, if_connection_loaded
@@ -62,20 +62,9 @@ class ConnectionProperties(ParameterTree, ConnectionChildWidgetMixin):
                 'header'
             ]['connections']['datatype']
 
-            connections = properties.get_member_by_path(
-                self.connection_widget.main_gui.header,
-                self.connection_widget.main_gui.project.config['pymap']['header'][
-                    'connections'
-                ]['connections_path'],
-            )
-            assert isinstance(
-                connections, list
-            ), f'Expected list, got {type(connections)}'
-
-            connection = connections[self.connection_widget.idx_combobox.currentIndex()]
-            assert isinstance(
-                connection, Connection
-            ), f'Expected Connection, got {type(connection)}'
+            connection = self.connection_widget.main_gui.get_connections()[
+                self.connection_widget.idx_combobox.currentIndex()
+            ]
 
             parameter = properties.type_to_parameter(
                 self.connection_widget.main_gui.project, datatype
@@ -97,18 +86,9 @@ class ConnectionProperties(ParameterTree, ConnectionChildWidgetMixin):
         """Updates all values in the tree according to the current connection."""
         assert self.root is not None
         assert self.connection_widget.main_gui.project is not None
-        connections = properties.get_member_by_path(
-            self.connection_widget.main_gui.header,
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_path'],
-        )
-        assert isinstance(connections, list), f'Expected list, got {type(connections)}'
-        connection = connections[self.connection_widget.idx_combobox.currentIndex()]
-        assert isinstance(
-            connection, Connection
-        ), f'Expected Connection, got {type(connection)}'
-
+        connection = self.connection_widget.main_gui.get_connections()[
+            self.connection_widget.idx_combobox.currentIndex()
+        ]
         self.root.blockSignals(True)  # type: ignore
         self.root.update(connection)
         self.root.blockSignals(False)  # type: ignore
@@ -118,15 +98,9 @@ class ConnectionProperties(ParameterTree, ConnectionChildWidgetMixin):
         """When the tree changes values."""
         assert self.root is not None
         assert self.connection_widget.main_gui.project is not None
-        connections = properties.get_member_by_path(
-            self.connection_widget.main_gui.header,
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_path'],
-        )
-        assert isinstance(connections, list), f'Expected list, got {type(connections)}'
-        root = connections[self.connection_widget.idx_combobox.currentIndex()]
-        assert isinstance(root, Connection), f'Expected Connection, got {type(root)}'
+        root = self.connection_widget.main_gui.get_connections()[
+            self.connection_widget.idx_combobox.currentIndex()
+        ]
         diffs = DeepDiff(root, self.root.model_value)
         statements_redo: UndoRedoStatements = []
         statements_undo: UndoRedoStatements = []

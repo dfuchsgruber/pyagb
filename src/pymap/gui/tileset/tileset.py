@@ -287,14 +287,8 @@ class TilesetWidget(QtWidgets.QWidget):
             self.behaviour_clipboard_clear.setEnabled(True)
             self.gfx_primary_combobox.setEnabled(True)
             self.gfx_secondary_combobox.setEnabled(True)
-            gfx_primary_label = properties.get_member_by_path(
-                self.main_gui.tileset_primary,
-                self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'],
-            )
-            gfx_secondary_label = properties.get_member_by_path(
-                self.main_gui.tileset_secondary,
-                self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'],
-            )
+            gfx_primary_label = self.main_gui.get_tileset_gfx_label(True)
+            gfx_secondary_label = self.main_gui.get_tileset_gfx_label(False)
             assert isinstance(gfx_primary_label, str)
             self.gfx_primary_combobox.blockSignals(True)
             self.gfx_primary_combobox.setCurrentText(gfx_primary_label)
@@ -589,16 +583,9 @@ class TilesetWidget(QtWidgets.QWidget):
             'Secondary', QMessageBox.ButtonRole.AcceptRole
         )
         message_box.exec_()
+        palettes_primary = self.main_gui.get_tileset_palettes(True)
+        palettes_secondary = self.main_gui.get_tileset_palettes(False)
 
-        # Fetch current palettes
-        palettes_primary = properties.get_member_by_path(
-            self.main_gui.tileset_primary,
-            self.main_gui.project.config['pymap']['tileset_primary']['palettes_path'],
-        )
-        palettes_secondary = properties.get_member_by_path(
-            self.main_gui.tileset_secondary,
-            self.main_gui.project.config['pymap']['tileset_secondary']['palettes_path'],
-        )
         assert self.main_gui.project is not None
         palette = (
             render.pack_colors(palettes_primary)
@@ -606,21 +593,14 @@ class TilesetWidget(QtWidgets.QWidget):
         )[self.tiles_palette_combobox.currentIndex()]
 
         if message_box.clickedButton() == bt_primary:
-            label = properties.get_member_by_path(
-                self.main_gui.tileset_primary,
-                self.main_gui.project.config['pymap']['tileset_primary']['gfx_path'],
-            )
-            assert isinstance(label, str)
-            img = self.main_gui.project.load_gfx(True, label)
-            self.main_gui.project.save_gfx(True, img, palette, label)
+            primary = True
         elif message_box.clickedButton() == bt_secondary:
-            label = properties.get_member_by_path(
-                self.main_gui.tileset_secondary,
-                self.main_gui.project.config['pymap']['tileset_secondary']['gfx_path'],
-            )
-            assert isinstance(label, str)
-            img = self.main_gui.project.load_gfx(False, label)
-            self.main_gui.project.save_gfx(False, img, palette, label)
+            primary = False
+        else:
+            return
+        label = self.main_gui.get_tileset_gfx_label(primary)
+        img = self.main_gui.project.load_gfx(primary, label)
+        self.main_gui.project.save_gfx(primary, img, palette, label)
 
     def copy_behaviour(self):
         """Copies the behaviour properties of the current block."""
@@ -701,22 +681,5 @@ class TilesetWidget(QtWidgets.QWidget):
         _, palette = agbimage.from_file(path)
         palette = palette.to_data()
         pal_idx = self.tiles_palette_combobox.currentIndex()
-        if pal_idx < 7:
-            palettes = properties.get_member_by_path(
-                self.main_gui.tileset_primary,
-                self.main_gui.project.config['pymap']['tileset_primary'][
-                    'palettes_path'
-                ],
-            )
-            assert isinstance(palettes, list)
-            palette_old = palettes[pal_idx]
-        else:
-            palettes = properties.get_member_by_path(
-                self.main_gui.tileset_secondary,
-                self.main_gui.project.config['pymap']['tileset_secondary'][
-                    'palettes_path'
-                ],
-            )
-            assert isinstance(palettes, list)
-            palette_old = palettes[pal_idx % 7]
+        palette_old = self.main_gui.get_tileset_palette(pal_idx)
         self.undo_stack.push(history.SetPalette(self, pal_idx, palette, palette_old))  # type: ignore
