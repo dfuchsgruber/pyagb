@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
 )
 
 from pymap.configuration import PymapEventConfigType
+from pymap.gui.history import ChangeEventProperty, path_to_statement
+from pymap.gui.properties import get_member_by_path
 
 from .event_to_image import EventToImage, NullEventToImage
 from .map_scene import MapScene
@@ -181,3 +183,32 @@ class EventWidget(QWidget):
             if self.tab_widget.currentWidget() is tab:
                 # Update the selection
                 self.map_scene.update_selection()
+
+    def shift_events(self, x: int, y: int):
+        """Shifts the events of the current map header."""
+        if not self.header_loaded:
+            return
+        self.undo_stack.beginMacro('ShiftEvents')
+        assert self.main_gui.project is not None, 'Project is not loaded'
+        for event_type in self.main_gui.project.config['pymap']['header']['events']:
+            for event_idx in range(self.main_gui.get_num_events(event_type)):
+                event = self.main_gui.get_event(event_type, event_idx)
+
+                x_old = eval(str(get_member_by_path(event, event_type['x_path'])))
+                y_old = eval(str(get_member_by_path(event, event_type['y_path'])))
+                redo_statement_x, undo_statement_x = path_to_statement(
+                    event_type['x_path'], x_old, x_old + x
+                )
+                redo_statement_y, undo_statement_y = path_to_statement(
+                    event_type['y_path'], y_old, y_old + y
+                )
+                self.undo_stack.push(
+                    ChangeEventProperty(
+                        self,
+                        event_type,
+                        event_idx,
+                        [redo_statement_x, redo_statement_y],
+                        [undo_statement_x, undo_statement_y],
+                    )
+                )
+        self.undo_stack.endMacro()

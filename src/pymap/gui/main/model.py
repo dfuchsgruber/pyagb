@@ -3,13 +3,15 @@
 
 from abc import abstractmethod
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 from agb.model.type import ModelValue
 from numpy.typing import NDArray
+from PIL import Image
 
 from pymap.configuration import PymapEventConfigType
-from pymap.gui.properties import get_member_by_path
+from pymap.gui.properties import get_member_by_path, set_member_by_path
 from pymap.gui.types import Connection
 from pymap.project import Project
 
@@ -20,7 +22,7 @@ class PymapGuiModel:
     def __init__(self):
         """Initializes the model."""
         self.project: Project | None = None
-        self.project_path: str | None = None
+        self.project_path: Path | None = None
         self.header: ModelValue | None = None
         self.header_bank: str | None = None
         self.header_map_idx: str | None = None
@@ -30,8 +32,8 @@ class PymapGuiModel:
         self.tileset_primary_label = None
         self.tileset_secondary = None
         self.tileset_secondary_label = None
-        self.blocks: NDArray[np.int_] | None = None
-        self.tiles: NDArray[np.int_] | None = None
+        self.blocks: list[Image.Image] | None = None
+        self.tiles: list[list[Image.Image]] | None = None
 
     @property
     def project_loaded(self) -> bool:
@@ -47,6 +49,11 @@ class PymapGuiModel:
     def footer_loaded(self) -> bool:
         """Returns whether a footer is currently loaded."""
         return self.footer is not None and self.header_loaded
+
+    @property
+    def tilesets_loaded(self) -> bool:
+        """Returns whether the tilesets are currently loaded."""
+        return self.tileset_primary is not None and self.tileset_secondary is not None
 
     @property
     @abstractmethod
@@ -293,3 +300,68 @@ class PymapGuiModel:
         palette = palettes[palette_idx % 7]
         assert isinstance(palette, list), f'Expected list, got {type(palette)}'
         return palette
+
+    def get_num_events(self, event_type: PymapEventConfigType) -> int:
+        """Gets the number of events of the header.
+
+        Args:
+            event_type (PymapEventConfigType): The event type to get
+
+        Returns:
+            int: The number of events
+        """
+        num_events = get_member_by_path(
+            self.header,
+            event_type['size_path'],
+        )
+        assert isinstance(num_events, int), f'Expected int, got {type(num_events)}'
+        return num_events
+
+    def set_footer(self, label: str, footer_idx: int):
+        """Sets the footer of the header.
+
+        Args:
+            label (str): The label of the footer.
+            footer_idx (int): The index of the footer.
+        """
+        assert self.project is not None, 'Project is None'
+        set_member_by_path(
+            self.header, label, self.project.config['pymap']['header']['footer_path']
+        )
+        set_member_by_path(
+            self.header,
+            footer_idx,
+            self.project.config['pymap']['header']['footer_idx_path'],
+        )
+
+    def set_tileset(self, label: str, primary: bool):
+        """Sets the tileset of the header.
+
+        Args:
+            label (str): The label of the tileset.
+            primary (bool): Whether to set the primary or secondary tileset.
+        """
+        assert self.project is not None, 'Project is None'
+        set_member_by_path(
+            self.footer,
+            label,
+            self.project.config['pymap']['footer'][
+                'tileset_primary_path' if primary else 'tileset_secondary_path'
+            ],
+        )
+
+    def set_tileset_gfx(self, label: str, primary: bool):
+        """Sets the gfx of the tileset.
+
+        Args:
+            label (str): The label of the gfx.
+            primary (bool): Whether to set the primary or secondary tileset.
+        """
+        assert self.project is not None, 'Project is None'
+        set_member_by_path(
+            self.tileset_primary if primary else self.tileset_secondary,
+            label,
+            self.project.config['pymap'][
+                'tileset_primary' if primary else 'tileset_secondary'
+            ]['gfx_path'],
+        )

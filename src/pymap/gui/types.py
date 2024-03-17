@@ -1,7 +1,7 @@
 """Specific datatypes that pymap needs."""
 
 from enum import StrEnum, unique
-from typing import NamedTuple, Sequence, TypeAlias, TypedDict
+from typing import Any, NamedTuple, Sequence, TypeAlias, Protocol, Literal, overload
 
 import numpy as np
 from numpy.typing import NDArray
@@ -27,11 +27,22 @@ class Connection(NamedTuple):
     blocks: NDArray[np.int_]
 
 
-class Block(TypedDict):
+class BlockProtocol(Protocol):
     """A block in a map."""
 
-    block_idx: int
-    level: int
+    @overload
+    def __getitem__(self, key: Literal['block_idx']) -> int:
+        ...
+
+    @overload
+    def __getitem__(self, key: Literal['level']) -> int:
+        ...
+
+
+class Block(dict[str, Any], BlockProtocol):
+    """A block in a map."""
+
+    ...
 
 
 MapLayers: TypeAlias = Sequence[int] | int | NDArray[np.int_]

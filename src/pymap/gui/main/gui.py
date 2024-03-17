@@ -1,64 +1,87 @@
-# -*- coding: utf-8 -*-
+"""Widget for the main gui."""
+
+from __future__ import annotations
 
 import os
 import sys
-from copy import deepcopy
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 import numpy.typing as npt
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from skimage.measure import label
-from agb.model.type import ModelValue
-from pymap.configuration import PymapEventConfigType
-from pymap.gui.types import Connection
+from numpy.typing import NDArray
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QCloseEvent, QImage, QPainter
+from PySide6.QtWidgets import (
+    QApplication,
+    QDockWidget,
+    QFileDialog,
+    QInputDialog,
+    QMainWindow,
+    QMessageBox,
+    QTabWidget,
+    QWidget,
+)
+from skimage.measure import label as label_image  # type: ignore
 
-import pymap.project
-
-from .. import (
-    blocks,
-    connection_widget,
-    event_widget,
-    footer,
-    header,
-    history,
-    map_widget,
-    properties,
-    render,
-    resource_tree,
+from pymap.gui import render
+from pymap.gui.connection import ConnectionWidget
+from pymap.gui.event import EventWidget
+from pymap.gui.footer import FooterWidget
+from pymap.gui.header import HeaderWidget
+from pymap.gui.history import (
+    AssignFooter,
+    AssignGfx,
+    AssignTileset,
+    ReplaceBlocks,
+    ResizeBorder,
+    ResizeMap,
+    SetBlocks,
+    SetBorder,
 )
 from pymap.gui.map import MapWidget
-from ..settings import Settings
-from ..tileset import tileset
+from pymap.gui.resource_tree import HeaderSorting, ResourceParameterTree
+from pymap.gui.settings import Settings
+from pymap.gui.tileset import TilesetWidget
+from pymap.gui.types import MapLayers
+from pymap.project import Project
+
 from .model import PymapGuiModel
 
 
 class PymapGui(QMainWindow, PymapGuiModel):
+    """Main GUI for Pymap."""
+
     def __init__(self, parent: QWidget | None = None):
+        """Initializes the main GUI.
+
+        Args:
+            parent (QWidget | None, optional): The parent. Defaults to None.
+        """
         super().__init__(parent)
         PymapGuiModel.__init__(self)
         self.settings = Settings()
+
         # Add the project tree widget
         self.resource_tree_widget = QDockWidget('Project Resources')
-        self.resource_tree = resource_tree.ResourceParameterTree(self)
+        self.resource_tree = ResourceParameterTree(self)
         self.resource_tree_widget.setWidget(self.resource_tree)
         self.resource_tree_widget.setFloating(False)
         self.resource_tree_widget.setFeatures(
-            QDockWidget.DockWidgetFloatable | QDockWidget.DockWidgetMovable
+            QDockWidget.DockWidgetFeature.DockWidgetFloatable
+            | QDockWidget.DockWidgetFeature.DockWidgetMovable
         )
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.resource_tree_widget)
+        self.addDockWidget(
+            Qt.DockWidgetArea.LeftDockWidgetArea, self.resource_tree_widget
+        )
 
         # Add the tabs
         self.central_widget = QTabWidget()
         self.map_widget = MapWidget(self)
-        self.event_widget = event_widget.EventWidget(self)
-        self.connection_widget = connection_widget.ConnectionWidget(self)
-        self.header_widget = header.HeaderWidget(self)
-        self.footer_widget = footer.FooterWidget(self)
-        self.tileset_widget = tileset.TilesetWidget(self)
+        self.event_widget = EventWidget(self)
+        self.connection_widget = ConnectionWidget(self)
+        self.header_widget = HeaderWidget(self)
+        self.footer_widget = FooterWidget(self)
+        self.tileset_widget = TilesetWidget(self)
         self.central_widget.addTab(self.map_widget, 'Map')
         self.central_widget.addTab(self.event_widget, 'Events')
         self.central_widget.addTab(self.tileset_widget, 'Tileset')
@@ -72,49 +95,49 @@ class PymapGui(QMainWindow, PymapGuiModel):
         file_menu = self.menuBar().addMenu('&File')
         # 'New' submenu
         file_menu_new_menu = file_menu.addMenu('&New')
-        file_menu_new_project_action = file_menu_new_menu.addAction('Project')
+        file_menu_new_project_action = file_menu_new_menu.addAction('Project')  # type: ignore
         file_menu_new_project_action.setShortcut('Ctrl+N')
-        file_menu_new_bank_action = file_menu_new_menu.addAction('Bank')
+        file_menu_new_bank_action = file_menu_new_menu.addAction('Bank')  # type: ignore
         file_menu_new_bank_action.triggered.connect(self.resource_tree.create_bank)
-        file_menu_new_header_action = file_menu_new_menu.addAction('Header')
+        file_menu_new_header_action = file_menu_new_menu.addAction('Header')  # type: ignore
         file_menu_new_header_action.triggered.connect(self.resource_tree.create_header)
-        file_menu_new_footer_action = file_menu_new_menu.addAction('Footer')
+        file_menu_new_footer_action = file_menu_new_menu.addAction('Footer')  # type: ignore
         file_menu_new_footer_action.triggered.connect(self.resource_tree.create_footer)
-        file_menu_new_tileset_action = file_menu_new_menu.addAction('Tileset')
+        file_menu_new_tileset_action = file_menu_new_menu.addAction('Tileset')  # type: ignore
         file_menu_new_tileset_action.triggered.connect(
             self.resource_tree.create_tileset
         )
         # Flat actions
-        file_menu_open_action = file_menu.addAction('&Open Project')
+        file_menu_open_action = file_menu.addAction('&Open Project')  # type: ignore
         file_menu_open_action.triggered.connect(self.open_project)
         file_menu_open_action.setShortcut('Ctrl+O')
         # 'Save' submenu
         file_menu_save_menu = file_menu.addMenu('&Save')
-        file_menu_save_all = file_menu_save_menu.addAction('All')
+        file_menu_save_all = file_menu_save_menu.addAction('All')  # type: ignore
         file_menu_save_all.triggered.connect(self.save_all)
         file_menu_save_all.setShortcut('Ctrl+S')
-        file_menu_save_project = file_menu_save_menu.addAction('Project')
+        file_menu_save_project = file_menu_save_menu.addAction('Project')  # type: ignore
         file_menu_save_project.triggered.connect(self.save_project)
-        file_menu_save_header = file_menu_save_menu.addAction('Header')
+        file_menu_save_header = file_menu_save_menu.addAction('Header')  # type: ignore
         file_menu_save_header.triggered.connect(self.save_header)
-        file_menu_save_footer = file_menu_save_menu.addAction('Footer')
+        file_menu_save_footer = file_menu_save_menu.addAction('Footer')  # type: ignore
         file_menu_save_footer.triggered.connect(self.save_footer)
-        file_menu_save_tilesets = file_menu_save_menu.addAction('Tilesets')
+        file_menu_save_tilesets = file_menu_save_menu.addAction('Tilesets')  # type: ignore
         file_menu_save_tilesets.triggered.connect(self.save_tilesets)
         # 'Edit' menu
         edit_menu = self.menuBar().addMenu('&Edit')
-        edit_menu_undo_action = edit_menu.addAction('Undo')
+        edit_menu_undo_action = edit_menu.addAction('Undo')  # type: ignore
         edit_menu_undo_action.triggered.connect(
-            lambda: self.central_widget.currentWidget().undo_stack.undo()
+            self.central_widget.currentWidget().undo_stack.undo  # type: ignore
         )
         edit_menu_undo_action.setShortcut('Ctrl+Z')
-        edit_menu_redo_action = edit_menu.addAction('Redo')
+        edit_menu_redo_action = edit_menu.addAction('Redo')  # type: ignore
         edit_menu_redo_action.triggered.connect(
-            lambda: self.central_widget.currentWidget().undo_stack.redo()
+            self.central_widget.currentWidget().undo_stack.redo  # type: ignore
         )
         edit_menu_redo_action.setShortcut('Ctrl+Y')
         edit_menu.addSeparator()
-        edit_menu_shift_blocks_and_events_action = edit_menu.addAction(
+        edit_menu_shift_blocks_and_events_action = edit_menu.addAction(  # type: ignore
             'Shift Blocks and Events'
         )
         edit_menu_shift_blocks_and_events_action.triggered.connect(
@@ -122,13 +145,13 @@ class PymapGui(QMainWindow, PymapGuiModel):
                 shift_blocks=True, shift_events=True
             )
         )
-        edit_menu_shift_blocks_action = edit_menu.addAction('Shift Blocks')
+        edit_menu_shift_blocks_action = edit_menu.addAction('Shift Blocks')  # type: ignore
         edit_menu_shift_blocks_action.triggered.connect(
             lambda: self.prompt_shift_blocks_and_events(
                 shift_blocks=True, shift_events=False
             )
         )
-        edit_menu_shift_events_action = edit_menu.addAction('Shift Events')
+        edit_menu_shift_events_action = edit_menu.addAction('Shift Events')  # type: ignore
         edit_menu_shift_events_action.triggered.connect(
             lambda: self.prompt_shift_blocks_and_events(
                 shift_blocks=False, shift_events=True
@@ -137,17 +160,17 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
         # 'View' menu
         view_menu = self.menuBar().addMenu('&View')
-        view_menu_resource_action = view_menu.addAction('Toggle Header Listing')
+        view_menu_resource_action = view_menu.addAction('Toggle Header Listing')  # type: ignore
         view_menu_resource_action.setShortcut('Ctrl+L')
         view_menu_resource_action.triggered.connect(
             self.resource_tree_toggle_header_listing
         )
-        view_menu_event_action = view_menu.addAction('Toggle Event Pictures')
+        view_menu_event_action = view_menu.addAction('Toggle Event Pictures')  # type: ignore
         view_menu_event_action.triggered.connect(self.event_widget_toggle_pictures)
 
         # 'Tools' menu
         tools_menu = self.menuBar().addMenu('Tools')
-        view_menu_save_image_action = tools_menu.addAction('Save Map Image')
+        view_menu_save_image_action = tools_menu.addAction('Save Map Image')  # type: ignore
         view_menu_save_image_action.triggered.connect(self.save_map_image)
 
         self.setCentralWidget(self.central_widget)
@@ -159,7 +182,8 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
     def tab_changed(self):
         """Callback method for when a tab is changed."""
-        # Update map data and blocks lazily in order to prevent lag when mapping blocks or tiles
+        # Update map data and blocks lazily in order to prevent lag
+        # when mapping blocks or tiles
         if self.central_widget.currentWidget() is self.event_widget:
             self.map_widget.load_header()
             self.event_widget.load_header()
@@ -168,7 +192,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if self.central_widget.currentWidget() is self.connection_widget:
             self.connection_widget.load_header()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent):
         """Query to save currently open files on closing."""
         if (
             self.prompt_save_header()
@@ -188,24 +212,24 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
     def save_project(self):
         """Saves the current project."""
-        if self.project is None:
+        if self.project is None or self.project_path is None:
             return
         self.project.save(self.project_path)
 
     def open_project(self):
         """Prompts a dialog to open a new project file."""
-        path, suffix = QFileDialog.getOpenFileName(
+        path, _ = QFileDialog.getOpenFileName(
             self,
             'Open project',
-            self.settings['recent.project'],
+            self.settings.settings['recent_project'],
             'Pymap projects (*.pmp)',
         )
         if len(path):
             path = Path(path)
             os.chdir(path.parent)
-            self.project_path = path
-            self.settings['recent.project'] = str(path.absolute())
-            self.project = pymap.project.Project(path)
+            self.project_path: Path | None = path
+            self.settings.settings['recent_project'] = str(path.absolute())
+            self.project = Project(path)
             self.resource_tree.load_project()
             self.map_widget.load_project()
             self.footer_widget.load_project()
@@ -221,8 +245,10 @@ class PymapGui(QMainWindow, PymapGuiModel):
         # Render subwidgets
         self.update()
 
-    def prompt_shift_blocks_and_events(self, shift_blocks=False, shift_events=False):
-        """Prompts the user to enter by how much all blocks and events should be shifted."""
+    def prompt_shift_blocks_and_events(
+        self, shift_blocks: bool = False, shift_events: bool = False
+    ):
+        """Prompts the user to enter by how much all blocks and events are shifted."""
         if self.project is None or self.header is None or self.footer is None:
             return False
         if shift_blocks and shift_events:
@@ -239,7 +265,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if ok_pressed:
             try:
                 x, y = (int(value.strip()) for value in text.split(','))
-            except:
+            except Exception:
                 QMessageBox.critical(
                     self,
                     'Invalid format',
@@ -249,66 +275,82 @@ class PymapGui(QMainWindow, PymapGuiModel):
             if shift_blocks:
                 self.shift_blocks(x, y)
             if shift_events:
-                self.shift_events(x, y)
+                self.event_widget.shift_events(x, y)
 
-    def prompt_save_header(self):
-        """Prompts to save the header if it is unsafed. Returns True if the user did not take any action."""
-        if self.project is None or self.header is None:
+    def prompt_save_header(self) -> bool:
+        """Prompts to save the header if it is unsafed.
+
+        Returns:
+            bool: Whether the header saving was explicitly canceled.
+        """
+        if not self.header_loaded:
             return False
         if self.header is not None and (
             not self.header_widget.undo_stack.isClean()
             or not self.event_widget.undo_stack.isClean()
             or not self.connection_widget.undo_stack.isClean()
         ):
+            assert self.project is not None
+            assert self.header_bank is not None
+            assert self.header_map_idx is not None
             pressed = self.prompt_saving(
                 self,
                 'Save Header Changes',
-                f'Header {self.project.headers[self.header_bank][self.header_map_idx][0]} has changed. Do you want to save changes?',
+                (
+                    'Header '
+                    f'{self.project.headers[self.header_bank][self.header_map_idx][0]} '
+                    'has changed. Do you want to save changes?'
+                ),
             )
-            if pressed == QMessageBox.Save:
+            if pressed == QMessageBox.StandardButton.Save:
                 self.save_header()
-            return pressed == QMessageBox.Cancel
+            return pressed == QMessageBox.StandardButton.Cancel
+        return False
 
-    def prompt_save_footer(self):
-        """Prompts to save the footer if it is unsafed."""
-        if self.project is None or self.header is None or self.footer is None:
-            return False
-        if self.footer is not None and (
-            not self.map_widget.undo_stack.isClean()
-            or not self.footer_widget.undo_stack.isClean()
+    def prompt_save_footer(self) -> bool:
+        """Prompts to save the footer if it is unsafed.
+
+        Returns:
+            bool: Whether the footer saving was explicitly canceled.
+        """
+        if (
+            self.footer_loaded
+            and self.footer is not None
+            and (
+                not self.map_widget.undo_stack.isClean()
+                or not self.footer_widget.undo_stack.isClean()
+            )
         ):
             pressed = self.prompt_saving(
                 self,
                 'Save Footer Changes',
                 f'Footer {self.footer_label} has changed. Do you want to save changes?',
             )
-            if pressed == QMessageBox.Save:
+            if pressed == QMessageBox.StandardButton.Save:
                 self.save_footer()
-            return pressed == QMessageBox.Cancel
+            return pressed == QMessageBox.StandardButton.Cancel
+        return False
 
-    def prompt_save_tilesets(self):
-        """Prompts to save the tilesets if they are unsafed."""
-        if (
-            self.project is None
-            or self.header is None
-            or self.footer is None
-            or self.tileset_primary is None
-            or self.tileset_secondary is None
-        ):
-            return False
-        if (
-            self.tileset_primary is not None
-            and self.tileset_secondary is not None
-            and not self.tileset_widget.undo_stack.isClean()
-        ):
+    def prompt_save_tilesets(self) -> bool:
+        """Prompts to save the tilesets if they are unsafed.
+
+        Returns:
+            bool: Whether the tileset saving was explicitly canceled.
+        """
+        if self.tilesets_loaded and not self.tileset_widget.undo_stack.isClean():
             pressed = self.prompt_saving(
                 self,
                 'Save Tileset Changes',
-                f'Tilesets {self.tileset_primary_label} and {self.tileset_secondary_label} have changed. Do you want to save changes?',
+                (
+                    f'Tilesets {self.tileset_primary_label} '
+                    f'and {self.tileset_secondary_label} have changed. '
+                    'Do you want to save changes?'
+                ),
             )
-            if pressed == QMessageBox.Save:
+            if pressed == QMessageBox.StandardButton.Save:
                 self.save_tilesets()
-            return pressed == QMessageBox.Cancel
+            return pressed == QMessageBox.StandardButton.Cancel
+        return False
 
     def open_header(self, bank: str, map_idx: str, prompt_saving: bool = True):
         """Opens a new map header and displays it."""
@@ -323,17 +365,11 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.header_widget.undo_stack.clear()
         self.event_widget.undo_stack.clear()
         self.connection_widget.undo_stack.clear()
-        label, path, namespace = self.project.headers[bank][map_idx]
-        self.header, label, namespace = self.project.load_header(bank, map_idx)
+        self.header, _, _ = self.project.load_header(bank, map_idx)
         self.header_bank = bank
         self.header_map_idx = map_idx
-        # Trigger opening of the fooster
-        footer_label = properties.get_member_by_path(
-            self.header, self.project.config['pymap']['header']['footer_path']
-        )
-        self.open_footer(
-            footer_label, prompt_saving=False
-        )  # Do not prompt saving the same files twice
+        # Trigger opening of the footer
+        self.open_footer(self.get_footer_label(), prompt_saving=False)
 
     def open_footer(self, label: str, prompt_saving: bool = True):
         """Opens a new footer and assigns it to the current header."""
@@ -343,48 +379,16 @@ class PymapGui(QMainWindow, PymapGuiModel):
             return
         self.map_widget.undo_stack.clear()
         self.footer_widget.undo_stack.clear()
-        self.footer, footer_idx = self.project.load_footer(label)
+        self.footer, footer_idx = self.project.load_footer(
+            label, map_blocks_to_ndarray=True, border_blocks_to_ndarray=True
+        )
         self.footer_label = label
         # Associate this header with the new footer
-        properties.set_member_by_path(
-            self.header, label, self.project.config['pymap']['header']['footer_path']
-        )
-        properties.set_member_by_path(
-            self.header,
-            footer_idx,
-            self.project.config['pymap']['header']['footer_idx_path'],
-        )
-        # Accelerate computiations by storing map blocks and borders in numpy arrays
-        map_blocks = blocks.blocks_to_ndarray(
-            properties.get_member_by_path(
-                self.footer, self.project.config['pymap']['footer']['map_blocks_path']
-            )
-        )
-        properties.set_member_by_path(
-            self.footer,
-            map_blocks,
-            self.project.config['pymap']['footer']['map_blocks_path'],
-        )
-        border_blocks = blocks.blocks_to_ndarray(
-            properties.get_member_by_path(
-                self.footer, self.project.config['pymap']['footer']['border_path']
-            )
-        )
-        properties.set_member_by_path(
-            self.footer,
-            border_blocks,
-            self.project.config['pymap']['footer']['border_path'],
-        )
-        # Trigger opening the tilesets
-        tileset_primary_label = properties.get_member_by_path(
-            self.footer, self.project.config['pymap']['footer']['tileset_primary_path']
-        )
-        tileset_secondary_label = properties.get_member_by_path(
-            self.footer,
-            self.project.config['pymap']['footer']['tileset_secondary_path'],
-        )
+        self.set_footer(self.footer_label, footer_idx)
         self.open_tilesets(
-            tileset_primary_label, tileset_secondary_label, prompt_saving=False
+            self.get_tileset_label(True),
+            self.get_tileset_label(False),
+            prompt_saving=False,
         )  # Do not prompt saving the same files twice
 
     def open_tilesets(
@@ -393,7 +397,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         label_secondary: str | None = None,
         prompt_saving: bool = True,
     ):
-        """Opens and assigns a new primary tileset and secondary tileset to the current footer."""
+        """Opens and assigns tilesets to the footer."""
         if self.project is None or self.header is None or self.footer is None:
             return
         if prompt_saving and self.prompt_save_tilesets():
@@ -404,53 +408,28 @@ class PymapGui(QMainWindow, PymapGuiModel):
             # If the footer is assigned a null reference, do not render
             self.tileset_primary = self.project.load_tileset(True, label_primary)
             self.tileset_primary_label = label_primary
-            properties.set_member_by_path(
-                self.footer,
-                label_primary,
-                self.project.config['pymap']['footer']['tileset_primary_path'],
-            )
+            self.set_tileset(label_primary, True)
         if label_secondary is not None:
             self.tileset_secondary = self.project.load_tileset(False, label_secondary)
             self.tileset_secondary_label = label_secondary
-            properties.set_member_by_path(
-                self.footer,
-                label_secondary,
-                self.project.config['pymap']['footer']['tileset_secondary_path'],
-            )
-        if label_primary is not None or label_secondary is not None:
-            gfx_primary_label = properties.get_member_by_path(
-                self.tileset_primary,
-                self.project.config['pymap']['tileset_primary']['gfx_path'],
-            )
-            gfx_secondary_label = properties.get_member_by_path(
-                self.tileset_secondary,
-                self.project.config['pymap']['tileset_secondary']['gfx_path'],
-            )
-            self.open_gfxs(gfx_primary_label, gfx_secondary_label)
+            self.set_tileset(label_secondary, False)
 
-    def open_gfxs(self, label_primary=None, label_secondary=None):
+        if label_primary is not None or label_secondary is not None:
+            self.open_gfxs(
+                self.get_tileset_gfx_label(True), self.get_tileset_gfx_label(False)
+            )
+
+    def open_gfxs(
+        self, label_primary: str | None = None, label_secondary: str | None = None
+    ):
         """Opens and assigns new gfxs to the primary and secondary tilesets."""
-        if (
-            self.project is None
-            or self.header is None
-            or self.footer is None
-            or self.tileset_primary is None
-            or self.tileset_secondary is None
-        ):
+        if not self.tilesets_loaded:
             return
         # Assign the gfxs to the tilesets
         if label_primary is not None:
-            properties.set_member_by_path(
-                self.tileset_primary,
-                label_primary,
-                self.project.config['pymap']['tileset_primary']['gfx_path'],
-            )
+            self.set_tileset_gfx(label_primary, True)
         if label_secondary is not None:
-            properties.set_member_by_path(
-                self.tileset_secondary,
-                label_secondary,
-                self.project.config['pymap']['tileset_secondary']['gfx_path'],
-            )
+            self.set_tileset_gfx(label_secondary, False)
         if label_primary is not None or label_secondary is not None:
             # Load the gfx and render tiles
             self.load_blocks()
@@ -486,61 +465,51 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
     def save_footer(self):
         """Saves the current map footer."""
-        if self.project is None or self.header is None or self.footer is None:
+        if not self.footer_loaded:
             return
-        # Convert blocks and borders back to lists
-        footer = deepcopy(self.footer)
-        map_blocks = blocks.ndarray_to_blocks(
-            properties.get_member_by_path(
-                self.footer, self.project.config['pymap']['footer']['map_blocks_path']
-            )
+        assert self.project is not None, 'Project is not loaded'
+        self.project.save_footer(
+            self.footer,
+            self.footer_label,
+            map_blocks_to_list=True,
+            border_blocks_to_list=True,
         )
-        properties.set_member_by_path(
-            footer,
-            map_blocks,
-            self.project.config['pymap']['footer']['map_blocks_path'],
-        )
-        border_blocks = blocks.ndarray_to_blocks(
-            properties.get_member_by_path(
-                self.footer, self.project.config['pymap']['footer']['border_path']
-            )
-        )
-        properties.set_member_by_path(
-            footer, border_blocks, self.project.config['pymap']['footer']['border_path']
-        )
-        footer_idx, path = self.project.footers[self.footer_label]
-        self.project.save_footer(footer, self.footer_label)
         self.map_widget.undo_stack.setClean()
         self.footer_widget.undo_stack.setClean()
 
     def save_header(self):
         """Saves the current map header."""
-        if self.project is None or self.header is None:
+        if not self.header_loaded:
             return
+        assert self.project is not None, 'Project is not loaded'
+        assert self.header_bank is not None, 'Header bank is not loaded'
+        assert self.header_map_idx is not None, 'Header map index is not loaded'
+
         self.project.save_header(self.header, self.header_bank, self.header_map_idx)
         # Adapt history
         self.header_widget.undo_stack.setClean()
         self.event_widget.undo_stack.setClean()
         self.connection_widget.undo_stack.setClean()
 
-    def update(self):
-        self.tileset_widget.load_header()  # Loading the project reflects also changes to the labels of gfxs
-        self.map_widget.load_header()  # Loading the project reflects also changes to the labels of tilesets
+    def update_gui(self):
+        """Updates this gui and all child widgets."""
+        self.tileset_widget.load_header()
+        self.map_widget.load_header()
         self.footer_widget.load_footer()
         self.header_widget.load_header()
-        self.event_widget.load_header()  # It is important to place this after the map widget, since it reuses its tiling
+        # It is important to place this after the map widget, since it reuses its tiling
+        self.event_widget.load_header()
         self.connection_widget.load_header()
 
     def resource_tree_toggle_header_listing(self):
         """Toggles the listing method for the resource tree."""
-        if self.project is None:
+        if not self.project_loaded:
             return
-        self.settings['resource_tree.header_listing'] = (
-            resource_tree.SORT_BY_BANK
-            if self.settings['resource_tree.header_listing']
-            == resource_tree.SORT_BY_NAMESPACE
-            else resource_tree.SORT_BY_NAMESPACE
-        )
+
+        self.settings.settings['resource_tree_header_listing'] = {
+            HeaderSorting.BANK: HeaderSorting.NAMESPACE,
+            HeaderSorting.NAMESPACE: HeaderSorting.BANK,
+        }[self.settings.settings['resource_tree_header_listing']]
         self.resource_tree.load_headers()
 
     def save_map_image(self):
@@ -553,14 +522,14 @@ class PymapGui(QMainWindow, PymapGuiModel):
             or self.tileset_secondary is None
         ):
             return
-        path, suffix = QFileDialog.getSaveFileName(
+        path, _ = QFileDialog.getSaveFileName(
             self,
             'Save Map Image',
-            self.settings['recent.map_image'],
+            self.settings.settings['recent_map_image'],
             'Portable Network Graphis (*.png)',
         )
         if len(path):
-            self.settings['recent.map_image'] = os.path.dirname(path)
+            self.settings.settings['recent_map_image'] = os.path.dirname(path)
             image = QImage(
                 self.map_widget.map_scene.sceneRect().size().toSize(),
                 QImage.Format.Format_ARGB32,
@@ -571,63 +540,45 @@ class PymapGui(QMainWindow, PymapGuiModel):
             painter.end()
 
     def event_widget_toggle_pictures(self):
-        """Toggles if events are associated with pictures (potentially slower performance-wise) or not."""
+        """Toggles if events are associated with pictures or not."""
         if self.project is None:
             return
-        self.settings['event_widget.show_pictures'] = not self.settings[
-            'event_widget.show_pictures'
-        ]
+        self.settings.settings[
+            'event_widget_show_pictures'
+        ] = not self.settings.settings['event_widget_show_pictures']
         self.event_widget.load_header()
 
     def set_border(self, x: int, y: int, blocks: npt.NDArray[np.int_]):
         """Sets the blocks of the border and adds an action to the history."""
-        border = properties.get_member_by_path(
-            self.footer, self.project.config['pymap']['footer']['border_path']
-        )
+        if not self.footer_loaded:
+            return
+        border = self.get_borders()
         window = border[y : y + blocks.shape[0], x : x + blocks.shape[1]].copy()
         blocks = blocks[: window.shape[0], : window.shape[1]].copy()
-        self.map_widget.undo_stack.push(history.SetBorder(self, x, y, blocks, window))
+        self.map_widget.undo_stack.push(SetBorder(self, x, y, blocks, window))
 
     def set_blocks(
         self,
         x: int,
         y: int,
-        layers: Sequence[int] | int | npt.NDArray[np.int_],
+        layers: MapLayers,
         blocks: npt.NDArray[np.int_],
     ):
         """Sets the blocks on the header and adds an item to the history."""
-        if self.project is None or self.header is None:
+        if not self.footer_loaded:
             return
-        map_blocks = properties.get_member_by_path(
-            self.footer, self.project.config['pymap']['footer']['map_blocks_path']
-        )
-        assert isinstance(map_blocks, np.ndarray), 'Map blocks are not numpy array'
+        map_blocks = self.get_map_blocks()
         # Truncate blocks to fit the map
         window = map_blocks[y : y + blocks.shape[0], x : x + blocks.shape[1]].copy()
         blocks = blocks[: window.shape[0], : window.shape[1]].copy()
-        self.map_widget.undo_stack.push(
-            history.SetBlocks(self, x, y, layers, blocks, window)
-        )
+        self.map_widget.undo_stack.push(SetBlocks(self, x, y, layers, blocks, window))
 
-    def shift_blocks(self, x, y, layers=[0, 1]):
+    def shift_blocks(self, x: int, y: int, layers: MapLayers = [0, 1]):
         """Shifts the blocks in the current map footer."""
-        if self.project is None or self.header is None or self.footer is None:
+        if not self.footer_loaded:
             return
-        blocks = properties.get_member_by_path(
-            self.footer, self.project.config['pymap']['footer']['map_blocks_path']
-        )[:, :, layers]  # h x w x layers
-        map_width = properties.get_member_by_path(
-            self.map_widget.main_gui.footer,
-            self.map_widget.main_gui.project.config['pymap']['footer'][
-                'map_width_path'
-            ],
-        )
-        map_height = properties.get_member_by_path(
-            self.map_widget.main_gui.footer,
-            self.map_widget.main_gui.project.config['pymap']['footer'][
-                'map_height_path'
-            ],
-        )
+        blocks = self.get_map_blocks()[:, :, layers]  # h x w x layers
+        map_width, map_height = self.get_map_dimensions()
         if x < 0:
             blocks = blocks[:, -x:]
             x = 0
@@ -637,145 +588,88 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if x < map_width and y < map_height:
             self.set_blocks(x, y, layers, blocks)
 
-    def shift_events(self, x, y):
-        """Shifts the events of the current map header."""
-        if self.project is None or self.header is None:
-            return
-        self.event_widget.undo_stack.beginMacro('ShiftEvents')
-        for event_type in self.project.config['pymap']['header']['events']:
-            num_events = properties.get_member_by_path(
-                self.header, event_type['size_path']
-            )
-            for event_idx in range(num_events):
-                event = properties.get_member_by_path(
-                    self.header, event_type['events_path']
-                )[event_idx]
-                x_old = eval(
-                    str(properties.get_member_by_path(event, event_type['x_path']))
-                )
-                y_old = eval(
-                    str(properties.get_member_by_path(event, event_type['y_path']))
-                )
-                redo_statement_x, undo_statement_x = history.path_to_statement(
-                    event_type['x_path'], x_old, x_old + x
-                )
-                redo_statement_y, undo_statement_y = history.path_to_statement(
-                    event_type['y_path'], y_old, y_old + y
-                )
-                self.event_widget.undo_stack.push(
-                    history.ChangeEventProperty(
-                        self.event_widget,
-                        event_type,
-                        event_idx,
-                        [redo_statement_x, redo_statement_y],
-                        [undo_statement_x, undo_statement_y],
-                    )
-                )
-        self.event_widget.undo_stack.endMacro()
-
     def flood_fill(self, x: int, y: int, layer: int, value: npt.NDArray[np.int_]):
         """Flood fills with origin (x, y) and a certain layer with a new value."""
-        if self.project is None or self.header is None:
+        if not self.footer_loaded:
             return
-        map_blocks = properties.get_member_by_path(
-            self.footer, self.project.config['pymap']['footer']['map_blocks_path']
-        )[:, :, layer]
-        labeled = label(
-            map_blocks + 1, connectivity=1
-        )  # Seems like 0 is not recognized by the connectivity
+        map_blocks = self.get_map_blocks()
+        # Value 0 is not recognized by the connected component algorithm
+        labeled: NDArray[np.int_] = label_image(map_blocks + 1, connectivity=1)  # type: ignore
         idx = np.where(labeled == labeled[y, x])
         self.map_widget.undo_stack.push(
-            history.ReplaceBlocks(self, idx, layer, value, map_blocks[y, x])
+            ReplaceBlocks(self, idx, layer, value, map_blocks[y, x])
         )
 
     def replace_blocks(
         self, x: int, y: int, layer: int, value: npt.NDArray[np.int_]
     ) -> None:
         """Replaces all blocks that are like (x, y) w.r.t. to the layer by the new value."""
-        if self.project is None or self.header is None:
+        if not self.footer_loaded:
             return
-        map_blocks = properties.get_member_by_path(
-            self.footer, self.project.config['pymap']['footer']['map_blocks_path']
-        )[:, :, layer]
+        map_blocks = self.get_map_blocks()
         idx = np.where(map_blocks == map_blocks[y, x])
         self.map_widget.undo_stack.push(
-            history.ReplaceBlocks(self, idx, layer, value, map_blocks[y, x])
+            ReplaceBlocks(self, idx, layer, value, map_blocks[y, x])
         )
 
     def resize_map(self, height_new: int, width_new: int):
         """Changes the map dimensions."""
+        if not self.footer_loaded:
+            return
         blocks = self.get_map_blocks()
         height, width = blocks.shape[0], blocks.shape[1]
         if height != height_new or width != width_new:
             self.map_widget.undo_stack.push(
-                history.ResizeMap(self, height_new, width_new, blocks)
+                ResizeMap(self, height_new, width_new, blocks)
             )
 
     def resize_border(self, height_new: int, width_new: int):
         """Changes the border dimensions."""
+        if not self.header_loaded:
+            return
         blocks = self.get_borders()
         height, width = blocks.shape[0], blocks.shape[1]
         if height != height_new or width != width_new:
             self.map_widget.undo_stack.push(
-                history.ResizeBorder(self, height_new, width_new, blocks)
+                ResizeBorder(self, height_new, width_new, blocks)
             )
 
     def change_tileset(self, label: str, primary: bool):
         """Changes the current tileset by performing a command."""
-        if self.project is None or self.header is None or self.footer is None:
+        if not self.footer_loaded:
             return
-        label_old = (
-            self.tileset_primary_label if primary else self.tileset_secondary_label
-        )
-        self.map_widget.undo_stack.push(
-            history.AssignTileset(self, primary, label, label_old)
-        )
+        label_old = self.get_tileset_label(primary)
+        self.map_widget.undo_stack.push(AssignTileset(self, primary, label, label_old))
 
     def change_footer(self, label: str):
         """Changes the current footer by performing a command on the header."""
-        if self.project is None or self.header is None:
+        if not self.header_loaded:
             return
-        self.header_widget.undo_stack.push(
-            history.AssignFooter(self, label, self.footer_label)
-        )
+        self.header_widget.undo_stack.push(AssignFooter(self, label, self.footer_label))
 
     def change_gfx(self, label: str, primary: bool):
         """Changes the current gfx by performing a command."""
-        if (
-            self.project is None
-            or self.header is None
-            or self.footer is None
-            or self.tileset_primary is None
-            or self.tileset_secondary is None
-        ):
+        if not self.tilesets_loaded:
             return
-        if primary:
-            label_old = properties.get_member_by_path(
-                self.tileset_primary,
-                self.project.config['pymap']['tileset_primary']['gfx_path'],
-            )
-        else:
-            label_old = properties.get_member_by_path(
-                self.tileset_secondary,
-                self.project.config['pymap']['tileset_secondary']['gfx_path'],
-            )
-        self.tileset_widget.undo_stack.push(
-            history.AssignGfx(self, primary, label, label_old)
-        )
+        label_old = self.get_tileset_gfx_label(primary)
+        self.tileset_widget.undo_stack.push(AssignGfx(self, primary, label, label_old))
 
-    def prompt_saving(self, parent, text, informative_text):
+    def prompt_saving(self, parent: QWidget, text: str, informative_text: str) -> int:
         """Displays a prompt to ask the user if a certain file should be saved."""
         message_box = QMessageBox(parent)
         message_box.setWindowTitle(text)
         message_box.setText(informative_text)
         message_box.setStandardButtons(
-            QMessageBox.Save | QMessageBox.No | QMessageBox.Cancel
+            QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.No
+            | QMessageBox.StandardButton.Cancel
         )
-        message_box.setDefaultButton(QMessageBox.Save)
+        message_box.setDefaultButton(QMessageBox.StandardButton.Save)
         return message_box.exec_()
 
 
 def main():
+    """Main entry point that runs the ui."""
     # os.chdir('/media/d/romhacking/Violet_Sources')
     app = QApplication(sys.argv)
     ex = PymapGui()

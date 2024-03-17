@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict
 
 import agb.string.agbstring
 from agb import image
+from pymap.gui.properties.utils import set_member_by_path
 
 if TYPE_CHECKING:
     from agb.model.type import Model, ModelValue
@@ -488,7 +490,10 @@ class Project:
             raise RuntimeError(f'Footer {label} non existent.')
 
     def load_footer(
-        self, label: str
+        self,
+        label: str,
+        map_blocks_to_ndarray: bool = False,
+        border_blocks_to_ndarray: bool = False,
     ) -> tuple[ModelValue, int] | tuple[None, Literal[-1]]:
         """Opens a footer by its label and verifies the label and type of json instance.
 
@@ -496,6 +501,10 @@ class Project:
         -----------
         label : str
             The label of the footer to load.
+        map_blocks_to_ndarray : bool
+            If the map blocks should be converted to a numpy array.
+        border_blocks_to_ndarray : bool
+            If the border blocks should be converted to a numpy array.
 
         Returns:
         --------
@@ -504,6 +513,9 @@ class Project:
         footer_idx : int
             The index of the footer or -1 if no footer is present.
         """
+        from pymap.gui.blocks import blocks_to_ndarray
+        from pymap.gui.properties import get_member_by_path, set_member_by_path
+
         assert self.path is not None, 'Project path is not initialized'
         with self.project_dir():
             if label in self.footers:
@@ -516,11 +528,43 @@ class Project:
                 assert (
                     footer['type'] == self.config['pymap']['footer']['datatype']
                 ), 'Footer datatype mismatches the configuration'
-                return (footer['data'], footer_idx)
+                footer = footer['data']
+                assert isinstance(footer, dict), 'Footer is not a dictionary'
+                if map_blocks_to_ndarray:
+                    map_blocks = blocks_to_ndarray(
+                        get_member_by_path(
+                            footer,  # type: ignore
+                            self.config['pymap']['footer']['map_blocks_path'],
+                        )
+                    )
+                    set_member_by_path(
+                        footer,  # type: ignore
+                        map_blocks,
+                        self.config['pymap']['footer']['map_blocks_path'],
+                    )
+                if border_blocks_to_ndarray:
+                    border_blocks = blocks_to_ndarray(
+                        get_member_by_path(
+                            footer,  # type: ignore
+                            self.config['pymap']['footer']['border_path'],
+                        )
+                    )
+                    set_member_by_path(
+                        footer,  # type: ignore
+                        border_blocks,
+                        self.config['pymap']['footer']['border_path'],
+                    )
+                return (footer, footer_idx)  # type: ignore
             else:
                 return None, -1
 
-    def save_footer(self, footer: ModelValue, label: str):
+    def save_footer(
+        self,
+        footer: ModelValue,
+        label: str,
+        map_blocks_to_list: bool = False,
+        border_blocks_to_list: bool = False,
+    ):
         """Saves a footer.
 
         Parameters:
@@ -531,6 +575,30 @@ class Project:
             The label of the footer.
         """
         assert self.path is not None, 'Project path is not initialized'
+        assert isinstance(footer, dict), 'Footer is not a dictionary'
+        if map_blocks_to_list:
+            from pymap.gui.blocks import ndarray_to_blocks
+
+            footer = deepcopy(footer)
+
+            map_blocks = ndarray_to_blocks(
+                footer[self.config['pymap']['footer']['map_blocks_path']]  # type: ignore
+            )
+            set_member_by_path(
+                footer, map_blocks, self.config['pymap']['footer']['map_blocks_path']
+            )
+        if border_blocks_to_list:
+            from pymap.gui.blocks import ndarray_to_blocks
+
+            footer = deepcopy(footer)
+
+            border_blocks = ndarray_to_blocks(
+                footer[self.config['pymap']['footer']['border_path']]  # type: ignore
+            )
+            set_member_by_path(
+                footer, border_blocks, self.config['pymap']['footer']['border_path']
+            )
+
         with self.project_dir():
             if label in self.footers:
                 _, path = self.footers[label]
@@ -761,7 +829,9 @@ class Project:
         assert label_old in tilesets, f'Tileset {label_old} not existent.'
         assert label_new not in tilesets, f'Tileset {label_new} already existent.'
         for label in self.footers:
-            footer, _ = self.load_footer(label)
+            footer, _ = self.load_footer(
+                label, border_blocks_to_ndarray=False, map_blocks_to_ndarray=False
+            )
             if (
                 get_member_by_path(
                     footer,

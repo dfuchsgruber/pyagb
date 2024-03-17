@@ -78,6 +78,7 @@ class BlockScene(QGraphicsScene, TilesetChildWidgetMixin):
     @if_tileset_loaded
     def update_selection_box(self):
         """Pastes the selection box to the current selection."""
+        assert self.selection_box is not None
         self.tileset_widget.set_selection(
             select_blocks(
                 self.tileset_widget.selected_block[int(self.layer)], *self.selection_box
