@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from deepdiff import DeepDiff  # type: ignore
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6.QtWidgets import (
     QHeaderView,
@@ -14,8 +13,8 @@ from PySide6.QtWidgets import (
 from pymap.gui import properties
 from pymap.gui.history import (
     ChangeConnectionProperty,
-    UndoRedoStatements,
 )
+from pymap.gui.history.statement import model_value_difference_to_undo_redo_statements
 
 from .child import ConnectionChildWidgetMixin, if_connection_loaded
 
@@ -101,23 +100,13 @@ class ConnectionProperties(ParameterTree, ConnectionChildWidgetMixin):
         root = self.connection_widget.main_gui.get_connections()[
             self.connection_widget.idx_combobox.currentIndex()
         ]
-        diffs = DeepDiff(root, self.root.model_value)
-        statements_redo: UndoRedoStatements = []
-        statements_undo: UndoRedoStatements = []
-
-        for change in ('type_changes', 'values_changed'):
-            if change in diffs:
-                for path in diffs[change]:  # type: ignore
-                    value_new = diffs[change][path]['new_value']  # type: ignore
-                    value_old = diffs[change][path]['old_value']  # type: ignore
-                    statements_redo.append(f"{path} = '{value_new}'")
-                    statements_undo.append(f"{path} = '{value_old}'")
-                    self.connection_widget.undo_stack.push(
-                        ChangeConnectionProperty(
-                            self.connection_widget,
-                            self.connection_widget.idx_combobox.currentIndex(),
-                            self.connection_widget.mirror_offset.isChecked(),
-                            statements_redo,
-                            statements_undo,
-                        )
-                    )
+        self.connection_widget.undo_stack.push(
+            ChangeConnectionProperty(
+                self.connection_widget,
+                self.connection_widget.idx_combobox.currentIndex(),
+                self.connection_widget.mirror_offset.isChecked(),
+                *model_value_difference_to_undo_redo_statements(
+                    root, self.root.model_value
+                ),
+            )
+        )

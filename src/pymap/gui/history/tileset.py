@@ -12,7 +12,7 @@ from pymap.gui import properties, render
 import numpy as np
 import numpy.typing as npt
 
-from pymap.gui.history.statement import UndoRedoStatements
+from pymap.gui.history.statement import UndoRedoStatements, ChangeProperty
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
@@ -63,7 +63,7 @@ class AssignGfx(QUndoCommand):
         self._assign(self.label_old)
 
 
-class ChangeBlockProperty(QUndoCommand):
+class ChangeBlockProperty(ChangeProperty):
     """Change a property of any block."""
 
     def __init__(
@@ -81,52 +81,26 @@ class ChangeBlockProperty(QUndoCommand):
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__()
+        super().__init__(statements_redo, statements_undo)
         self.tileset_widget = tileset_widget
         self.block_idx = block_idx
-        self.statements_redo = statements_redo
-        self.statements_undo = statements_undo
+
+    def get_root(self) -> ModelValue:
+        """Returns the root object of the property to change with this command."""
+        return self.tileset_widget.main_gui.get_block(self.block_idx).tolist()
 
     def redo(self):
         """Executes the redo statements."""
-        assert self.tileset_widget.main_gui is not None
-        assert self.tileset_widget.main_gui.project is not None
-        config = self.tileset_widget.main_gui.project.config['pymap'][
-            'tileset_primary' if self.block_idx < 0x280 else 'tileset_secondary'
-        ]
-        tileset = (
-            self.tileset_widget.main_gui.tileset_primary
-            if self.block_idx < 0x280
-            else self.tileset_widget.main_gui.tileset_secondary
-        )
-        blocks = properties.get_member_by_path(tileset, config['behaviours_path'])
-        assert isinstance(blocks, list)
-        root = blocks[self.block_idx % 0x280]  # noqa: F841
-        for statement in self.statements_redo:
-            exec(statement)
+        super().redo()
         self.tileset_widget.block_properties.update()
 
     def undo(self):
         """Executes the redo statements."""
-        assert self.tileset_widget.main_gui is not None
-        assert self.tileset_widget.main_gui.project is not None
-        config = self.tileset_widget.main_gui.project.config['pymap'][
-            'tileset_primary' if self.block_idx < 0x280 else 'tileset_secondary'
-        ]
-        tileset = (
-            self.tileset_widget.main_gui.tileset_primary
-            if self.block_idx < 0x280
-            else self.tileset_widget.main_gui.tileset_secondary
-        )
-        blocks = properties.get_member_by_path(tileset, config['behaviours_path'])
-        assert isinstance(blocks, list)
-        root = [self.block_idx % 0x280]
-        for statement in self.statements_undo:
-            exec(statement)
+        super().undo()
         self.tileset_widget.block_properties.update()
 
 
-class ChangeTilesetProperty(QUndoCommand):
+class ChangeTilesetProperty(ChangeProperty):
     """Change a property of a tileset."""
 
     def __init__(
@@ -144,21 +118,21 @@ class ChangeTilesetProperty(QUndoCommand):
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__()
+        super().__init__(statements_redo, statements_undo)
         self.tileset_widget = tileset_widget
         self.is_primary = is_primary
-        self.statements_redo = statements_redo
-        self.statements_undo = statements_undo
 
-    def redo(self):
-        """Executes the redo statements."""
-        root = (
+    def get_root(self) -> ModelValue:
+        """Returns the root object of the property to change with this command."""
+        return (
             self.tileset_widget.main_gui.tileset_primary
             if self.is_primary
             else self.tileset_widget.main_gui.tileset_secondary
         )
-        for statement in self.statements_redo:
-            exec(statement)
+
+    def redo(self):
+        """Executes the redo statements."""
+        super().redo()
         tree_widget = (
             self.tileset_widget.properties_tree_tsp
             if self.is_primary
@@ -168,13 +142,7 @@ class ChangeTilesetProperty(QUndoCommand):
 
     def undo(self):
         """Executes the redo statements."""
-        root = (
-            self.tileset_widget.main_gui.tileset_primary
-            if self.is_primary
-            else self.tileset_widget.main_gui.tileset_secondary
-        )
-        for statement in self.statements_undo:
-            exec(statement)
+        super().undo()
         tree_widget = (
             self.tileset_widget.properties_tree_tsp
             if self.is_primary
@@ -216,7 +184,7 @@ class SetTiles(QUndoCommand):
         self.tiles_new = deepcopy(tiles_new)
         self.tiles_old = deepcopy(tiles_old)
 
-    def _set_tiles(self, tiles: npt.NDArray[np.int_]):
+    def _set_tiles(self, tiles: npt.NDArray[np.object_]):
         """Helper method to set tiles."""
         tileset = (
             self.tileset_widget.main_gui.tileset_primary
@@ -314,68 +282,3 @@ class SetPalette(QUndoCommand):
     def undo(self):
         """Undoes the setting of the new palette."""
         self._set_palette(self.palette_old)
-
-
-class SetTilesetAnimation(QUndoCommand):
-    """Changes the animation of a tileset."""
-
-    def __init__(
-        self, tileset_widget: TilesetWidget, primary: bool, value_new: ModelValue
-    ):
-        """Initializes the tileset animation change.
-
-        Args:
-            tileset_widget (TilesetWidget): reference to the tileset widget
-            primary (bool): Whether the primary or secondary tileset is being assigned
-            value_new (ModelValue): the new value
-        """
-        super().__init__()
-        self.tileset_widget = tileset_widget
-        self.primary = primary
-        self.value_new = value_new
-        widget = (
-            self.tileset_widget.animation_primary_line_edit
-            if self.primary
-            else self.tileset_widget.animation_secondary_line_edit
-        )
-        tileset = (
-            self.tileset_widget.main_gui.tileset_primary
-            if self.primary
-            else self.tileset_widget.main_gui.tileset_secondary
-        )
-        assert self.tileset_widget.main_gui.project is not None
-        config = self.tileset_widget.main_gui.project.config['pymap'][
-            'tileset_primary' if self.primary else 'tileset_secondary'
-        ]
-        self.value_old = properties.get_member_by_path(
-            tileset, config['animation_path']
-        )
-
-    def _set_value(self, value: ModelValue):
-        """Helper method to set a value to the custom LineEdit."""
-        widget = (
-            self.tileset_widget.animation_primary_line_edit
-            if self.primary
-            else self.tileset_widget.animation_secondary_line_edit
-        )
-        tileset = (
-            self.tileset_widget.main_gui.tileset_primary
-            if self.primary
-            else self.tileset_widget.main_gui.tileset_secondary
-        )
-        assert self.tileset_widget.main_gui.project is not None
-        config = self.tileset_widget.main_gui.project.config['pymap'][
-            'tileset_primary' if self.primary else 'tileset_secondary'
-        ]
-        widget.blockSignals(True)
-        widget.setText(str(value))
-        widget.blockSignals(False)
-        properties.set_member_by_path(tileset, str(value), config['animation_path'])
-
-    def redo(self):
-        """Sets the new value."""
-        self._set_value(self.value_new)
-
-    def undo(self):
-        """Undoes the setting of the new value."""
-        self._set_value(self.value_old)

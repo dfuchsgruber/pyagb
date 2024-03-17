@@ -2,7 +2,6 @@
 
 
 from abc import abstractmethod
-from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +11,6 @@ from PIL import Image
 
 from pymap.configuration import PymapEventConfigType
 from pymap.gui.properties import get_member_by_path, set_member_by_path
-from pymap.gui.types import Connection
 from pymap.project import Project
 
 
@@ -85,7 +83,7 @@ class PymapGuiModel:
         assert isinstance(map_height, int), f'Expected int, got {type(map_height)}'
         return map_width, map_height
 
-    def get_connections(self) -> Sequence[Connection]:
+    def get_connections(self) -> list[ModelValue]:
         """Gets the connections of the current map.
 
         Returns:
@@ -97,8 +95,7 @@ class PymapGuiModel:
             self.project.config['pymap']['header']['connections']['connections_path'],
         )
         assert isinstance(connections, list), f'Expected list, got {type(connections)}'
-        assert all(isinstance(connection, Connection) for connection in connections)
-        return connections  # type: ignore
+        return connections
 
     def get_events(self, event_type: PymapEventConfigType) -> list[ModelValue]:
         """Gets the events of the header.
@@ -364,4 +361,71 @@ class PymapGuiModel:
             self.project.config['pymap'][
                 'tileset_primary' if primary else 'tileset_secondary'
             ]['gfx_path'],
+        )
+
+    def set_map_dimensions(self, width: int, height: int):
+        """Sets the map dimensions.
+
+        Args:
+            width (int): The width of the map.
+            height (int): The height of the map.
+        """
+        assert self.project is not None, 'Project is None'
+        set_member_by_path(
+            self.footer,
+            width,
+            self.project.config['pymap']['footer']['map_width_path'],
+        )
+        set_member_by_path(
+            self.footer,
+            height,
+            self.project.config['pymap']['footer']['map_height_path'],
+        )
+
+    def set_border_dimensions(self, width: int, height: int):
+        """Sets the border dimensions.
+
+        Args:
+            width (int): The width of the border.
+            height (int): The height of the border.
+        """
+        assert self.project is not None, 'Project is None'
+        set_member_by_path(
+            self.footer,
+            width,
+            self.project.config['pymap']['footer']['border_width_path'],
+        )
+        set_member_by_path(
+            self.footer,
+            height,
+            self.project.config['pymap']['footer']['border_height_path'],
+        )
+
+    def set_number_of_connections(self, num_connections: int):
+        """Sets the number of connections.
+
+        Args:
+            num_connections (int): The number of connections.
+        """
+        assert self.project is not None, 'Project is None'
+        set_member_by_path(
+            self.header,
+            num_connections,
+            self.project.config['pymap']['header']['connections'][
+                'connections_size_path'
+            ],
+        )
+
+    def set_number_of_events(self, event_type: PymapEventConfigType, num_events: int):
+        """Sets the number of events.
+
+        Args:
+            event_type (PymapEventConfigType): The event type to set
+            num_events (int): The number of events.
+        """
+        assert self.project is not None, 'Project is None'
+        set_member_by_path(
+            self.header,
+            num_events,
+            event_type['size_path'],
         )

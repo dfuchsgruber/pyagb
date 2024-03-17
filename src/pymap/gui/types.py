@@ -17,7 +17,7 @@ class ConnectionType(StrEnum):
     WEST = 'west'
 
 
-class Connection(NamedTuple):
+class UnpackedConnection(NamedTuple):
     """A connection between two maps."""
 
     type: str

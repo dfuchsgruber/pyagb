@@ -118,7 +118,7 @@ class PymapEventTriggerConfigType(PymapEventConfigType):
 
 PymapConnectionConnectionConfigType = TypedDict(
     'PymapConnectionConnectionConfigType',
-    connections_path=str,
+    connections_path=list[str],
     connections_size_path=list[str],
     connection_types=dict[int, str],
     connection_type_path=list[str],
@@ -366,7 +366,7 @@ default_configuration = ConfigType(
                         ],
                         'connections': PymapConnectionConnectionConfigType(
                             {
-                                'connections_path': 'connections',
+                                'connections_path': ['connections'],
                                 'connections_size_path': [
                                     'connections',
                                     'connection_cnt',

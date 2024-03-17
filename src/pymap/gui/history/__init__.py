@@ -5,14 +5,17 @@ from .connection import AppendConnection, ChangeConnectionProperty, RemoveConnec
 from .event import AppendEvent, ChangeEventProperty, RemoveEvent
 from .footer import AssignTileset, ChangeFooterProperty
 from .header import AssignFooter, ChangeHeaderProperty
-from .statement import UndoRedoStatements, path_to_statement
+from .statement import (
+    UndoRedoStatements,
+    model_value_difference_to_undo_redo_statements,
+    path_to_statement,
+)
 from .tileset import (
     AssignGfx,
     ChangeBlockProperty,
     ChangeTilesetProperty,
     SetPalette,
     SetTiles,
-    SetTilesetAnimation,
 )
 
 __all__ = [
@@ -38,6 +41,6 @@ __all__ = [
     'SetBorder',
     'SetPalette',
     'SetTiles',
-    'SetTilesetAnimation',
     'UndoRedoStatements',
+    'model_value_difference_to_undo_redo_statements',
 ]

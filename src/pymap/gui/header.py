@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from deepdiff import DeepDiff  # type: ignore
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6.QtGui import QUndoStack
 from PySide6.QtWidgets import QHeaderView, QWidget
@@ -12,7 +11,7 @@ from typing_extensions import ParamSpec
 
 from pymap.gui import properties
 from pymap.gui.event.child import if_header_loaded
-from pymap.gui.history import UndoRedoStatements
+from pymap.gui.history.statement import model_value_difference_to_undo_redo_statements
 
 from .history import ChangeHeaderProperty
 from .main.child import MainGuiChildWidgetMixin
@@ -90,17 +89,11 @@ class HeaderWidget(ParameterTree, MainGuiChildWidgetMixin):
             changes (list[tuple[object, object, object]] | None): The changes.
         """
         assert self.root is not None
-        root = self.main_gui.header
-        diffs = DeepDiff(root, self.root.model_value)
-        statements_redo: UndoRedoStatements = []
-        statements_undo: UndoRedoStatements = []
-        for change in ('type_changes', 'values_changed'):
-            if change in diffs:
-                for path in diffs[change]:  # type: ignore
-                    value_new = diffs[change][path]['new_value']  # type: ignore
-                    value_old = diffs[change][path]['old_value']  # type: ignore
-                    statements_redo.append(f"{path} = '{value_new}'")
-                    statements_undo.append(f"{path} = '{value_old}'")
         self.undo_stack.push(
-            ChangeHeaderProperty(self, statements_redo, statements_undo)
+            ChangeHeaderProperty(
+                self,
+                *model_value_difference_to_undo_redo_statements(
+                    self.main_gui.header, self.root
+                ),
+            )
         )

@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from agb.model.type import ModelValue
 from PySide6.QtGui import QUndoCommand
 
-from pymap.gui.history.statement import UndoRedoStatements
+from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
+from pymap.gui.properties import get_parents_by_path
 
 if TYPE_CHECKING:
-    from pymap.gui.connection_widget import ConnectionWidget
+    from pymap.gui.connection import ConnectionWidget
 
 
-class ChangeConnectionProperty(QUndoCommand):
+class ChangeConnectionProperty(ChangeProperty):
     """Change a property of any vent."""
 
     def __init__(
@@ -32,47 +34,26 @@ class ChangeConnectionProperty(QUndoCommand):
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__()
+        super().__init__(statements_redo, statements_undo)
         self.connection_widget = connection_widget
         self.connection_idx = connection_idx
         self.mirror_offset = mirror_offset
-        self.statements_redo = statements_redo
-        self.statements_undo = statements_undo
+
+    def get_root(self) -> ModelValue:
+        """Returns the root object of the property to change with this command."""
+        connections = self.connection_widget.main_gui.get_connections()
+        return connections[self.connection_idx]
 
     def redo(self):
         """Executes the redo statements."""
-        assert self.connection_widget.main_gui is not None
-        assert self.connection_widget.main_gui.header is not None
-        assert self.connection_widget.main_gui.project is not None
-        connections = properties.get_member_by_path(
-            self.connection_widget.main_gui.header,
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_path'],
-        )
-        assert isinstance(connections, list)
-        root = connections[self.connection_idx]  # type: ignore # noqa: F841
-        for statement in self.statements_redo:
-            exec(statement)
+        super().redo()
         self.connection_widget.update_connection(
             self.connection_idx, self.mirror_offset
         )
 
     def undo(self):
         """Executes the redo statements."""
-        assert self.connection_widget.main_gui is not None
-        assert self.connection_widget.main_gui.header is not None
-        assert self.connection_widget.main_gui.project is not None
-        connections = properties.get_member_by_path(
-            self.connection_widget.main_gui.header,
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_path'],
-        )
-        assert isinstance(connections, list)
-        root = connections[self.connection_idx]  # noqa: F841
-        for statement in self.statements_undo:
-            exec(statement)
+        super().undo()
         self.connection_widget.update_connection(
             self.connection_idx, self.mirror_offset
         )
@@ -92,60 +73,33 @@ class AppendConnection(QUndoCommand):
 
     def redo(self):
         """Appends a new event to the end of the list."""
-        assert self.connection_widget.main_gui is not None
-        assert self.connection_widget.main_gui.header is not None
         assert self.connection_widget.main_gui.project is not None
 
         project = self.connection_widget.main_gui.project
         datatype = self.connection_widget.main_gui.project.config['pymap']['header'][
             'connections'
         ]['datatype']
-        connections = properties.get_member_by_path(
-            self.connection_widget.main_gui.header,
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_path'],
-        )
+        connections = self.connection_widget.main_gui.get_connections()
         assert isinstance(connections, list)
         context = self.connection_widget.main_gui.project.config['pymap']['header'][
             'connections'
         ]['connections_path'] + [len(connections)]
-        parents = properties.get_parents_by_path(
+        parents = get_parents_by_path(
             self.connection_widget.main_gui.header,
             self.connection_widget.main_gui.project.config['pymap']['header'][
                 'connections'
             ]['connections_path'],
         )
+
         connections.append(project.model[datatype](project, context, parents))
-        properties.set_member_by_path(
-            self.connection_widget.main_gui.header,
-            len(connections),
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_size_path'],
-        )
+        self.connection_widget.main_gui.set_number_of_connections(len(connections))
         self.connection_widget.load_header()
 
     def undo(self):
         """Removes the last event."""
-        assert self.connection_widget.main_gui is not None
-        assert self.connection_widget.main_gui.header is not None
-        assert self.connection_widget.main_gui.project is not None
-
-        connections = properties.get_member_by_path(
-            self.connection_widget.main_gui.header,
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_path'],
-        )
+        connections = self.connection_widget.main_gui.get_connections()
         connections.pop()
-        properties.set_member_by_path(
-            self.connection_widget.main_gui.header,
-            len(connections),
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_size_path'],
-        )
+        self.connection_widget.main_gui.set_number_of_connections(len(connections))
         self.connection_widget.load_header()
 
 
@@ -160,37 +114,18 @@ class RemoveConnection(QUndoCommand):
             connection_idx (int): index of the connection
         """
         super().__init__()
-
-        assert self.connection_widget.main_gui is not None
-        assert self.connection_widget.main_gui.header is not None
-        assert self.connection_widget.main_gui.project is not None
         self.connection_widget = connection_widget
         self.connection_idx = connection_idx
-        project = self.connection_widget.main_gui.project
-        self.connection = properties.get_member_by_path(
-            self.connection_widget.main_gui.header,
-            project.config['pymap']['header']['connections']['connections_path'],
-        )[self.connection_idx]
+        self.connection = self.connection_widget.main_gui.get_connections()[
+            self.connection_idx
+        ]
 
     def redo(self):
         """Removes the connection from the connections."""
-        assert self.connection_widget.main_gui is not None
-        assert self.connection_widget.main_gui.header is not None
         assert self.connection_widget.main_gui.project is not None
-        connections = properties.get_member_by_path(
-            self.connection_widget.main_gui.header,
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_path'],
-        )
+        connections = self.connection_widget.main_gui.get_connections()
         connections.pop(self.connection_idx)
-        properties.set_member_by_path(
-            self.connection_widget.main_gui.header,
-            len(connections),
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_size_path'],
-        )
+        self.connection_widget.main_gui.set_number_of_connections(len(connections))
         self.connection_widget.load_header()
 
     def undo(self):
@@ -198,19 +133,8 @@ class RemoveConnection(QUndoCommand):
         assert self.connection_widget.main_gui is not None
         assert self.connection_widget.main_gui.header is not None
         assert self.connection_widget.main_gui.project is not None
-        connections = properties.get_member_by_path(
-            self.connection_widget.main_gui.header,
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_path'],
-        )
+        connections = self.connection_widget.main_gui.get_connections()
         assert isinstance(connections, list)
         connections.insert(self.connection_idx, self.connection)
-        properties.set_member_by_path(
-            self.connection_widget.main_gui.header,
-            len(connections),
-            self.connection_widget.main_gui.project.config['pymap']['header'][
-                'connections'
-            ]['connections_size_path'],
-        )
+        self.connection_widget.main_gui.set_number_of_connections(len(connections))
         self.connection_widget.load_header()

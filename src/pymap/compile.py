@@ -1,13 +1,15 @@
-# Module that encapsulates compiling map headers, map footers, tilesets and pymap projects
+"""Module that compiles pymap model data and projects to assembly."""
 
-import json
+from typing import Iterable
+
 import agb.types
-import pymap.model.header, pymap.model.footer, pymap.model.tileset
+from agb.model.type import ModelValue
+
+from pymap.project import Project
 
 
-def get_preamble(constants_to_import, project):
-    """ Creates the preamble for an assembly file, i.e.
-    the include directives.
+def get_preamble(constants_to_import: Iterable[str], project: Project) -> str:
+    """Creates the preamble for an assembly file, i.e the include directives.
 
     Parameters:
     -----------
@@ -22,15 +24,20 @@ def get_preamble(constants_to_import, project):
         The include preamble
     """
     config = project.config['pymap2s']['include']
-    return '\n'.join(config['directive'].replace('{constant}', constant) for constant in constants_to_import)
+    return '\n'.join(
+        config['directive'].replace('{constant}', constant)
+        for constant in set(constants_to_import)
+    )
 
 
-def datatype_to_assembly(data, datatype, label, project):
-    """ Creates an assembly based on any generic datatype.
+def datatype_to_assembly(
+    data: ModelValue, datatype_str: str, label: str, project: Project
+) -> str:
+    """Creates an assembly based on any generic datatype.
 
     Parameters:
     -----------
-    data : object 
+    data : object
         An instance of the datatype.
     datatype : str
         The datatype that is to be compiled.
@@ -44,16 +51,20 @@ def datatype_to_assembly(data, datatype, label, project):
     assembly : str
         The assembly of the datatype.
     """
-    datatype = project.model[datatype]
+    datatype = project.model[datatype_str]
     constants = datatype.get_constants(data, project, ['get_constants'], [])
-    assembly, additional_blocks = datatype.to_assembly(data, project, ['to_assembly'], [], label=label, alignment=2, global_label=True)
+    assembly, additional_blocks = datatype.to_assembly(
+        data, project, ['to_assembly'], [], label=label, alignment=2, global_label=True
+    )
     blocks = [get_preamble(constants, project), assembly] + additional_blocks + ['']
     return '\n\n'.join(blocks)
 
 
-def project_to_assembly(project, header_table_label, footer_table_label):
-    """ Creates an assembly based on a project file.
-    
+def project_to_assembly(
+    project: Project, header_table_label: str, footer_table_label: str
+) -> str:
+    """Creates an assembly based on a project file.
+
     project : pymap.project.Project
         The pymap project to assemble.
     header_table_label : str
@@ -66,40 +77,57 @@ def project_to_assembly(project, header_table_label, footer_table_label):
     assembly : str
         The assembly of the project.
     """
-    blocks = []
+    blocks: list[str] = []
 
     # Create the map table
     num_banks = max(map(int, project.headers.keys())) + 1
-    map_table_assembly = []
-    for i in map(str, range(num_banks)): # @Todo: maybe enable user defined translation based on e.g. constants
+    map_table_assembly: list[str] = []
+    for i in map(
+        str, range(num_banks)
+    ):  # @Todo: maybe enable user defined translation based on e.g. constants
         if i in project.headers:
             map_table_assembly.append(f'.word bank_{i}')
             # Create a new bank
             bank = project.headers[i]
             map_idxs = set(map(int, bank.keys()))
-            map_idxs.add(-1) # To support empty banks
+            map_idxs.add(-1)  # To support empty banks
             num_maps = max(map_idxs) + 1
-            bank_assembly = []
-            for j in map(str, range(num_maps)): # @Todo: maybe enable user defined translation based on e.g. constants
+            bank_assembly: list[str] = []
+            for j in map(
+                str, range(num_maps)
+            ):  # @Todo: maybe enable user defined translation based on e.g. constants
                 if j in bank:
                     label, _, _ = bank[j]
                     bank_assembly.append(f'.word {label}')
                 else:
                     bank_assembly.append('.word 0')
-            blocks.append(agb.types.label_and_align('\n'.join(bank_assembly), f'bank_{i}', 2, False))
+            blocks.append(
+                agb.types.label_and_align(
+                    '\n'.join(bank_assembly), f'bank_{i}', 2, False
+                )
+            )
         else:
             map_table_assembly.append('.word 0')
-    blocks = [agb.types.label_and_align('\n'.join(map_table_assembly), header_table_label, 2, True)] + blocks
+    blocks = [
+        agb.types.label_and_align(
+            '\n'.join(map_table_assembly), header_table_label, 2, True
+        )
+    ] + blocks
 
     # Create the footer table
-    footer_idx_to_label = {project.footers[label][0] : label for label in project.footers}
+    footer_idx_to_label = {
+        project.footers[label][0]: label for label in project.footers
+    }
     footer_table_assembly = [
-        f'.word {footer_idx_to_label[i]}' if i in footer_idx_to_label else '.word 0' 
-        for i in range(1, max(map(int, footer_idx_to_label.keys())) + 1) # Footers start at 1 (idx 0 is reserved)
+        f'.word {footer_idx_to_label[i]}' if i in footer_idx_to_label else '.word 0'
+        for i in range(
+            1, max(map(int, footer_idx_to_label.keys())) + 1
+        )  # Footers start at 1 (idx 0 is reserved)
     ]
-    blocks.append(agb.types.label_and_align('\n'.join(footer_table_assembly), footer_table_label, 2, True))
+    blocks.append(
+        agb.types.label_and_align(
+            '\n'.join(footer_table_assembly), footer_table_label, 2, True
+        )
+    )
 
     return '\n\n'.join(blocks + [''])
-
-        
-

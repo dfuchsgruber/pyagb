@@ -665,7 +665,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             | QMessageBox.StandardButton.Cancel
         )
         message_box.setDefaultButton(QMessageBox.StandardButton.Save)
-        return message_box.exec_()
+        return message_box.exec_()  # type: ignore
 
 
 def main():

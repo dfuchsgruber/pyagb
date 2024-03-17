@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from agb.model.type import ModelValue
-from deepdiff import DeepDiff  # type: ignore
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6.QtWidgets import (
     QHeaderView,
@@ -14,7 +13,9 @@ from PySide6.QtWidgets import (
 from typing_extensions import ParamSpec
 
 from pymap.gui import properties
-from pymap.gui.history import UndoRedoStatements
+from pymap.gui.history import (
+    model_value_difference_to_undo_redo_statements,
+)
 
 from ..history import ChangeEventProperty
 
@@ -94,22 +95,13 @@ class EventProperties(ParameterTree):
         """
         assert self.root is not None, 'Root is None'
         root = self._get_current_event()
-        diffs = DeepDiff(root, self.root.model_value)
-        statements_redo: UndoRedoStatements = []
-        statements_undo: UndoRedoStatements = []
-        for change in ('type_changes', 'values_changed'):
-            if change in diffs:
-                for path in diffs[change]:  # type: ignore
-                    value_new = diffs[change][path]['new_value']  # type: ignore
-                    value_old = diffs[change][path]['old_value']  # type: ignore
-                    statements_redo.append(f"{path} = '{value_new}'")
-                    statements_undo.append(f"{path} = '{value_old}'")
-                    self.event_tab.event_widget.undo_stack.push(
-                        ChangeEventProperty(
-                            self.event_tab.event_widget,
-                            self.event_tab.event_type,
-                            self.event_tab.idx_combobox.currentIndex(),
-                            statements_redo,
-                            statements_undo,
-                        )
-                    )
+        self.event_tab.event_widget.undo_stack.push(
+            ChangeEventProperty(
+                self.event_tab.event_widget,
+                self.event_tab.event_type,
+                self.event_tab.idx_combobox.currentIndex(),
+                *model_value_difference_to_undo_redo_statements(
+                    root, self.root.model_value
+                ),
+            )
+        )

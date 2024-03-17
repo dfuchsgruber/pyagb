@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from agb.model.type import ModelValue
-from deepdiff import DeepDiff  # type: ignore
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6.QtWidgets import (
     QHeaderView,
@@ -14,7 +13,8 @@ from PySide6.QtWidgets import (
 from typing_extensions import ParamSpec
 
 from pymap.gui import properties
-from pymap.gui.history import ChangeBlockProperty, UndoRedoStatements
+from pymap.gui.history import ChangeBlockProperty
+from pymap.gui.history.statement import model_value_difference_to_undo_redo_statements
 
 from .child import TilesetChildWidgetMixin, if_tileset_loaded
 
@@ -83,11 +83,6 @@ class BlockProperties(ParameterTree, TilesetChildWidgetMixin):
     def update(self):
         """Updates all values in the tree according to the current properties."""
         assert self.tileset_widget.main_gui.project is not None
-        config = self.tileset_widget.main_gui.project.config['pymap'][
-            'tileset_primary'
-            if self.tileset_widget.selected_block_idx < 0x280
-            else 'tileset_secondary'
-        ]
         behaviour = self.tileset_widget.main_gui.get_tileset_behaviour(
             self.tileset_widget.selected_block_idx
         )
@@ -106,24 +101,13 @@ class BlockProperties(ParameterTree, TilesetChildWidgetMixin):
             self.tileset_widget.selected_block_idx
         )
         assert self.root is not None
-        diffs = DeepDiff(root, self.root.model_value)
-        statements_redo: UndoRedoStatements = []
-        statements_undo: UndoRedoStatements = []
-        for change in ('type_changes', 'values_changed'):
-            if change in diffs:
-                for path in diffs[change]:  # type: ignore
-                    value_new = diffs[change][path]['new_value']  # type: ignore
-                    value_old = diffs[change][path]['old_value']  # type: ignore
-                    statements_redo.append(f"{path} = '{value_new}'")
-                    statements_undo.append(f"{path} = '{value_old}'")
-                    self.tileset_widget.undo_stack.push(
-                        ChangeBlockProperty(
-                            self.tileset_widget,
-                            self.tileset_widget.selected_block_idx,
-                            statements_redo,
-                            statements_undo,
-                        )
-                    )
+        self.tileset_widget.undo_stack.push(
+            ChangeBlockProperty(
+                self.tileset_widget,
+                self.tileset_widget.selected_block_idx,
+                *model_value_difference_to_undo_redo_statements(self.root, root),
+            )
+        )
 
     def get_value(self) -> ModelValue:
         """Gets the model value of the current block or None if no block is selected."""

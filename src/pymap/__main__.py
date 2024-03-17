@@ -7,6 +7,7 @@ from pathlib import Path
 
 import agb.string.compile
 
+import pymap.compile
 import pymap.project
 from pymap.gui.main import gui
 

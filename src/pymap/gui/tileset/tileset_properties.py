@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from agb.model.type import ModelValue
-from deepdiff import DeepDiff  # type: ignore
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6.QtWidgets import QHeaderView, QWidget
 from typing_extensions import ParamSpec
 
 from pymap.gui.history import ChangeTilesetProperty
-from pymap.gui.history.statement import UndoRedoStatements
+from pymap.gui.history.statement import (
+    model_value_difference_to_undo_redo_statements,
+)
 from pymap.gui.properties import type_to_parameter
 
 from .child import TilesetChildWidgetMixin, if_tileset_loaded
@@ -101,24 +102,13 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
             else self.tileset_widget.main_gui.tileset_secondary
         )
         assert self.root is not None
-        diffs = DeepDiff(root, self.root.model_value)
-        statements_redo: UndoRedoStatements = []
-        statements_undo: UndoRedoStatements = []
-        for change in ('type_changes', 'values_changed'):
-            if change in diffs:
-                for path in diffs[change]:  # type: ignore
-                    value_new = diffs[change][path]['new_value']  # type: ignore
-                    value_old = diffs[change][path]['old_value']  # type: ignore
-                    statements_redo.append(f"{path} = '{value_new}'")
-                    statements_undo.append(f"{path} = '{value_old}'")
-                    self.tileset_widget.undo_stack.push(
-                        ChangeTilesetProperty(
-                            self.tileset_widget,
-                            self.is_primary,
-                            statements_redo,
-                            statements_undo,
-                        )
-                    )
+        self.tileset_widget.undo_stack.push(
+            ChangeTilesetProperty(
+                self.tileset_widget,
+                self.is_primary,
+                *model_value_difference_to_undo_redo_statements(root, self.root),
+            )
+        )
 
     def get_value(self) -> ModelValue:
         """Gets the model value of the current block or None if no block is selected."""

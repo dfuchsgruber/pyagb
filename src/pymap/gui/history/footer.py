@@ -6,11 +6,12 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtGui import QUndoCommand
 
-from pymap.gui.history.statement import UndoRedoStatements
+from agb.model.type import ModelValue
+from pymap.gui.history.statement import UndoRedoStatements, ChangeProperty
 
 if TYPE_CHECKING:
-    from pymap.gui.main.gui import PymapGui
     from pymap.gui.footer import FooterWidget
+    from pymap.gui.main.gui import PymapGui
 
 
 class AssignTileset(QUndoCommand):
@@ -51,7 +52,7 @@ class AssignTileset(QUndoCommand):
         self._assign(self.label_old)
 
 
-class ChangeFooterProperty(QUndoCommand):
+class ChangeFooterProperty(ChangeProperty):
     """Change a property of the footer."""
 
     def __init__(
@@ -67,25 +68,19 @@ class ChangeFooterProperty(QUndoCommand):
             statements_redo (list[str]): Statements to be executed for redo
             statements_undo (list[str]): Statements to be executed for undo
         """
-        super().__init__()
+        super().__init__(statements_redo, statements_undo)
         self.footer_widget = footer_widget
-        self.statements_redo = statements_redo
-        self.statements_undo = statements_undo
+
+    def get_root(self) -> ModelValue:
+        """Returns the root object of the property to change with this command."""
+        return self.footer_widget.main_gui.footer
 
     def redo(self):
         """Executes the redo statements."""
-        assert self.footer_widget.main_gui is not None
-        assert self.footer_widget.main_gui.footer is not None
-        root = self.footer_widget.main_gui.footer
-        for statement in self.statements_redo:
-            exec(statement)
+        super().redo()
         self.footer_widget.update()
 
     def undo(self):
         """Executes the redo statements."""
-        assert self.footer_widget.main_gui is not None
-        assert self.footer_widget.main_gui.footer is not None
-        root = self.footer_widget.main_gui.footer
-        for statement in self.statements_undo:
-            exec(statement)
+        super().undo()
         self.footer_widget.update()

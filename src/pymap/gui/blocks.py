@@ -7,7 +7,7 @@ import numpy as np
 from agb.model.type import ModelValue
 from numpy.typing import NDArray
 
-from pymap.gui.types import Block, Connection, ConnectionType
+from pymap.gui.types import Block, UnpackedConnection, ConnectionType
 from pymap.project import Project
 
 from . import properties
@@ -67,8 +67,8 @@ def compute_blocks(footer: ModelValue, project: Project) -> NDArray[np.int_]:
 
 
 def filter_visible_connections(
-    connections: list[Connection | None], keep_invisble: bool = False
-) -> list[Connection | None]:
+    connections: list[UnpackedConnection | None], keep_invisble: bool = False
+) -> list[UnpackedConnection | None]:
     """Filters connections for visible and uniqueness in direction.
 
     Only considers connection types 'north', 'south', 'east' and 'west'.
@@ -87,7 +87,7 @@ def filter_visible_connections(
         Filtered list of connections, only visible ones are included.
     """
     processed_directions: set[ConnectionType] = set()
-    filtered: list[Connection | None] = []
+    filtered: list[UnpackedConnection | None] = []
     for connection in connections:
         if connection is not None:
             if connection.type not in processed_directions and connection.type in (
@@ -106,7 +106,7 @@ def filter_visible_connections(
 
 def insert_connection(
     blocks: NDArray[np.int_],
-    connection: Connection | None,
+    connection: UnpackedConnection | None,
     footer: ModelValue,
     project: Project,
 ):
@@ -179,7 +179,7 @@ def insert_connection(
 
 def unpack_connection(
     connection: ModelValue, project: Project, connection_blocks: NDArray[np.int_] | None
-) -> Connection | None:
+) -> UnpackedConnection | None:
     """Loads a connections data if possible.
 
     Returns:
@@ -252,7 +252,7 @@ def unpack_connection(
                 footer, project.config['pymap']['footer']['map_blocks_path']
             )
             connection_blocks = blocks_to_ndarray(connection_blocks_model)  # type: ignore
-        return Connection(
+        return UnpackedConnection(
             type=connection_type,
             offset=offset,
             bank=bank,
@@ -266,7 +266,7 @@ def unpack_connections(
     connections: ModelValue,
     project: Project,
     default_blocks: NDArray[np.int_] | None = None,
-) -> list[Connection | None]:
+) -> list[UnpackedConnection | None]:
     """Unpacks a list of connections."""
     assert isinstance(connections, list), f'Expected list, got {type(connections)}'
     return [

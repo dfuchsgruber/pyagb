@@ -9,8 +9,6 @@ import numpy.typing as npt
 from agb.model.type import IntArray
 from PySide6.QtGui import QUndoCommand
 
-from pymap.gui import properties
-
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
 
@@ -58,21 +56,8 @@ class ResizeMap(Resize):
 
     def _change_size(self, blocks: IntArray):
         assert self.main_gui.project is not None
-        properties.set_member_by_path(
-            self.main_gui.footer,
-            blocks.shape[0],
-            self.main_gui.project.config['pymap']['footer']['map_height_path'],
-        )
-        properties.set_member_by_path(
-            self.main_gui.footer,
-            blocks.shape[1],
-            self.main_gui.project.config['pymap']['footer']['map_width_path'],
-        )
-        properties.set_member_by_path(
-            self.main_gui.footer,
-            blocks.tolist(),
-            self.main_gui.project.config['pymap']['footer']['map_blocks_path'],
-        )
+        self.main_gui.set_map_dimensions(*blocks.shape[:2])
+        self.main_gui.set_blocks(0, 0, list(range(blocks.shape[-1])), blocks)
         self.main_gui.map_widget.load_header()
 
     def redo(self):
@@ -89,21 +74,8 @@ class ResizeBorder(Resize):
 
     def _change_size(self, blocks: IntArray):
         assert self.main_gui.project is not None
-        properties.set_member_by_path(
-            self.main_gui.footer,
-            blocks.shape[0],
-            self.main_gui.project.config['pymap']['footer']['border_height_path'],
-        )
-        properties.set_member_by_path(
-            self.main_gui.footer,
-            blocks.shape[1],
-            self.main_gui.project.config['pymap']['footer']['border_width_path'],
-        )
-        properties.set_member_by_path(
-            self.main_gui.footer,
-            blocks.tolist(),
-            self.main_gui.project.config['pymap']['footer']['border_path'],
-        )
+        self.main_gui.set_border_dimensions(*blocks.shape[:2])
+        self.main_gui.set_border(0, 0, blocks)
         self.main_gui.map_widget.load_header()
 
     def redo(self):

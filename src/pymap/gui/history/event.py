@@ -4,17 +4,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from agb.model.type import ModelValue
 from PySide6.QtGui import QUndoCommand
 
 from pymap.configuration import PymapEventConfigType
 from pymap.gui import properties
-from pymap.gui.history.statement import UndoRedoStatements
+from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
 
 if TYPE_CHECKING:
     from pymap.gui.event import EventWidget
 
 
-class ChangeEventProperty(QUndoCommand):
+class ChangeEventProperty(ChangeProperty):
     """Change a property of any event."""
 
     def __init__(
@@ -34,29 +35,23 @@ class ChangeEventProperty(QUndoCommand):
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__()
+        super().__init__(statements_redo, statements_undo)
         self.event_widget = event_widget
         self.event_type = event_type
         self.event_idx = event_idx
-        self.statements_redo = statements_redo
-        self.statements_undo = statements_undo
+
+    def get_root(self) -> ModelValue:
+        """Returns the root object of the property to change with this command."""
+        return self.event_widget.main_gui.get_event(self.event_type, self.event_idx)
 
     def redo(self):
         """Executes the redo statements."""
-        assert self.event_widget.main_gui is not None
-        assert self.event_widget.main_gui.header is not None
-        root = self.event_widget.main_gui.get_event(self.event_type, self.event_idx)  # type: ignore
-        for statement in self.statements_redo:
-            exec(statement)
+        super().redo()
         self.event_widget.update_event(self.event_type, self.event_idx)
 
     def undo(self):
         """Executes the redo statements."""
-        root = self.event_widget.main_gui.get_event(  # type: ignore
-            self.event_type, self.event_idx
-        )
-        for statement in self.statements_undo:
-            exec(statement)
+        super().undo()
         self.event_widget.update_event(self.event_type, self.event_idx)
 
 
@@ -90,9 +85,7 @@ class RemoveEvent(QUndoCommand):
         assert self.event_widget.main_gui is not None
         assert self.event_widget.main_gui.header is not None
         events.pop(self.event_idx)
-        properties.set_member_by_path(
-            self.event_widget.main_gui.header, len(events), self.event_type['size_path']
-        )
+        self.event_widget.main_gui.set_number_of_events(self.event_type, len(events))
         self.event_widget.load_header()
 
     def undo(self):
@@ -101,9 +94,7 @@ class RemoveEvent(QUndoCommand):
         events.insert(self.event_idx, self.event)
         assert self.event_widget.main_gui is not None
         assert self.event_widget.main_gui.header is not None
-        properties.set_member_by_path(
-            self.event_widget.main_gui.header, len(events), self.event_type['size_path']
-        )
+        self.event_widget.main_gui.set_number_of_events(self.event_type, len(events))
         self.event_widget.load_header()
 
 
@@ -134,9 +125,7 @@ class AppendEvent(QUndoCommand):
             self.event_widget.main_gui.header, context
         )
         events.append(project.model[datatype](project, context, parents))
-        properties.set_member_by_path(
-            self.event_widget.main_gui.header, len(events), self.event_type['size_path']
-        )
+        self.event_widget.main_gui.set_number_of_events(self.event_type, len(events))
         self.event_widget.load_header()
 
     def undo(self):
@@ -146,7 +135,5 @@ class AppendEvent(QUndoCommand):
         events = self.event_widget.main_gui.get_events(self.event_type)
         assert isinstance(events, list), f'Expected list, got {type(events)}'
         events.pop()
-        properties.set_member_by_path(
-            self.event_widget.main_gui.header, len(events), self.event_type['size_path']
-        )
+        self.event_widget.main_gui.set_number_of_events(self.event_type, len(events))
         self.event_widget.load_header()

@@ -1,8 +1,8 @@
 """Model Parameter Mixin."""
 
 from __future__ import annotations
-from abc import abstractmethod
 
+from abc import abstractmethod
 from typing import Any
 
 from agb.model.type import ModelContext, ModelParents, ModelValue

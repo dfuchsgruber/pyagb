@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from deepdiff import DeepDiff  # type: ignore
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6.QtGui import QUndoStack
 from PySide6.QtWidgets import QHeaderView, QWidget
 from typing_extensions import ParamSpec
 
 from pymap.gui import properties
-from pymap.gui.history import UndoRedoStatements
+from pymap.gui.history.statement import model_value_difference_to_undo_redo_statements
 
 from .history import ChangeFooterProperty
 
@@ -85,17 +84,11 @@ class FooterWidget(ParameterTree):
             changes (list[tuple[object, object, object]] | None): The changes.
         """
         if self.root is not None:
-            diffs = DeepDiff(self.main_gui.footer, self.root.model_value)
-            root = self.main_gui.footer  # type: ignore # noqa: F841
-            statements_redo: UndoRedoStatements = []
-            statements_undo: UndoRedoStatements = []
-            for change in ('type_changes', 'values_changed'):
-                if change in diffs:
-                    for path in diffs[change]:  # type: ignore
-                        value_new = diffs[change][path]['new_value']  # type: ignore
-                        value_old = diffs[change][path]['old_value']  # type: ignore
-                        statements_redo.append(f"{path} = '{value_new}'")
-                        statements_undo.append(f"{path} = '{value_old}'")
             self.undo_stack.push(
-                ChangeFooterProperty(self, statements_redo, statements_undo)
+                ChangeFooterProperty(
+                    self,
+                    *model_value_difference_to_undo_redo_statements(
+                        self.root, self.main_gui.footer
+                    ),
+                )
             )

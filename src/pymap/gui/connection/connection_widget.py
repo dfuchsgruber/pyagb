@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QGraphicsPixmapItem, QMessageBox
 
 from pymap.gui import blocks
 from pymap.gui.icon import Icon, icon_paths
-from pymap.gui.types import Connection, ConnectionType
+from pymap.gui.types import UnpackedConnection, ConnectionType
 
 from .. import history, properties
 from .connection_properties import ConnectionProperties
@@ -34,7 +34,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         """
         super().__init__(parent=parent)
         self.main_gui = main_gui
-        self.connections: list[Connection | None] = []
+        self.connections: list[UnpackedConnection | None] = []
         self.undo_stack = QtGui.QUndoStack()
 
         # Layout is similar to the map widget
@@ -280,7 +280,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         ), f'Expected list, got {type(connections_model)}'
         packed = connections_model[self.idx_combobox.currentIndex()]
         assert isinstance(
-            packed, Connection
+            packed, UnpackedConnection
         ), f'Expected Connection, got {type(packed)}'
 
         # Update the unpacked version
@@ -309,7 +309,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         connections_model = self.main_gui.get_connections()
         packed = connections_model[connection_idx]
         assert isinstance(
-            packed, Connection
+            packed, UnpackedConnection
         ), f'Expected Connection, got {type(packed)}'
 
         # Update the unpacked version

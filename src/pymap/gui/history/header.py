@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from agb.model.type import ModelValue
 from PySide6.QtGui import QUndoCommand
 
-from pymap.gui.history.statement import UndoRedoStatements
+from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
 
 if TYPE_CHECKING:
-    from pymap.gui.main.gui import PymapGui
     from pymap.gui.header import HeaderWidget
+    from pymap.gui.main.gui import PymapGui
 
 
 class AssignFooter(QUndoCommand):
@@ -44,7 +45,7 @@ class AssignFooter(QUndoCommand):
         self._assign(self.label_old)
 
 
-class ChangeHeaderProperty(QUndoCommand):
+class ChangeHeaderProperty(ChangeProperty):
     """Change a property of the header."""
 
     def __init__(
@@ -60,25 +61,19 @@ class ChangeHeaderProperty(QUndoCommand):
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__()
+        super().__init__(statements_redo, statements_undo)
         self.header_widget = header_widget
-        self.statements_redo = statements_redo
-        self.statements_undo = statements_undo
+
+    def get_root(self) -> ModelValue:
+        """Returns the root object of the property to change with this command."""
+        return self.header_widget.main_gui.header
 
     def redo(self):
         """Executes the redo statements."""
-        assert self.header_widget.main_gui is not None
-        assert self.header_widget.main_gui.header is not None
-        root = self.header_widget.main_gui.header
-        for statement in self.statements_redo:
-            exec(statement)
+        super().redo()
         self.header_widget.update()
 
     def undo(self):
         """Executes the redo statements."""
-        assert self.header_widget.main_gui is not None
-        assert self.header_widget.main_gui.header is not None
-        root = self.header_widget.main_gui.header
-        for statement in self.statements_undo:
-            exec(statement)
+        super().undo()
         self.header_widget.update()

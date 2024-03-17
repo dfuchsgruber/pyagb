@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import contextlib
-from copy import deepcopy
 import json
 import os
+from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict
 
 import agb.string.agbstring
 from agb import image
+
 from pymap.gui.properties.utils import set_member_by_path
 
 if TYPE_CHECKING:

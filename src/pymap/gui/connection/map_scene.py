@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pymap.gui.types import Connection, ConnectionType
+from pymap.gui.types import UnpackedConnection, ConnectionType
 
 from .. import history
 from .child import ConnectionChildWidgetMixin, if_connection_loaded
@@ -93,7 +93,9 @@ class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
                         f'Invalid connection type {connection.type} for dragging.'
                     )
 
-                self.connection_widget.connections[self.dragged_idx] = Connection(
+                self.connection_widget.connections[
+                    self.dragged_idx
+                ] = UnpackedConnection(
                     connection.type,
                     offset_new,
                     connection.bank,
