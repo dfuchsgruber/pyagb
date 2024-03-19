@@ -11,13 +11,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .child import MapChildMixin, if_header_loaded
-
 if TYPE_CHECKING:
     from .map_widget import MapWidget
 
 
-class BorderScene(QGraphicsScene, MapChildMixin):
+class BorderScene(QGraphicsScene):
     """Scene for the border view."""
 
     def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):
@@ -28,11 +26,12 @@ class BorderScene(QGraphicsScene, MapChildMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        MapChildMixin.__init__(self, map_widget)
+        self.map_widget = map_widget
 
-    @if_header_loaded
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
+        if not self.map_widget.header_loaded:
+            return
         assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
         borders = self.map_widget.main_gui.get_borders()
         pos = event.scenePos()
@@ -43,9 +42,10 @@ class BorderScene(QGraphicsScene, MapChildMixin):
         else:
             return self.map_widget.info_label.setText('')
 
-    @if_header_loaded
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for pressing the mouse."""
+        if not self.map_widget.header_loaded:
+            return
         borders = self.map_widget.main_gui.get_borders()
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)

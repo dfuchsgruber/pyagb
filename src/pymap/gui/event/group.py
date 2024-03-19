@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from PIL.Image import Image
 from PIL.ImageQt import ImageQt
 from PySide6.QtGui import QBrush, QColor, QFont, QPen, QPixmap
@@ -11,7 +13,8 @@ from PySide6.QtWidgets import (
 
 from pymap.configuration import PymapEventConfigType
 
-from .map_scene import MapScene
+if TYPE_CHECKING:
+    from .map_scene import MapScene
 
 
 class EventGroupRectangular(QGraphicsItemGroup):
@@ -56,6 +59,14 @@ class EventGroupImage(QGraphicsItemGroup):
         horizontal_displacement: int,
         vertical_displacement: int,
     ):
+        """Initializes the group.
+
+        Args:
+            map_scene (MapScene): The map scene.
+            image (Image): The image.
+            horizontal_displacement (int): The horizontal displacement.
+            vertical_displacement (int): The vertical displacement.
+        """
         super().__init__()
         self.horizontal_displacement = horizontal_displacement
         self.vertical_displacement = vertical_displacement
@@ -63,7 +74,7 @@ class EventGroupImage(QGraphicsItemGroup):
         self.addToGroup(self.pixmap)
 
     def alignWithPosition(self, x: int, y: int):
-        """Aligns the group with a certain position"""
+        """Aligns the group with a certain position."""
         self.pixmap.setPos(
             x + self.horizontal_displacement, y + self.vertical_displacement
         )

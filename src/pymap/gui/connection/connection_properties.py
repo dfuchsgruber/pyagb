@@ -16,13 +16,11 @@ from pymap.gui.history import (
 )
 from pymap.gui.history.statement import model_value_difference_to_undo_redo_statements
 
-from .child import ConnectionChildWidgetMixin, if_connection_loaded
-
 if TYPE_CHECKING:
     from .connection_widget import ConnectionWidget
 
 
-class ConnectionProperties(ParameterTree, ConnectionChildWidgetMixin):
+class ConnectionProperties(ParameterTree):
     """Tree to display event properties."""
 
     def __init__(
@@ -35,7 +33,7 @@ class ConnectionProperties(ParameterTree, ConnectionChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)  # type: ignore
-        ConnectionChildWidgetMixin.__init__(self, connection_widget)
+        self.connection_widget = connection_widget
         self.connection_widget = connection_widget
         self.setHeaderLabels(['Property', 'Value'])  # type: ignore
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
@@ -43,9 +41,10 @@ class ConnectionProperties(ParameterTree, ConnectionChildWidgetMixin):
 
         self.root = None
 
-    @if_connection_loaded
     def load_connection(self):
         """Loads the currently displayed connection."""
+        if not self.connection_widget.connection_loaded:
+            return
         self.clear()
         self.connection_widget
 
@@ -80,9 +79,10 @@ class ConnectionProperties(ParameterTree, ConnectionChildWidgetMixin):
             self.addParameters(self.root, showTop=False)  # type: ignore
             self.root.sigTreeStateChanged.connect(self.tree_changed)  # type: ignore
 
-    @if_connection_loaded
     def update(self):
         """Updates all values in the tree according to the current connection."""
+        if not self.connection_widget.connection_loaded:
+            return
         assert self.root is not None
         assert self.connection_widget.main_gui.project is not None
         connection = self.connection_widget.main_gui.get_connections()[
@@ -92,9 +92,10 @@ class ConnectionProperties(ParameterTree, ConnectionChildWidgetMixin):
         self.root.update(connection)
         self.root.blockSignals(False)  # type: ignore
 
-    @if_connection_loaded
     def tree_changed(self, changes: list[tuple[object, object, object]] | None):
         """When the tree changes values."""
+        if not self.connection_widget.connection_loaded:
+            return
         assert self.root is not None
         assert self.connection_widget.main_gui.project is not None
         root = self.connection_widget.main_gui.get_connections()[

@@ -18,13 +18,11 @@ from PySide6.QtWidgets import (
 
 from pymap.gui.render import draw_blocks
 
-from .child import MapChildMixin, if_header_loaded
-
 if TYPE_CHECKING:
     from .map_widget import MapWidget
 
 
-class AutoScene(QGraphicsScene, MapChildMixin):
+class AutoScene(QGraphicsScene):
     """Scene for automatic shapes."""
 
     def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):
@@ -35,12 +33,13 @@ class AutoScene(QGraphicsScene, MapChildMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        MapChildMixin.__init__(self, map_widget)
+        self.map_widget = map_widget
         self.auto_shape = np.zeros((3, 5, 2), dtype=int)
 
-    @if_header_loaded
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
+        if not self.map_widget.header_loaded:
+            return
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
         if x in range(self.auto_shape.shape[1]) and y in range(
@@ -52,9 +51,10 @@ class AutoScene(QGraphicsScene, MapChildMixin):
         else:
             return self.map_widget.info_label.setText('')
 
-    @if_header_loaded
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for pressing the mouse."""
+        if not self.map_widget.header_loaded:
+            return
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
         if (
@@ -80,7 +80,7 @@ class AutoScene(QGraphicsScene, MapChildMixin):
         self.clear()
 
         self.auto_shape_background_pixmap = QPixmap(
-            str(resources.files('map').joinpath('auto_shape_background.png')),
+            str(resources.files('pymap.gui.map').joinpath('auto_shape_background.png')),
         )
         self.addPixmap(self.auto_shape_background_pixmap)
 

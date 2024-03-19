@@ -13,13 +13,11 @@ from PySide6.QtWidgets import (
 
 import pymap.gui.render as render
 
-from .child import MapChildMixin, if_header_loaded
-
 if TYPE_CHECKING:
     from .map_widget import MapWidget
 
 
-class BlocksScene(QGraphicsScene, MapChildMixin):
+class BlocksScene(QGraphicsScene):
     """Scene for the blocks view."""
 
     def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):
@@ -30,12 +28,13 @@ class BlocksScene(QGraphicsScene, MapChildMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        MapChildMixin.__init__(self, map_widget)
+        self.map_widget = map_widget
         self.selection_box = None
 
-    @if_header_loaded
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
+        if not self.map_widget.header_loaded:
+            return
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
         block_idx = 8 * y + x
@@ -52,15 +51,17 @@ class BlocksScene(QGraphicsScene, MapChildMixin):
                     render.select_blocks(render.blocks_pool, *self.selection_box)
                 )
 
-    @if_header_loaded
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for releasing the mouse."""
+        if not self.map_widget.header_loaded:
+            return
         if event.button() == Qt.MouseButton.RightButton:
             self.selection_box = None
 
-    @if_header_loaded
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for pressing the mouse."""
+        if not self.map_widget.header_loaded:
+            return
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
         if event.button() == Qt.MouseButton.RightButton:

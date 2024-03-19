@@ -1,6 +1,11 @@
 """This module contains the structure type."""
 
-from pymap.project import Project
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pymap.project import Project
 
 from agb.model.type import ModelContext, ModelParents, ModelValue, Type, label_and_align
 
@@ -8,8 +13,9 @@ from agb.model.type import ModelContext, ModelParents, ModelValue, Type, label_a
 class Structure(Type):
     """Superclass to model any kind of structure."""
 
-    def __init__(self, structure: list[tuple[str, str, int]],
-                 hidden_members: set[str]=set()):
+    def __init__(
+        self, structure: list[tuple[str, str, int]], hidden_members: set[str] = set()
+    ):
         """Initialize the members with priorized members.
 
         Parameters:
@@ -28,8 +34,14 @@ class Structure(Type):
         self.structure = structure
         self.hidden_members = hidden_members
 
-    def from_data(self, rom: bytearray, offset: int, project: Project,
-                  context: ModelContext, parents: ModelParents) -> ModelValue:
+    def from_data(
+        self,
+        rom: bytearray,
+        offset: int,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> ModelValue:
         """Retrieves the structure from a rom.
 
         Parameters:
@@ -54,29 +66,33 @@ class Structure(Type):
             The initialized structure
         """
         structure: dict[str, ModelValue] = {}
-        parents = parents + [structure]
+        parents = list(parents) + [structure]
 
         priorities = sorted(list(set([x[2] for x in self.structure])))
-        for priority in priorities: # Export according to priorities
+        for priority in priorities:  # Export according to priorities
             for attribute, datatype_name, datatype_priority in self.structure:
                 datatype = project.model[datatype_name]
                 if datatype_priority == priority:
                     # Export the member in this iteration
-                    value = datatype.from_data(rom, offset, project,
-                                               context + [attribute], parents)
+                    value = datatype.from_data(
+                        rom, offset, project, list(context) + [attribute], parents
+                    )
                 elif datatype_priority > priority and attribute not in structure:
                     # Initilize the datatype with an empty stub in order to retrieve
                     # its size
-                    value = datatype(project, context + [attribute], parents)
+                    value = datatype(project, list(context) + [attribute], parents)
                 else:
                     value = structure[attribute]
                 structure[attribute] = value
                 # Initialize empty before exporting
-                offset += datatype.size(value, project, context + [attribute], parents)
+                offset += datatype.size(
+                    value, project, list(context) + [attribute], parents
+                )
         return structure
 
-    def __call__(self, project: Project, context: ModelContext,
-                 parents: ModelParents) -> ModelValue:
+    def __call__(
+        self, project: Project, context: ModelContext, parents: ModelParents
+    ) -> ModelValue:
         """Initializes a new structure with default values.
 
         Parameters:
@@ -97,19 +113,24 @@ class Structure(Type):
             New structure with default values.
         """
         structure: dict[str, ModelValue] = {}
-        parents = parents + [structure]
+        parents = list(parents) + [structure]
         # Initialize priorized members first
         for attribute, datatype_name, _ in sorted(self.structure, key=lambda x: x[2]):
-            structure[attribute] = project.model[datatype_name](project,
-                                                                context + [attribute],
-                                                                parents)
+            structure[attribute] = project.model[datatype_name](
+                project, list(context) + [attribute], parents
+            )
         return structure
 
-
-    def to_assembly(self, value: ModelValue, project: Project, context: ModelContext,
-                    parents: ModelParents, label: str | None=None,
-                    alignment: int | None=None,
-                    global_label: bool=False) -> tuple[str, list[str]]:
+    def to_assembly(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+        label: str | None = None,
+        alignment: int | None = None,
+        global_label: bool = False,
+    ) -> tuple[str, list[str]]:
         """Returns an assembly representation of a structure.
 
         structure : dict
@@ -139,19 +160,29 @@ class Structure(Type):
         """
         assemblies: list[str] = []
         additional_blocks: list[str] = []
-        assert isinstance(value, dict), f"Expected a dict, got {value}"
+        assert isinstance(value, dict), f'Expected a dict, got {value}'
         for attribute, datatype_name, _ in self.structure:
             datatype = project.model[datatype_name]
             assembly_datatype, additional_blocks_datatype = datatype.to_assembly(
-                value[attribute], project, context + [attribute], parents + [value])
+                value[attribute],
+                project,
+                list(context) + [attribute],
+                list(parents) + [value],
+            )
             assemblies.append(assembly_datatype)
             additional_blocks += additional_blocks_datatype
 
-        return label_and_align('\n'.join(assemblies), label, alignment, global_label), \
-            additional_blocks
+        return label_and_align(
+            '\n'.join(assemblies), label, alignment, global_label
+        ), additional_blocks
 
-    def size(self, value: ModelValue, project: Project, context: ModelContext,
-             parents: ModelParents) -> int:
+    def size(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> int:
         """Returns the size of a specific structure instanze in bytes.
 
         Parameters:
@@ -174,16 +205,22 @@ class Structure(Type):
             The size of this type in bytes.
         """
         size = 0
-        parents = parents + [value]
-        assert isinstance(value, dict), f"Expected a dict, got {value}"
+        parents = list(parents) + [value]
+        assert isinstance(value, dict), f'Expected a dict, got {value}'
         for attribute, datatype_name, _ in self.structure:
             datatype = project.model[datatype_name]
-            size += datatype.size(value[attribute], project, context + [attribute],
-                                  parents)
+            size += datatype.size(
+                value[attribute], project, list(context) + [attribute], parents
+            )
         return size
 
-    def get_constants(self, value: ModelValue, project: Project, context: ModelContext,
-                      parents: ModelParents) -> set[str]:
+    def get_constants(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> set[str]:
         """All constants (recursively) required by this structure.
 
         Parameters:
@@ -206,13 +243,13 @@ class Structure(Type):
             A set of all required constants.
         """
         constants: set[str] = set()
-        parents = parents + [value]
-        assert isinstance(value, dict), f"Expected a dict, got {value}"
+        parents = list(parents) + [value]
+        assert isinstance(value, dict), f'Expected a dict, got {value}'
         for attribute, datatype_name, _ in self.structure:
             datatype = project.model[datatype_name]
-            constants.update(datatype.get_constants(value[attribute],
-                                                    project,
-                                                    context + [attribute],
-                                                    parents))
+            constants.update(
+                datatype.get_constants(
+                    value[attribute], project, list(context) + [attribute], parents
+                )
+            )
         return constants
-

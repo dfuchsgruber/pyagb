@@ -1,6 +1,11 @@
 """Type for strings."""
 
-from pymap.project import Project
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pymap.project import Project
 
 from agb.model.type import ModelContext, ModelParents, ModelValue, Type, label_and_align
 

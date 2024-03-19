@@ -9,10 +9,8 @@ from PySide6 import QtWidgets
 if TYPE_CHECKING:
     from .tileset import TilesetWidget
 
-from .child import TilesetChildWidgetMixin, if_tileset_loaded
 
-
-class SelectionScene(QtWidgets.QGraphicsScene, TilesetChildWidgetMixin):
+class SelectionScene(QtWidgets.QGraphicsScene):
     """Scene for the selected tiles."""
 
     def __init__(
@@ -26,10 +24,8 @@ class SelectionScene(QtWidgets.QGraphicsScene, TilesetChildWidgetMixin):
                 Defaults to None.
         """
         super().__init__(parent=parent)
-        TilesetChildWidgetMixin.__init__(self, tileset_widget)
         self.tileset_widget = tileset_widget
 
-    @if_tileset_loaded
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
         if not self.tileset_widget.tileset_loaded:

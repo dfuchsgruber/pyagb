@@ -76,8 +76,8 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
         # Add the tabs
         self.central_widget = QTabWidget()
-        self.map_widget = MapWidget(self)
         self.event_widget = EventWidget(self)
+        self.map_widget = MapWidget(self)
         self.connection_widget = ConnectionWidget(self)
         self.header_widget = HeaderWidget(self)
         self.footer_widget = FooterWidget(self)

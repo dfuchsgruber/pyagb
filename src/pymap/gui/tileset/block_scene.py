@@ -18,7 +18,6 @@ from typing_extensions import ParamSpec
 
 from .. import history
 from ..render import select_blocks
-from .child import TilesetChildWidgetMixin, if_tileset_loaded
 
 _P = ParamSpec('_P')
 
@@ -26,7 +25,7 @@ if TYPE_CHECKING:
     from .tileset import TilesetWidget
 
 
-class BlockScene(QGraphicsScene, TilesetChildWidgetMixin):
+class BlockScene(QGraphicsScene):
     """Scene for the current block."""
 
     def __init__(
@@ -40,14 +39,15 @@ class BlockScene(QGraphicsScene, TilesetChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        TilesetChildWidgetMixin.__init__(self, tileset_widget)
+        self.tileset_widget = tileset_widget
         self.layer = layer
         self.last_draw = None
         self.selection_box = None
 
-    @if_tileset_loaded
     def update_block(self):
         """Updates the display of this block."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         assert self.tileset_widget.main_gui.tiles is not None
         self.clear()
         block = self.tileset_widget.selected_block[self.layer]
@@ -75,9 +75,10 @@ class BlockScene(QGraphicsScene, TilesetChildWidgetMixin):
         item.setAcceptHoverEvents(True)
         self.setSceneRect(0, 0, size, size)
 
-    @if_tileset_loaded
     def update_selection_box(self):
         """Pastes the selection box to the current selection."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         assert self.selection_box is not None
         self.tileset_widget.set_selection(
             select_blocks(
@@ -85,9 +86,10 @@ class BlockScene(QGraphicsScene, TilesetChildWidgetMixin):
             )
         )
 
-    @if_tileset_loaded
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for hover events on the map image."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         pos = event.scenePos()
         x, y = (
             int(pos.x() * 10 / 8 / self.tileset_widget.zoom_slider.value()),
@@ -128,9 +130,10 @@ class BlockScene(QGraphicsScene, TilesetChildWidgetMixin):
                     self.tileset_widget.tiles_scene.selection_box = None
                     self.tileset_widget.tiles_scene.select_tiles()
 
-    @if_tileset_loaded
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for pressing the mouse."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         pos = event.scenePos()
         x, y = (
             int(pos.x() * 10 / 8 / self.tileset_widget.zoom_slider.value()),
@@ -166,9 +169,10 @@ class BlockScene(QGraphicsScene, TilesetChildWidgetMixin):
                 assert self.tileset_widget
                 self.tileset_widget.tiles_scene.ensure_selection_rect_visible()
 
-    @if_tileset_loaded
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for releasing the mouse."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         if event.button() == Qt.MouseButton.LeftButton:
             self.last_draw = None
             self.tileset_widget.undo_stack.endMacro()

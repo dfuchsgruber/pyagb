@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pyqtgraph.parametertree.parameterTypes as parameterTypes  # type: ignore
 from agb.model.array import ArrayType, FixedSizeArrayType, VariableSizeArrayType
@@ -10,7 +10,8 @@ from agb.model.type import ModelContext, ModelValue
 from agb.model.unbounded_array import UnboundedArrayType
 from pyqtgraph.parametertree.Parameter import Parameter  # type: ignore
 
-from pymap.project import Project  # type: ignore
+if TYPE_CHECKING:
+    from pymap.project import Project
 
 from ..utils import type_to_parameter
 from .base import ModelParameterMixin

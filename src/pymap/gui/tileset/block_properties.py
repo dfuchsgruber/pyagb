@@ -16,15 +16,13 @@ from pymap.gui import properties
 from pymap.gui.history import ChangeBlockProperty
 from pymap.gui.history.statement import model_value_difference_to_undo_redo_statements
 
-from .child import TilesetChildWidgetMixin, if_tileset_loaded
-
 _P = ParamSpec('_P')
 
 if TYPE_CHECKING:
     from .tileset import TilesetWidget
 
 
-class BlockProperties(ParameterTree, TilesetChildWidgetMixin):
+class BlockProperties(ParameterTree):
     """Tree to display block properties."""
 
     def __init__(self, tileset_widget: TilesetWidget, parent: QWidget | None = None):
@@ -35,26 +33,21 @@ class BlockProperties(ParameterTree, TilesetChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)  # type: ignore
-        TilesetChildWidgetMixin.__init__(self, tileset_widget)
         self.tileset_widget = tileset_widget
         self.setHeaderLabels(['Property', 'Value'])  # type: ignore
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
         self.header().setStretchLastSection(True)  # type: ignore
         self.root = None
 
-    @if_tileset_loaded
     def load_block(self):
         """Loads the currently displayed blocks properties."""
         self.clear()
-        if (
-            self.tileset_widget.main_gui.project is None
-            or self.tileset_widget.main_gui.header is None
-            or self.tileset_widget.main_gui.footer is None
-            or self.tileset_widget.main_gui.tileset_primary is None
-            or self.tileset_widget.main_gui.tileset_secondary is None
-        ):
+        if not self.tileset_widget.tileset_loaded:
             self.root = None
         else:
+            assert (
+                self.tileset_widget.main_gui.project is not None
+            ), 'Tileset widget has no project'
             config = self.tileset_widget.main_gui.project.config['pymap'][
                 'tileset_primary'
                 if self.tileset_widget.selected_block_idx < 0x280
@@ -79,9 +72,10 @@ class BlockProperties(ParameterTree, TilesetChildWidgetMixin):
             self.addParameters(self.root, showTop=False)  # type: ignore
             self.root.sigTreeStateChanged.connect(self.tree_changed)  # type: ignore
 
-    @if_tileset_loaded
     def update(self):
         """Updates all values in the tree according to the current properties."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         assert self.tileset_widget.main_gui.project is not None
         behaviour = self.tileset_widget.main_gui.get_tileset_behaviour(
             self.tileset_widget.selected_block_idx
@@ -90,13 +84,14 @@ class BlockProperties(ParameterTree, TilesetChildWidgetMixin):
         self.root.update(behaviour)  # type: ignore
         self.root.blockSignals(False)  # type: ignore
 
-    @if_tileset_loaded
     def tree_changed(self, changes: list[tuple[object, object, object]] | None):
         """Signal handler for when the tree changes.
 
         Args:
             changes (list[tuple[object, object, object]] | None): The changes.
         """
+        if not self.tileset_widget.tileset_loaded:
+            return
         root = self.tileset_widget.main_gui.get_tileset_behaviour(
             self.tileset_widget.selected_block_idx
         )

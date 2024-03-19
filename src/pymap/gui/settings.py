@@ -61,7 +61,6 @@ class Settings:
                 override_settings = json.load(f)
                 for key in override_settings:
                     self.settings[key] = override_settings[key]
-            return self.settings
 
     def save(self):
         """Saves the current settings."""

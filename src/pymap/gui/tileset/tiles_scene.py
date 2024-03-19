@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
 from typing_extensions import ParamSpec
 
 from .. import render
-from .child import TilesetChildWidgetMixin, if_tileset_loaded
 
 _P = ParamSpec('_P')
 
@@ -34,7 +33,7 @@ class TileFlip(IntFlag):
 
 # A static num_pals x num_flips x 64 x 16 array that represents
 # the pool of tiles to select from
-tiles_pool: npt.NDArray[np.int_] = np.array(
+tiles_pool: npt.NDArray[np.object_] = np.array(
     [
         [
             [
@@ -50,7 +49,7 @@ tiles_pool: npt.NDArray[np.int_] = np.array(
         ]
         for pal_idx in range(13)
     ],
-    dtype=int,
+    dtype=np.object_,
 ).reshape((13, 4, 64, 16))
 
 for flip in range(4):
@@ -60,7 +59,7 @@ for flip in range(4):
         tiles_pool[:, flip, :, :] = tiles_pool[:, flip, ::-1, :]
 
 
-class TilesScene(QGraphicsScene, TilesetChildWidgetMixin):
+class TilesScene(QGraphicsScene):
     """Scene for the individual tiles."""
 
     def __init__(self, tileset_widget: TilesetWidget, parent: QWidget | None = None):
@@ -71,7 +70,7 @@ class TilesScene(QGraphicsScene, TilesetChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        TilesetChildWidgetMixin.__init__(self, tileset_widget)
+        self.tileset_widget = tileset_widget
         self.selection_box = None
         self.selection_rect = None
 
@@ -93,13 +92,14 @@ class TilesScene(QGraphicsScene, TilesetChildWidgetMixin):
         pen = QPen(color, 1.0 * self.tileset_widget.zoom_slider.value() / 10)
         self.selection_rect = self.addRect(0, 0, 0, 0, pen=pen, brush=QBrush(0))
 
-    @if_tileset_loaded
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse.
 
         Args:
             event (QGraphicsSceneMouseEvent): The mouse event.
         """
+        if not self.tileset_widget.tileset_loaded:
+            return
         pos = event.scenePos()
         x, y = (
             int(pos.x() * 10 / 8 / self.tileset_widget.zoom_slider.value()),
@@ -117,9 +117,10 @@ class TilesScene(QGraphicsScene, TilesetChildWidgetMixin):
         else:
             self.tileset_widget.set_info(None)
 
-    @if_tileset_loaded
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for pressing the mouse."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         pos = event.scenePos()
         x, y = (
             int(pos.x() * 10 / 8 / self.tileset_widget.zoom_slider.value()),
@@ -134,15 +135,17 @@ class TilesScene(QGraphicsScene, TilesetChildWidgetMixin):
                 self.selection_box = x, x + 1, y, y + 1
                 self.select_tiles()
 
-    @if_tileset_loaded
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for releasing the mouse."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         if event.button() in (Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton):
             self.selection_box = None
 
-    @if_tileset_loaded
     def select_tiles(self):
         """Updates the selection according to the current selection box."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         tiles = tiles_pool[
             self.tileset_widget.tiles_palette_combobox.currentIndex(),
             self.tileset_widget.tiles_flip,
@@ -153,9 +156,10 @@ class TilesScene(QGraphicsScene, TilesetChildWidgetMixin):
             )
         self.update_selection_rect()
 
-    @if_tileset_loaded
     def update_selection_rect(self):
         """Updates the selection rectangle."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         if self.selection_rect is None:
             return
         if self.is_drawing:

@@ -31,11 +31,6 @@ from pymap.gui import blocks, render
 from pymap.gui.blocks import compute_blocks
 from pymap.gui.types import MapLayers
 
-from ..main.child import (
-    MainGuiChildWidgetMixin,
-    if_footer_loaded,
-    if_project_loaded,
-)
 from .auto_shape import AutoScene
 from .blocks import BlocksScene
 from .border import BorderScene
@@ -46,7 +41,7 @@ if TYPE_CHECKING:
     from ..main.gui import PymapGui
 
 
-class MapWidget(QWidget, MainGuiChildWidgetMixin):
+class MapWidget(QWidget):
     """Widget for the map and its properties."""
 
     def __init__(self, main_gui: PymapGui, parent: QWidget | None = None):
@@ -57,7 +52,7 @@ class MapWidget(QWidget, MainGuiChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        MainGuiChildWidgetMixin.__init__(self, main_gui)
+        self.main_gui = main_gui
         # Store blocks in an seperate numpy array that contains the border as well
         self.blocks = None
         self.selection = None
@@ -117,7 +112,7 @@ class MapWidget(QWidget, MainGuiChildWidgetMixin):
 
         # Load level gfx
         self.level_blocks_pixmap = QPixmap(
-            str(resources.files('map').joinpath('level_blocks.png')),
+            str(resources.files('pymap.gui.map').joinpath('level_blocks.png')),
         )
         # And split them
         self.level_blocks_pixmaps = [
@@ -257,15 +252,11 @@ class MapWidget(QWidget, MainGuiChildWidgetMixin):
         """
         return self.main_gui.header_loaded
 
-    @if_footer_loaded
     def resize_map(self) -> Any:
         """Prompts a resizing of the map."""
-        if (
-            self.main_gui.project is None
-            or self.main_gui.header is None
-            or self.main_gui.footer is None
-        ):
+        if not self.main_gui.footer_loaded:
             return
+        assert self.main_gui.project is not None, 'Project is not loaded'
         blocks = self.main_gui.get_map_blocks()
         height, width = blocks.shape[0], blocks.shape[1]
         input, ok_pressed = QInputDialog.getText(
@@ -314,9 +305,11 @@ class MapWidget(QWidget, MainGuiChildWidgetMixin):
             )
         self.main_gui.resize_map(height_new, width_new)
 
-    @if_footer_loaded
     def resize_border(self) -> Any:
         """Prompts a resizing of the border."""
+        if not self.main_gui.footer_loaded:
+            return
+        assert self.main_gui.project is not None, 'Project is not loaded'
         blocks = self.main_gui.get_borders()
         height, width = blocks.shape[0], blocks.shape[1]
         input, ok_pressed = QInputDialog.getText(
@@ -381,17 +374,19 @@ class MapWidget(QWidget, MainGuiChildWidgetMixin):
         else:
             self.layers = np.array([1])
 
-    @if_project_loaded
     def change_levels_opacity(self):
         """Changes the opacity of the levels."""
+        if not self.main_gui.project_loaded:
+            return
         assert self.main_gui.project is not None, 'Project is not loaded'
         opacity = self.level_opacity_slider.sliderPosition()
         self.main_gui.settings.settings['map_widget_level_opacity'] = opacity
         self.load_map()
 
-    @if_project_loaded
     def load_project(self, *args: Any):
         """Update project related widgets."""
+        if not self.main_gui.project_loaded:
+            return
         assert self.main_gui.project is not None, 'Project is not loaded'
         self.combo_box_tileset_primary.blockSignals(True)
         self.combo_box_tileset_primary.clear()
@@ -551,9 +546,10 @@ class MapWidget(QWidget, MainGuiChildWidgetMixin):
             16 * (2 * padded_height + map_height),
         )
 
-    @if_footer_loaded
     def update_map(self, x: int, y: int, layers: MapLayers, blocks: NDArray[np.int_]):
         """Updates the map image with new blocks rooted at a certain position."""
+        if not self.main_gui.footer_loaded:
+            return
         assert self.blocks is not None, 'Blocks are not loaded'
         assert self.main_gui.blocks is not None, 'Blocks are not loaded'
         padded_width, padded_height = self.main_gui.get_border_padding()
@@ -607,9 +603,10 @@ class MapWidget(QWidget, MainGuiChildWidgetMixin):
             0, 0, border_blocks.shape[1] * 16, border_blocks.shape[0] * 16
         )
 
-    @if_project_loaded
     def load_auto_shapes(self):
         """Loads automatic shapes."""
+        if not self.main_gui.project_loaded:
+            return
         self.auto_shapes_scene.update_pixmap()
 
     def set_selection(self, selection: NDArray[np.int_]):

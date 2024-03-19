@@ -9,7 +9,6 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMenu
 
 from pymap.gui.icon.icon import Icon, icon_paths
-from pymap.gui.resource_tree.resource_tree import ResourceParameterTree
 
 from .item import ResourceParameterTreeItem
 

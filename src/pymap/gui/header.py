@@ -10,11 +10,9 @@ from PySide6.QtWidgets import QHeaderView, QWidget
 from typing_extensions import ParamSpec
 
 from pymap.gui import properties
-from pymap.gui.event.child import if_header_loaded
 from pymap.gui.history.statement import model_value_difference_to_undo_redo_statements
 
 from .history import ChangeHeaderProperty
-from .main.child import MainGuiChildWidgetMixin
 
 _P = ParamSpec('_P')
 
@@ -22,7 +20,7 @@ if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
 
 
-class HeaderWidget(ParameterTree, MainGuiChildWidgetMixin):
+class HeaderWidget(ParameterTree):
     """Class for meta-properties of the map footer."""
 
     def __init__(self, main_gui: PymapGui, parent: QWidget | None = None):
@@ -33,7 +31,7 @@ class HeaderWidget(ParameterTree, MainGuiChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)  # type: ignore
-        MainGuiChildWidgetMixin.__init__(self, main_gui)
+        self.main_gui = main_gui
         self.main_gui = main_gui
         self.root = None
         self.undo_stack = QUndoStack()
@@ -46,9 +44,10 @@ class HeaderWidget(ParameterTree, MainGuiChildWidgetMixin):
         """Update project related widgets."""
         self.load_header()
 
-    @if_header_loaded
     def _load_header(self):
         """Loads a new header if it is not None."""
+        if not self.main_gui.header_loaded:
+            return
         assert self.main_gui.project is not None, 'Project is None'
         header_datatype = self.main_gui.project.config['pymap']['header']['datatype']
         assert self.main_gui.header_bank is not None, 'Header bank is None'

@@ -1,6 +1,11 @@
 """A bitfield type for scalar types."""
 
-from pymap.project import Project
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pymap.project import Project
 
 from agb.model.scalar_type import ScalarType, scalar_to_assembly
 from agb.model.type import (
@@ -15,14 +20,18 @@ from agb.model.type import (
 class BitfieldType(ScalarType):
     """Class for bitfield types."""
 
-    def __init__(self, fmt: str, structure: list[tuple[str, str | None, int]],
-                 hidden_members: set[str]=set()):
+    def __init__(
+        self,
+        fmt: str,
+        structure: list[tuple[str, str | None, int]],
+        hidden_members: set[str] = set(),
+    ):
         """Initializes the bitfield type.
 
         Parameters:
         -----------
         fmt : str
-            A string {s/u}{bitlength} that encodes the scalar type that underlies 
+            A string {s/u}{bitlength} that encodes the scalar type that underlies
             the bitfield. Example: 'u8', 's32', ...
         structure : list of triplets
             Define the structure of the bitfield. Each element consists of:
@@ -41,8 +50,14 @@ class BitfieldType(ScalarType):
         self.structure = structure
         self.hidden_members = hidden_members
 
-    def from_data(self, rom: bytearray, offset: int, project: Project,
-                  context: ModelContext, parents: ModelParents) -> ModelValue:
+    def from_data(
+        self,
+        rom: bytearray,
+        offset: int,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> ModelValue:
         """Initializes the bitfield type from a rom.
 
         Parameters:
@@ -72,16 +87,23 @@ class BitfieldType(ScalarType):
         value: dict[str, ModelValue] = {}
         for member, constant, size in self.structure:
             mask = (1 << size) - 1
-            member_value = associate_with_constant((scalar_value >> bit_idx) & mask,
-                                                   project, constant)
+            member_value = associate_with_constant(
+                (scalar_value >> bit_idx) & mask, project, constant
+            )
             value[member] = member_value
             bit_idx += size
         return value
 
-    def to_assembly(self, value: ModelValue, project: Project, context: ModelContext,
-                    parents: ModelParents, label: str | None=None,
-                    alignment: int | None=None,
-                    global_label: bool = False) -> tuple[str, list[str]]:
+    def to_assembly(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+        label: str | None = None,
+        alignment: int | None = None,
+        global_label: bool = False,
+    ) -> tuple[str, list[str]]:
         """Returns an assembly instruction line to export this scalar type.
 
         Parameters:
@@ -124,8 +146,9 @@ class BitfieldType(ScalarType):
         assembly = scalar_to_assembly[self.fmt](' | '.join(shifted))
         return label_and_align(assembly, label, alignment, global_label), []
 
-    def __call__(self, project: Project, context: ModelContext,
-                 parents: ModelParents) -> ModelValue:
+    def __call__(
+        self, project: Project, context: ModelContext, parents: ModelParents
+    ) -> ModelValue:
         """Initializes a new empty bitfield.
 
         Parameters:
@@ -145,10 +168,15 @@ class BitfieldType(ScalarType):
         value : list of int or str
             The empty bitfield (zeros).
         """
-        return {member : 0 for member, _, _ in self.structure}
+        return {member: 0 for member, _, _ in self.structure}
 
-    def get_constants(self, value: ModelValue, project: Project, context: ModelContext,
-                      parents: ModelParents) -> set[str]:
+    def get_constants(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> set[str]:
         """All constants (recursively) required to export this value (if any).
 
         Parameters:
@@ -170,6 +198,6 @@ class BitfieldType(ScalarType):
         constants : set of str
             A set of all required constants.
         """
-        return set([
-            constant for _, constant, _ in self.structure if constant is not None
-        ])
+        return set(
+            [constant for _, constant, _ in self.structure if constant is not None]
+        )

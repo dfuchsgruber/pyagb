@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QGraphicsPixmapItem, QMessageBox
 
 from pymap.gui import blocks
 from pymap.gui.icon import Icon, icon_paths
-from pymap.gui.types import UnpackedConnection, ConnectionType
+from pymap.gui.types import ConnectionType, UnpackedConnection
 
 from .. import history, properties
 from .connection_properties import ConnectionProperties

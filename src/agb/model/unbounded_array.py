@@ -1,6 +1,11 @@
 """Variable length arrays, terminated by a sentiel value."""
 
-from pymap.project import Project
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pymap.project import Project
 
 from agb.model.type import ModelContext, ModelParents, ModelValue, Type, label_and_align
 
@@ -16,13 +21,19 @@ class UnboundedArrayType(Type):
         datatype : str
             The datatype the pointer is pointing to.
         sentinel : object
-            An instanciation of the datatype that serves as sentinel for the array.   
+            An instanciation of the datatype that serves as sentinel for the array.
         """
         self.datatype = datatype
         self.sentinel = sentinel
 
-    def from_data(self, rom: bytearray, offset: int, project: Project,
-                  context: ModelContext, parents: ModelParents) -> ModelValue:
+    def from_data(
+        self,
+        rom: bytearray,
+        offset: int,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> ModelValue:
         """Retrieves the array from a rom.
 
         Parameters:
@@ -47,23 +58,30 @@ class UnboundedArrayType(Type):
             A list of values in the array.
         """
         values: list[ModelValue] = []
-        parents = parents + [values]
+        parents = list(parents) + [values]
         datatype = project.model[self.datatype]
         idx = 0
         while True:
-            value = datatype.from_data(rom, offset, project, context + [idx], parents)
+            value = datatype.from_data(
+                rom, offset, project, list(context) + [idx], parents
+            )
             if value == self.sentinel:
                 break
             values.append(value)
-            offset += datatype.size(value, project, context + [idx], parents)
+            offset += datatype.size(value, project, list(context) + [idx], parents)
             idx += 1
         return values
 
-
-    def to_assembly(self, value: ModelValue, project: Project, context: ModelContext,
-                    parents: ModelParents, label: str | None=None,
-                    alignment: int | None=None,
-                    global_label: bool=False) -> tuple[str, list[str]]:
+    def to_assembly(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+        label: str | None = None,
+        alignment: int | None = None,
+        global_label: bool = False,
+    ) -> tuple[str, list[str]]:
         """Creates an assembly representation of the union type.
 
         Parameters:
@@ -97,20 +115,23 @@ class UnboundedArrayType(Type):
         """
         blocks: list[str] = []
         additional_blocks: list[str] = []
-        parents = parents + [value]
+        parents = list(parents) + [value]
         datatype = project.model[self.datatype]
-        assert isinstance(value, list), f"Expected a list, got {value}"
+        assert isinstance(value, list), f'Expected a list, got {value}'
         for i, value_i in enumerate(value + [self.sentinel]):
-            block, additional = datatype.to_assembly(value_i, project, context + [i],
-                                                     parents)
+            block, additional = datatype.to_assembly(
+                value_i, project, list(context) + [i], parents
+            )
             blocks.append(block)
             additional_blocks += additional
         assembly = '\n'.join(blocks)
-        return label_and_align(assembly, label, alignment, global_label), \
-            additional_blocks
+        return label_and_align(
+            assembly, label, alignment, global_label
+        ), additional_blocks
 
-    def __call__(self, project: Project, context: ModelContext,
-                 parents: ModelParents) -> ModelValue:
+    def __call__(
+        self, project: Project, context: ModelContext, parents: ModelParents
+    ) -> ModelValue:
         """Initializes a new array.
 
         Parameters:
@@ -132,8 +153,13 @@ class UnboundedArrayType(Type):
         """
         return []
 
-    def size(self, value: ModelValue, project: Project, context: ModelContext,
-             parents: ModelParents) -> int:
+    def size(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> int:
         """Returns the size of a specific structure instanze in bytes.
 
         Parameters:
@@ -155,17 +181,22 @@ class UnboundedArrayType(Type):
         length : int
             The size of this type in bytes.
         """
-        assert isinstance(value, list), f"Expected a list, got {value}"
+        assert isinstance(value, list), f'Expected a list, got {value}'
         size = 0
-        parents = parents + [value]
+        parents = list(parents) + [value]
         datatype = project.model[self.datatype]
         for i, value_i in enumerate(value + [self.sentinel]):
             # Sum each element individually (this is more clean...)
-            size += datatype.size(value_i, project, context + [i], parents)
+            size += datatype.size(value_i, project, list(context) + [i], parents)
         return size
 
-    def get_constants(self, value: ModelValue, project: Project, context: ModelContext,
-                      parents: ModelParents) -> set[str]:
+    def get_constants(
+        self,
+        value: ModelValue,
+        project: Project,
+        context: ModelContext,
+        parents: ModelParents,
+    ) -> set[str]:
         """All constants (recursively) required to export this value (if any).
 
         Parameters:
@@ -188,12 +219,13 @@ class UnboundedArrayType(Type):
             A set of all required constants.
         """
         constants: set[str] = set()
-        parents = parents + [value]
+        parents = list(parents) + [value]
         datatype = project.model[self.datatype]
         # Only using the first element would be faster, but this approach
         # is more clean and versatile.
-        assert isinstance(value, list), f"Expected a list, got {value}"
+        assert isinstance(value, list), f'Expected a list, got {value}'
         for i, value_i in enumerate(value):
-            constants.update(datatype.get_constants(value_i, project, context + [i],
-                                                    parents))
+            constants.update(
+                datatype.get_constants(value_i, project, list(context) + [i], parents)
+            )
         return constants

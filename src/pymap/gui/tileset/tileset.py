@@ -58,6 +58,11 @@ class TilesetWidget(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
 
+        self.zoom_slider = QtWidgets.QSlider(Qt.Orientation.Horizontal, self)
+        self.zoom_slider.setMinimum(5)
+        self.zoom_slider.setMaximum(40)
+        self.zoom_slider.setTickInterval(1)
+
         blocks_group = QtWidgets.QGroupBox('Blocks')
         self.blocks_scene = BlocksScene(self)
         self.blocks_scene_view = QtWidgets.QGraphicsView()
@@ -203,10 +208,6 @@ class TilesetWidget(QtWidgets.QWidget):
         zoom_group = QtWidgets.QGroupBox('Zoom')
         zoom_layout = QtWidgets.QGridLayout()
         zoom_group.setLayout(zoom_layout)
-        self.zoom_slider = QtWidgets.QSlider(Qt.Orientation.Horizontal, self)
-        self.zoom_slider.setMinimum(5)
-        self.zoom_slider.setMaximum(40)
-        self.zoom_slider.setTickInterval(1)
         zoom_layout.addWidget(self.zoom_slider, 1, 1, 1, 1)
         self.zoom_label = QtWidgets.QLabel()
         zoom_layout.addWidget(self.zoom_label, 1, 2, 1, 1)

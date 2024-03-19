@@ -16,14 +16,13 @@ from PySide6.QtWidgets import (
 import pymap.gui.render as render
 from pymap.gui.smart_shape import SmartPath
 
-from .child import MapChildMixin, if_header_loaded
 from .level_blocks import level_to_info
 
 if TYPE_CHECKING:
     from .map_widget import MapWidget
 
 
-class MapScene(QGraphicsScene, MapChildMixin):
+class MapScene(QGraphicsScene):
     """Scene for the map view."""
 
     def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):  #
@@ -34,16 +33,17 @@ class MapScene(QGraphicsScene, MapChildMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        MapChildMixin.__init__(self, map_widget)
+        self.map_widget = map_widget
         self.selection_box = None
         # Store the position where a draw happend recently so there are not multiple
         # draw events per block
         self.last_draw = None
         self.smart_drawing = None
 
-    @if_header_loaded
     def _update_information_by_position(self, x: int, y: int):
         """Updates the information label based on the position."""
+        if not self.map_widget.header_loaded:
+            return
         map_width, map_height = self.map_widget.main_gui.get_map_dimensions()
         border_width, border_height = self.map_widget.main_gui.get_border_padding()
         if (
@@ -72,7 +72,6 @@ class MapScene(QGraphicsScene, MapChildMixin):
         else:
             self.map_widget.info_label.setText('')
 
-    @if_header_loaded
     def _draw_selection_smart(self, x: int, y: int):
         """Draws the selection when the mouse is at position x, y using a smart shape.
 
@@ -80,6 +79,8 @@ class MapScene(QGraphicsScene, MapChildMixin):
             x (int): x offset of the mouse, in blocks
             y (int): y offset of the mouse, in blocks
         """
+        if not self.map_widget.header_loaded:
+            return
         assert self.smart_drawing is not None, 'Smart drawing is not set'
         border_width, border_height = self.map_widget.main_gui.get_border_padding()
         if QApplication.keyboardModifiers() != Qt.KeyboardModifier.AltModifier:
@@ -102,7 +103,6 @@ class MapScene(QGraphicsScene, MapChildMixin):
                         x, y, (0,), np.array([[[auto_shape[shape_idx]]]])
                     )
 
-    @if_header_loaded
     def _draw_selection(self, x: int, y: int):
         """Draws the selection when the mouse is at position x, y.
 
@@ -110,6 +110,8 @@ class MapScene(QGraphicsScene, MapChildMixin):
             x (int): x offset of the mouse, in blocks
             y (int): y offset of the mouse, in blocks
         """
+        if not self.map_widget.header_loaded:
+            return
         # Check if the selection must be drawn
         self.last_draw = x, y
         border_width, border_height = self.map_widget.main_gui.get_border_padding()
@@ -129,9 +131,10 @@ class MapScene(QGraphicsScene, MapChildMixin):
                 selection,
             )
 
-    @if_header_loaded
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for hover events on the map image."""
+        if not self.map_widget.header_loaded:
+            return
         map_width, map_height = self.map_widget.main_gui.get_map_dimensions()
         border_width, border_height = self.map_widget.main_gui.get_border_padding()
 

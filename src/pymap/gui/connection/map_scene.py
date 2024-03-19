@@ -11,16 +11,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pymap.gui.types import UnpackedConnection, ConnectionType
+from pymap.gui.types import ConnectionType, UnpackedConnection
 
 from .. import history
-from .child import ConnectionChildWidgetMixin, if_connection_loaded
 
 if TYPE_CHECKING:
     from .connection_widget import ConnectionWidget
 
 
-class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
+class MapScene(QGraphicsScene):
     """Scene for the map view."""
 
     def __init__(
@@ -35,7 +34,7 @@ class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
             parent (QtWidgets.QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        ConnectionChildWidgetMixin.__init__(self, connection_widget)
+        self.connection_widget = connection_widget
 
         # Store the position where a drag happend recently so there are not multiple
         # draw events per block
@@ -48,9 +47,10 @@ class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
         # Store the position where the drag originated in order to calculate an offset
         self.drag_origin = None
 
-    @if_connection_loaded
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for hover events on the map image."""
+        if not self.connection_widget.connection_loaded:
+            return
         assert self.connection_widget.main_gui.project is not None
         map_width, map_height = self.connection_widget.main_gui.get_map_dimensions()
 
@@ -126,9 +126,10 @@ class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
         else:
             self.connection_widget.info_label.setText('')
 
-    @if_connection_loaded
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for pressing the mouse."""
+        if not self.connection_widget.connection_loaded:
+            return
         assert self.connection_widget.main_gui.project is not None
 
         map_width, map_height = self.connection_widget.main_gui.get_map_dimensions()
@@ -181,9 +182,10 @@ class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
                     self.drag_origin = x, y
                     self.drag_started = False
 
-    @if_connection_loaded
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for releasing the mouse."""
+        if not self.connection_widget.connection_loaded:
+            return
         if event.button() == Qt.MouseButton.LeftButton:
             if self.drag_started:
                 # End a macro only if the event has at least moved one block
@@ -194,9 +196,10 @@ class MapScene(QGraphicsScene, ConnectionChildWidgetMixin):
             self.last_drag = None
             self.drag_origin = None
 
-    @if_connection_loaded
     def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         """Double click event handler for the map image."""
+        if not self.connection_widget.connection_loaded:
+            return
         if event.button() == Qt.MouseButton.LeftButton:
             if (
                 self.connection_widget.main_gui.project is None

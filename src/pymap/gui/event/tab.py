@@ -21,7 +21,6 @@ from pymap.gui import properties
 from pymap.gui.icon import Icon, icon_paths
 
 from ..history import AppendEvent, RemoveEvent
-from .child import EventChildWidgetMixin
 from .group import EventGroupImage, EventGroupRectangular
 from .properties import EventProperties
 
@@ -29,7 +28,7 @@ if TYPE_CHECKING:
     from .event_widget import EventWidget
 
 
-class EventTab(QWidget, EventChildWidgetMixin):
+class EventTab(QWidget):
     """Tab for an event type."""
 
     def __init__(
@@ -46,7 +45,7 @@ class EventTab(QWidget, EventChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        EventChildWidgetMixin.__init__(self, event_widget)
+        self.event_widget = event_widget
         self.event_type = event_type
 
         layout = QGridLayout()

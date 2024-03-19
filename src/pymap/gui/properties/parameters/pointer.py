@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from agb.model.pointer import PointerType
 from agb.model.type import ModelContext, ModelValue
 from pyqtgraph.parametertree import parameterTypes  # type: ignore
 
 from pymap.gui.properties.parameters.base import ModelParameterMixin
-from pymap.project import Project
+
+if TYPE_CHECKING:
+    from pymap.project import Project
 
 from ..utils import type_to_parameter
 

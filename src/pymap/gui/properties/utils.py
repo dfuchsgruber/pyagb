@@ -1,13 +1,17 @@
 """Setting and getting properties of the model."""
 
-from typing import Type
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Type
 
 import numpy as np
 from agb.model.type import ModelParents, ModelValue
 
 from pymap.configuration import AttributePathType
-from pymap.gui.properties.parameters.base import ModelParameterMixin
-from pymap.project import Project  # type: ignore
+
+if TYPE_CHECKING:
+    from pymap.gui.properties.parameters.base import ModelParameterMixin
+    from pymap.project import Project
 
 
 def type_to_parameter(

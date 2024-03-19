@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pyqtgraph.parametertree.parameterTypes as parameterTypes  # type: ignore
-from agb.model.bitfield import BitfieldType  # type: ignore
+from agb.model.bitfield import BitfieldType
 from agb.model.type import ModelContext, ModelValue
 
 from pymap.gui.properties.parameters.scalar import ScalarTypeParameter
-from pymap.project import Project  # type: ignore
+
+if TYPE_CHECKING:
+    from pymap.project import Project
 
 from .base import ModelParameterMixin
 from .constants import ConstantsTypeParameter

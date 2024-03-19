@@ -19,14 +19,13 @@ from pymap.gui.history import path_to_statement
 from pymap.gui.properties import get_member_by_path
 
 from ..history import ChangeEventProperty
-from .child import EventChildWidgetMixin, if_header_loaded
 from .tab import EventTab, pad_coordinates
 
 if TYPE_CHECKING:
     from .event_widget import EventWidget
 
 
-class MapScene(QGraphicsScene, EventChildWidgetMixin):
+class MapScene(QGraphicsScene):
     """Scene for the map view."""
 
     def __init__(self, event_widget: EventWidget, parent: QWidget | None = None):
@@ -37,7 +36,7 @@ class MapScene(QGraphicsScene, EventChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        EventChildWidgetMixin.__init__(self, event_widget)
+        self.event_widget = event_widget
 
         self.event_groups = defaultdict(list)  # Items for each event type
         # Store the position where a drag happend recently so there are not
@@ -85,9 +84,10 @@ class MapScene(QGraphicsScene, EventChildWidgetMixin):
         self.event_groups: dict[str, list[QGraphicsItemGroup]] = defaultdict(list)
         self.selection_rect = None
 
-    @if_header_loaded
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for hover events on the map image."""
+        if not self.event_widget.header_loaded:
+            return
         map_width, map_height = self.event_widget.main_gui.get_map_dimensions()
         padded_x, padded_y = self.event_widget.main_gui.get_border_padding()
 
@@ -162,9 +162,10 @@ class MapScene(QGraphicsScene, EventChildWidgetMixin):
                         return event_type, event_idx
         return None
 
-    @if_header_loaded
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for pressing the mouse."""
+        if not self.event_widget.header_loaded:
+            return
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
         target = self._get_event_by_event_position(event)
@@ -184,9 +185,10 @@ class MapScene(QGraphicsScene, EventChildWidgetMixin):
             self.dragged_event = event_type, event_idx
             return
 
-    @if_header_loaded
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for releasing the mouse."""
+        if not self.event_widget.header_loaded:
+            return
         if event.button() == Qt.MouseButton.LeftButton:
             if self.drag_started:
                 # End a macro only if the event has at least moved one block
@@ -195,9 +197,10 @@ class MapScene(QGraphicsScene, EventChildWidgetMixin):
             self.dragged_event = None
             self.last_drag = None
 
-    @if_header_loaded
     def mouseDoubleClickEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
         """Event handler for double click events."""
+        if not self.event_widget.header_loaded:
+            return
         if event.button() == Qt.MouseButton.LeftButton:
             target = self._get_event_by_event_position(event)
             if target is not None:

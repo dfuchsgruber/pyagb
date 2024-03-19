@@ -15,15 +15,13 @@ from pymap.gui.history.statement import (
 )
 from pymap.gui.properties import type_to_parameter
 
-from .child import TilesetChildWidgetMixin, if_tileset_loaded
-
 _P = ParamSpec('_P')
 
 if TYPE_CHECKING:
     from .tileset import TilesetWidget
 
 
-class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
+class TilesetProperties(ParameterTree):
     """Tree to display additional properties of the tilesets."""
 
     def __init__(
@@ -40,16 +38,16 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         ParameterTree.__init__(self, parent=parent)  # type: ignore
-        TilesetChildWidgetMixin.__init__(self, tileset_widget)
         self.tileset_widget = tileset_widget
         self.is_primary = is_primary
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
         self.header().setStretchLastSection(True)  # type: ignore
         self.root = None
 
-    @if_tileset_loaded
     def _load_tileset(self):
         """Implementation of loading the tileset into the tree."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         assert self.tileset_widget.main_gui.project is not None
         config = self.tileset_widget.main_gui.project.config['pymap'][
             'tileset_primary' if self.is_primary else 'tileset_secondary'
@@ -89,13 +87,14 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
         self.root.update(tileset)  # type: ignore
         self.root.blockSignals(False)  # type: ignore
 
-    @if_tileset_loaded
     def tree_changed(self, changes: list[tuple[object, object, object]] | None):
         """Signal handler for when the tree changes.
 
         Args:
             changes (list[tuple[object, object, object]] | None): The changes.
         """
+        if not self.tileset_widget.tileset_loaded:
+            return
         root = (
             self.tileset_widget.main_gui.tileset_primary
             if self.is_primary
@@ -116,9 +115,10 @@ class TilesetProperties(ParameterTree, TilesetChildWidgetMixin):
             return None
         return self.root.model_value
 
-    @if_tileset_loaded
     def set_value(self, behaviour: ModelValue):
         """Replaces the entry properties of the current block if one is selected."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         assert self.root is not None
         self.root.blockSignals(True)  # type: ignore
         self.root.update(behaviour)

@@ -16,7 +16,6 @@ from PySide6.QtWidgets import (
 from typing_extensions import ParamSpec
 
 from .. import history
-from .child import TilesetChildWidgetMixin, if_tileset_loaded
 
 _P = ParamSpec('_P')
 
@@ -24,7 +23,7 @@ if TYPE_CHECKING:
     from .tileset import TilesetWidget
 
 
-class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
+class BlocksScene(QGraphicsScene):
     """Scene for the individual blocks."""
 
     def __init__(self, tileset_widget: TilesetWidget, parent: QWidget | None = None):
@@ -35,7 +34,7 @@ class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        TilesetChildWidgetMixin.__init__(self, tileset_widget)
+        self.tileset_widget = tileset_widget
         self.add_selection_rect()
         self.clipboard = None
 
@@ -45,9 +44,10 @@ class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
         pen = QPen(color, 1.0 * self.tileset_widget.zoom_slider.value() / 10)
         self.selection_rect = self.addRect(0, 0, 0, 0, pen=pen, brush=QBrush(0))
 
-    @if_tileset_loaded
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         pos = event.scenePos()
         x, y = (
             int(pos.x() * 10 / 16 / self.tileset_widget.zoom_slider.value()),
@@ -58,9 +58,10 @@ class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
         else:
             self.tileset_widget.info_label.setText('')
 
-    @if_tileset_loaded
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         pos = event.scenePos()
         x, y = (
             int(pos.x() * 10 / 16 / self.tileset_widget.zoom_slider.value()),
@@ -76,9 +77,10 @@ class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
         ):
             self.tileset_widget.set_current_block(8 * y + x)
 
-    @if_tileset_loaded
     def update_selection_rect(self):
         """Updates the selection rectangle."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         x, y = (
             self.tileset_widget.selected_block % 8,
             self.tileset_widget.selected_block // 8,
@@ -88,7 +90,6 @@ class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
         self.selection_rect.setRect(x, y, int(size), int(size))
         self.setSceneRect(0, 0, int(8 * size), int(128 * size))
 
-    @if_tileset_loaded
     def _paste(
         self, block_idx: int, paste_tiles: bool = True, paste_behaviour: bool = True
     ):
@@ -99,6 +100,8 @@ class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
             paste_tiles (bool): Whether to paste the tiles.
             paste_behaviour (bool): Whether to paste the behaviour.
         """
+        if not self.tileset_widget.tileset_loaded:
+            return
         if self.clipboard is None:
             return
         block = self.tileset_widget.main_gui.get_block(block_idx)
@@ -121,7 +124,6 @@ class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
                 )
         self.tileset_widget.undo_stack.endMacro()
 
-    @if_tileset_loaded
     def _clear(
         self, block_idx: int, clear_tiles: bool = True, clear_behaviour: bool = True
     ):
@@ -132,6 +134,8 @@ class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
             clear_tiles (bool): Whether to clear the tiles.
             clear_behaviour (bool): Whether to clear the behaviour.
         """
+        if not self.tileset_widget.tileset_loaded:
+            return
         block = self.tileset_widget.main_gui.get_block(block_idx)
         self.tileset_widget.undo_stack.beginMacro('Clear Block')
         if clear_behaviour:
@@ -156,9 +160,10 @@ class BlocksScene(QGraphicsScene, TilesetChildWidgetMixin):
                 )
         self.tileset_widget.undo_stack.endMacro()
 
-    @if_tileset_loaded
     def contextMenuEvent(self, event: QGraphicsSceneContextMenuEvent) -> None:
         """Event handler for the context menu."""
+        if not self.tileset_widget.tileset_loaded:
+            return
         assert self.tileset_widget.main_gui.project is not None
         pos = event.scenePos()
         x, y = (
