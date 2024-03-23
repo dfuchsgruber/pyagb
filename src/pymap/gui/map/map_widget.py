@@ -91,7 +91,7 @@ class MapWidget(QWidget):
         self.level_opacity_slider.setMaximum(20)
         self.level_opacity_slider.setSingleStep(1)
         self.level_opacity_slider.setSliderPosition(
-            self.main_gui.settings.settings['map_widget_level_opacity']
+            self.main_gui.settings['map_widget.level_opacity']
         )
         self.level_opacity_slider.valueChanged.connect(self.change_levels_opacity)
         level_opacity_group = QtWidgets.QGroupBox('Opacity')
@@ -380,7 +380,7 @@ class MapWidget(QWidget):
             return
         assert self.main_gui.project is not None, 'Project is not loaded'
         opacity = self.level_opacity_slider.sliderPosition()
-        self.main_gui.settings.settings['map_widget_level_opacity'] = opacity
+        self.main_gui.settings['map_widget.level_opacity'] = opacity
         self.load_map()
 
     def load_project(self, *args: Any):

@@ -10,7 +10,7 @@ import numpy as np
 import numpy.typing as npt
 from numpy.typing import NDArray
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QCloseEvent, QImage, QPainter
+from PySide6.QtGui import QCloseEvent, QImage, QKeySequence, QPainter
 from PySide6.QtWidgets import (
     QApplication,
     QDockWidget,
@@ -126,16 +126,14 @@ class PymapGui(QMainWindow, PymapGuiModel):
         file_menu_save_tilesets.triggered.connect(self.save_tilesets)
         # 'Edit' menu
         edit_menu = self.menuBar().addMenu('&Edit')
+
         edit_menu_undo_action = edit_menu.addAction('Undo')  # type: ignore
-        edit_menu_undo_action.triggered.connect(
-            self.central_widget.currentWidget().undo_stack.undo  # type: ignore
-        )
-        edit_menu_undo_action.setShortcut('Ctrl+Z')
+        edit_menu_undo_action.triggered.connect(self.undo)
+        edit_menu_undo_action.setShortcut(QKeySequence.StandardKey.Undo)
+
         edit_menu_redo_action = edit_menu.addAction('Redo')  # type: ignore
-        edit_menu_redo_action.triggered.connect(
-            self.central_widget.currentWidget().undo_stack.redo  # type: ignore
-        )
-        edit_menu_redo_action.setShortcut('Ctrl+Y')
+        edit_menu_redo_action.triggered.connect(self.redo)
+        edit_menu_redo_action.setShortcut(QKeySequence.StandardKey.Redo)
         edit_menu.addSeparator()
         edit_menu_shift_blocks_and_events_action = edit_menu.addAction(  # type: ignore
             'Shift Blocks and Events'
@@ -174,6 +172,32 @@ class PymapGui(QMainWindow, PymapGuiModel):
         view_menu_save_image_action.triggered.connect(self.save_map_image)
 
         self.setCentralWidget(self.central_widget)
+
+    #     self.installEventFilter(self)
+
+    # def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+    #     """Filters events."""
+    #     if event.type() == QEvent.Type.KeyPress:
+    #         print('main key press', event)
+    #         assert isinstance(event, QKeyEvent)
+    #         if event.matches(QKeySequence.StandardKey.Undo):
+    #             print('main key press undo')
+    #             self.undo()
+    #             return True
+    #         if event.matches(QKeySequence.StandardKey.Redo):
+    #             self.redo()
+    #             return True
+    #     return super().eventFilter(watched, event)
+
+    def undo(self):
+        """Undo the last action."""
+        print('main undo')
+        self.central_widget.currentWidget().undo_stack.undo()  # type: ignore
+
+    def redo(self):
+        """Redo the last action."""
+        print('main redo')
+        self.central_widget.currentWidget().undo_stack.redo()  # type: ignore
 
     @property
     def show_borders(self) -> bool:
@@ -221,14 +245,14 @@ class PymapGui(QMainWindow, PymapGuiModel):
         path, _ = QFileDialog.getOpenFileName(
             self,
             'Open project',
-            self.settings.settings['recent_project'],
+            self.settings['recent.project'],
             'Pymap projects (*.pmp)',
         )
         if len(path):
             path = Path(path)
             os.chdir(path.parent)
             self.project_path: Path | None = path
-            self.settings.settings['recent_project'] = str(path.absolute())
+            self.settings['recent.project'] = str(path.absolute())
             self.project = Project(path)
             self.resource_tree.load_project()
             self.map_widget.load_project()
@@ -506,10 +530,10 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if not self.project_loaded:
             return
 
-        self.settings.settings['resource_tree_header_listing'] = {
+        self.settings['resource_tree.header_listing'] = {
             HeaderSorting.BANK: HeaderSorting.NAMESPACE,
             HeaderSorting.NAMESPACE: HeaderSorting.BANK,
-        }[self.settings.settings['resource_tree_header_listing']]
+        }[self.settings['resource_tree.header_listing']]
         self.resource_tree.load_headers()
 
     def save_map_image(self):
@@ -525,11 +549,11 @@ class PymapGui(QMainWindow, PymapGuiModel):
         path, _ = QFileDialog.getSaveFileName(
             self,
             'Save Map Image',
-            self.settings.settings['recent_map_image'],
+            self.settings['recent.map_image'],
             'Portable Network Graphis (*.png)',
         )
         if len(path):
-            self.settings.settings['recent_map_image'] = os.path.dirname(path)
+            self.settings['recent.map_image'] = os.path.dirname(path)
             image = QImage(
                 self.map_widget.map_scene.sceneRect().size().toSize(),
                 QImage.Format.Format_ARGB32,
@@ -543,9 +567,9 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """Toggles if events are associated with pictures or not."""
         if self.project is None:
             return
-        self.settings.settings[
-            'event_widget_show_pictures'
-        ] = not self.settings.settings['event_widget_show_pictures']
+        self.settings['event_widget.show_pictures'] = not self.settings[
+            'event_widget.show_pictures'
+        ]
         self.event_widget.load_header()
 
     def set_border(self, x: int, y: int, blocks: npt.NDArray[np.int_]):
@@ -670,7 +694,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
 def main():
     """Main entry point that runs the ui."""
-    # os.chdir('/media/d/romhacking/Violet_Sources')
     app = QApplication(sys.argv)
     ex = PymapGui()
     ex.show()

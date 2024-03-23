@@ -187,9 +187,9 @@ class PymapGuiModel:
             str: The label of the footer.
         """
         assert self.project is not None, 'Project is None'
-        assert self.footer is not None, 'Footer is None'
+        assert self.header is not None, 'Header is None'
         label = get_member_by_path(
-            self.footer,
+            self.header,
             self.project.config['pymap']['header']['footer_path'],
         )
         assert isinstance(label, str), f'Expected str, got {type(label)}'

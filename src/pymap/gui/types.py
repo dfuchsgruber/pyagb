@@ -1,7 +1,7 @@
 """Specific datatypes that pymap needs."""
 
 from enum import StrEnum, unique
-from typing import Any, NamedTuple, Sequence, TypeAlias, Protocol, Literal, overload
+from typing import Any, Literal, NamedTuple, Protocol, Sequence, TypeAlias, overload
 
 import numpy as np
 from numpy.typing import NDArray

@@ -226,7 +226,7 @@ def unpack_connection(
         pass
     assert isinstance(
         connection_type, int
-    ), f'Expected int, got {type(connection_type)}'
+    ), f'Expected int, got {type(connection_type)}: {connection_type}'
     connection_type = project.config['pymap']['header']['connections'][
         'connection_types'
     ].get(connection_type, None)

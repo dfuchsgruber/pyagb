@@ -366,7 +366,7 @@ default_configuration = ConfigType(
                         ],
                         'connections': PymapConnectionConnectionConfigType(
                             {
-                                'connections_path': ['connections'],
+                                'connections_path': ['connections', 'connections'],
                                 'connections_size_path': [
                                     'connections',
                                     'connection_cnt',

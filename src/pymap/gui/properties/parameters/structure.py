@@ -52,7 +52,7 @@ class StructureTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter)
         )
         assert isinstance(value, dict)
         assert isinstance(self.datatype, Structure)
-        parameterTypes.GroupParameter.__init__(name=name, **kwargs)  # type: ignore
+        parameterTypes.GroupParameter.__init__(self, name=name, **kwargs)  # type: ignore
         # Add all children
         for name, type_name, _ in sorted(self.datatype.structure, key=lambda x: x[2]):
             if name not in self.datatype.hidden_members:

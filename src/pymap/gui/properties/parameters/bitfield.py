@@ -57,7 +57,14 @@ class BitfieldTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         for name, constant, _ in self.datatype.structure:
             if constant is not None:
                 child = ConstantsTypeParameter(
-                    name, list(self.project.constants[constant])
+                    name,
+                    list(self.project.constants[constant]),
+                    self.project,
+                    datatype_name,
+                    value[name],
+                    list(self.context) + [name],
+                    self,
+                    **kwargs,
                 )
                 child.setValue(value[name])  # type: ignore
             else:
@@ -68,6 +75,7 @@ class BitfieldTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
                     value[name],
                     list(self.context) + [name],
                     self,
+                    **kwargs,
                 )
             if name not in self.datatype.hidden_members:
                 self.addChild(child)  # type: ignore

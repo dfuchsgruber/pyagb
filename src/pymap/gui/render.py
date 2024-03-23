@@ -280,7 +280,7 @@ def pack_colors(palettes: ModelValue) -> list[PackedPalette]:
         for color in palette:
             assert isinstance(color, dict)
             for channel in ('red', 'blue', 'green'):
-                assert 'channel' in color
+                assert channel in color
                 rgb = color[channel]
                 assert isinstance(rgb, int)
                 packed_palette.append(rgb << 3)

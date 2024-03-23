@@ -14,14 +14,13 @@ if TYPE_CHECKING:
 from .constants import ConstantsTypeParameter
 
 
-class ScalarTypeParameter(ModelParameterMixin, ConstantsTypeParameter):
+class ScalarTypeParameter(ConstantsTypeParameter):
     """Parameter for a text field that is a scalar.
 
     Args:
         ConstantsTypeParameter (_type_): The type of the parameter.
     """
 
-    # Parameter for the tree that builds upon a scalar type
     def __init__(
         self,
         name: str,
@@ -49,16 +48,21 @@ class ScalarTypeParameter(ModelParameterMixin, ConstantsTypeParameter):
         model_parent : parameterTypes.Parameter
             The parent of the parameter according to the data model.
         """
-        super().__init__(
-            name, project, datatype_name, value, context, parent_parameter, **kwargs
-        )
-        # Make constants appear in the combo box
-        constant: str | None = getattr(self.datatype, 'constant', None)
+        constant: str | None = getattr(project.model[datatype_name], 'constant', None)
         if constant is not None:
-            constants = [value for value in self.project.constants[constant]]
+            constants = [value for value in project.constants[constant]]
         else:
             constants = []
-        ConstantsTypeParameter.__init__(self, name, constants, **kwargs)
+        super().__init__(
+            name,
+            constants,
+            project,
+            datatype_name,
+            value,
+            context,
+            parent_parameter,
+            **kwargs,
+        )
         assert isinstance(value, ScalarModelValue)
         self.setValue(value)  # type: ignore
 

@@ -243,9 +243,7 @@ class EventTab(QWidget):
         )
         if (
             image is None
-            or not self.event_widget.main_gui.settings.settings[
-                'event_widget_show_pictures'
-            ]
+            or not self.event_widget.main_gui.settings['event_widget.show_pictures']
         ):
             # Per default, use a rectangular group
             group = EventGroupRectangular(self.event_widget.map_scene, self.event_type)

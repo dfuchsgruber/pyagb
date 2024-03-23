@@ -272,6 +272,8 @@ class MapScene(QGraphicsScene):
 
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for releasing the mouse."""
+        if not self.map_widget.header_loaded:
+            return
         if event.button() == Qt.MouseButton.RightButton:
             self.selection_box = None
         if event.button() == Qt.MouseButton.LeftButton:

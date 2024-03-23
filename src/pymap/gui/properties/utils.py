@@ -106,6 +106,7 @@ def set_member_by_path(
     path : list
         A path to access the attribute
     """
+    target = _target
     for edge in path[:-1]:
         match _target:
             case list() if isinstance(edge, int):

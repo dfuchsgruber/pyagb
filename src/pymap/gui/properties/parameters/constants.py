@@ -5,60 +5,40 @@ from __future__ import annotations
 from typing import Any
 
 import pyqtgraph.parametertree.parameterTypes as parameterTypes  # type: ignore
-from agb.model.type import ModelValue
+from agb.model.type import ModelContext, ModelValue
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeyEvent, QKeySequence
 from PySide6.QtWidgets import QComboBox, QWidget
+
+from pymap.gui.properties.parameters.base import ModelParameterMixin
+from pymap.project import Project
 
 
 class ConstantComboBox(QComboBox):
     """Subclass this thing in order to manually filter out undo events."""
 
-    def __init__(
-        self,
-        parameter: ConstantParameterItem | None = None,
-        parent: QWidget | None = None,
-    ) -> None:
+    def __init__(self, parent: QWidget | None = None):
         """Initializes the combo box.
 
         Args:
-            parameter (ConstantParameterItem | None, optional): The parameter it refers
-                to. Defaults to None.
-            parent (QWidget | None, optional): _description_. Defaults to None.
+            parent (QWidget, optional): The parent widget. Defaults to None.
         """
         super().__init__(parent)
-        self.parameter = parameter
-
-    def setEditText(self, text: str) -> None:
-        """Set the text of the combo box.
-
-        Args:
-            text (str): The text to set.
-        """
-        if self.parameter is not None:
-            self.parameter.setValue(text)
-        else:
-            return super().setEditText(text)
+        self.setEditable(True)
+        self.installEventFilter(self)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        """Filter out undo and redo events.
-
-        Args:
-            watched (QObject): The object being watched.
-            event (QEvent): The event.
-
-        Returns:
-            bool: Whether the event was handled.
-        """
-        if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+        """Filter out undo and redo events."""
+        if event.type() == QEvent.Type.ShortcutOverride:
+            assert isinstance(event, QKeyEvent)
             if event.matches(QKeySequence.StandardKey.Undo) or event.matches(
                 QKeySequence.StandardKey.Redo
             ):
-                return False
+                return True
+
         return super().eventFilter(watched, event)
 
 
-# Parameter item for parameters associated with constants
 class ConstantParameterItem(parameterTypes.WidgetParameterItem):
     """Inherit from the standard list parameter item class but with widget editable."""
 
@@ -78,17 +58,17 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
         Returns:
             ConstantComboBox: The widget.
         """
-        w = ConstantComboBox(self)
+        w = ConstantComboBox()
+        self.widget = w
         w.setMaximumHeight(20)  ## set to match height of spin box and line edit
-        # TODO
+
         w.setEditText(w.currentText())
 
-        # w.sigChanged = w.editTextChanged
-        # w.setValue = self.setValue
-        # w.value = w.currentText
+        w.sigChanged = w.editTextChanged  # type: ignore
+        w.setValue = self.setValue  # type: ignore
+        w.value = w.currentText  # type: ignore
         w.setEditable(True)
         w.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
-        self.widget = w
         w.addItems(self.constants)
         return w
 
@@ -101,29 +81,48 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
         self.widget.setEditText(str(val))
 
 
-class ConstantsTypeParameter(parameterTypes.ListParameter):
+class ConstantsTypeParameter(ModelParameterMixin, parameterTypes.ListParameter):
     """Parameter for a field that is associated with constants."""
 
     itemClass = ConstantParameterItem
 
-    def __init__(self, name: str, constants: list[str], **kwargs: dict[Any, Any]):
+    def __init__(
+        self,
+        name: str,
+        constants: list[str],
+        project: Project,
+        datatype_name: str,
+        value: ModelValue,
+        context: ModelContext,
+        model_parent: ModelParameterMixin | None = None,
+        **kwargs: dict[Any, Any],
+    ):
         """Initializes the parameter.
 
         Args:
             name (str): The name of the parameter.
             project (Project): The project.
             constants (list[str]): The constants.
-            kwargs (dict): Additional arguments.
+            project (Project): The project.
+            datatype_name (str): The name of the datatype.
+            value (ModelValue): The value.
+            context (ModelContext): The context.
+            model_parent (ModelParameterMixin | None, optional): The parent.
+                Defaults to None.
+            **kwargs: Additional keyword arguments.
         """
-        super().__init__(name, **kwargs)  # type: ignore
+        super().__init__(
+            name, project, datatype_name, value, context, model_parent, **kwargs
+        )
         self.constants = constants
         parameterTypes.ListParameter.__init__(  # type: ignore
-            self,  # type: ignore
+            self,
             name=name,
             limits=constants,
             **kwargs,
-        )  # type: ignore
+        )
 
+    @property
     def model_value(self) -> ModelValue:
         """Gets the value of this parameter according to the data model.
 
