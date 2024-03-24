@@ -5,12 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Pymap Gui",
-            "type": "python",
+            "name": "Pymap",
+            "type": "debugpy",
             "request": "launch",
-            "program": "script/pymapgui.py",
+            "module": "pymap.gui.__main__",
+            "args": [],
             "console": "integratedTerminal",
-            "justMyCode": true
-        }
+        },
     ]
 }

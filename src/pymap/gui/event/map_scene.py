@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QPen
+from PySide6.QtGui import QColor, QPen
 from PySide6.QtWidgets import (
     QGraphicsItemGroup,
     QGraphicsScene,
@@ -75,7 +75,7 @@ class MapScene(QGraphicsScene):
         )
         color = QColor.fromRgbF(1.0, 0.0, 0.0, 1.0)
         self.selection_rect = self.addRect(
-            x, y, 16, 16, pen=QPen(color, 2.0), brush=QBrush(0)
+            x, y, 16, 16, pen=QPen(color, 2.0), brush=Qt.BrushStyle.NoBrush
         )
 
     def clear(self):
@@ -207,4 +207,5 @@ class MapScene(QGraphicsScene):
                 event_type, event_idx = target
                 tab: EventTab = self.event_widget.tabs[event_type['datatype']]  # type: ignore
                 assert isinstance(tab, EventTab), f'Expected EventTab, got {type(tab)}'
-                tab.goto_header(event_idx)
+                if event_type.get('goto_header_button_button_enabled', False):
+                    tab.goto_header(event_idx)

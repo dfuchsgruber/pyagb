@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from functools import partial
 from typing import TYPE_CHECKING, Any, SupportsInt
 
 from agb.model.type import ModelValue
@@ -60,18 +59,14 @@ class EventTab(QWidget):
         self.remove_button = QPushButton()
         self.remove_button.setIcon(QIcon(icon_paths[Icon.REMOVE]))
 
-        self.remove_button.clicked.connect(
-            partial(self.remove_event, self.idx_combobox.currentIndex())
-        )
+        self.remove_button.clicked.connect(self.remove_current_event)
 
         layout.addWidget(self.remove_button, 1, 3)
         self.event_properties = EventProperties(self)
         layout.addWidget(self.event_properties, 2, 1, 1, 3)
         if event_type.get('goto_header_button_button_enabled', False):
             self.goto_header_button = QPushButton('Go to target header')
-            self.goto_header_button.clicked.connect(
-                partial(self.goto_header, self.idx_combobox.currentIndex())
-            )
+            self.goto_header_button.clicked.connect(self.goto_current_header)
             layout.addWidget(self.goto_header_button, 3, 1, 1, 3)
 
         layout.setColumnStretch(1, 1)
@@ -126,6 +121,10 @@ class EventTab(QWidget):
             self.select_event()
             self.idx_combobox.blockSignals(False)
 
+    def remove_current_event(self):
+        """Removes the current event."""
+        self.remove_event(self.idx_combobox.currentIndex())
+
     def remove_event(self, event_idx: int):
         """Removes an event."""
         if (
@@ -152,6 +151,10 @@ class EventTab(QWidget):
             AppendEvent(self.event_widget, self.event_type)
         )
 
+    def goto_current_header(self):
+        """Goes to the header associated with the current event."""
+        self.goto_header(self.idx_combobox.currentIndex())
+
     def goto_header(self, event_idx: int):
         """Goes to a new header associated with an event."""
         if (
@@ -162,7 +165,6 @@ class EventTab(QWidget):
             return
 
         event = self.event_widget.main_gui.get_event(self.event_type, event_idx)
-
         assert (
             'target_bank_path' in self.event_type
         ), 'target_bank_path not found in event_type'

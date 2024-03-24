@@ -173,22 +173,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
         self.setCentralWidget(self.central_widget)
 
-    #     self.installEventFilter(self)
-
-    # def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-    #     """Filters events."""
-    #     if event.type() == QEvent.Type.KeyPress:
-    #         print('main key press', event)
-    #         assert isinstance(event, QKeyEvent)
-    #         if event.matches(QKeySequence.StandardKey.Undo):
-    #             print('main key press undo')
-    #             self.undo()
-    #             return True
-    #         if event.matches(QKeySequence.StandardKey.Redo):
-    #             self.redo()
-    #             return True
-    #     return super().eventFilter(watched, event)
-
     def undo(self):
         """Undo the last action."""
         print('main undo')
@@ -695,6 +679,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
 def main():
     """Main entry point that runs the ui."""
     app = QApplication(sys.argv)
+    app.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.Round)
     ex = PymapGui()
     ex.show()
     sys.exit(app.exec_())

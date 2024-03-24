@@ -60,7 +60,7 @@ def model_value_difference_to_undo_redo_statements(
     statements_redo: UndoRedoStatements = []
     statements_undo: UndoRedoStatements = []
 
-    for change in ('type_changes', 'values_changed'):
+    for change in ('values_changed',):
         if change in diffs:
             for path in diffs[change]:  # type: ignore
                 value_new = diffs[change][path]['new_value']  # type: ignore

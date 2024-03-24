@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import os
 from pathlib import Path
 
 import agb.string.compile
@@ -14,7 +13,7 @@ from pymap.gui.main import gui
 
 def pymap_gui_cli():
     """Entry point for the pymap gui application."""
-    os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'  # Support for High DPI
+    # os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1.5'  # Support for High DPI
     gui.main()
 
 

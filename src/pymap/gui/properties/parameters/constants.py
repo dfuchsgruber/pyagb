@@ -135,5 +135,5 @@ class ConstantsTypeParameter(ModelParameterMixin, parameterTypes.ListParameter):
 
     def update(self, value: ModelValue):
         """Updates this parameter."""
-        assert isinstance(value, str), f'Expected str, got {type(value)}'
+        assert isinstance(value, (str, int)), f'Expected str or int, got {type(value)}'
         self.setValue(value)  # type: ignore
