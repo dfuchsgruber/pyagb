@@ -196,6 +196,7 @@ class MapScene(QGraphicsScene):
             self.map_widget.set_selection(self.map_widget.blocks[y : y + 1, x : x + 1])
 
         elif event.button() == Qt.MouseButton.LeftButton:
+            self.last_draw = None
             modifiers = QApplication.keyboardModifiers()
 
             if modifiers == Qt.KeyboardModifier.ShiftModifier:
@@ -265,9 +266,7 @@ class MapScene(QGraphicsScene):
 
             else:
                 self.last_draw = -1, -1  # This triggers the drawing routine
-
                 self.map_widget.undo_stack.beginMacro('Drawing Blocks')
-
                 self.mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
@@ -277,10 +276,9 @@ class MapScene(QGraphicsScene):
         if event.button() == Qt.MouseButton.RightButton:
             self.selection_box = None
         if event.button() == Qt.MouseButton.LeftButton:
+            if self.last_draw is not None:
+                self.map_widget.undo_stack.endMacro()
             self.last_draw = None
-
-            self.map_widget.undo_stack.endMacro()
-
         if self.smart_drawing:
             # print(f'End smart drawing because of mouse release.')
 

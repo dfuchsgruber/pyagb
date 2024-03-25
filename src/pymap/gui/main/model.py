@@ -157,20 +157,20 @@ class PymapGuiModel:
             npt.NDArray[np.object_]: The block of shape [layer, h, w]
         """
         assert self.project is not None
-        block = get_member_by_path(
+        blocks = get_member_by_path(
             self.tileset_primary if block_idx < 0x280 else self.tileset_secondary,
             self.project.config['pymap'][
                 'tileset_primary' if block_idx < 0x280 else 'tileset_secondary'
             ]['blocks_path'],
         )
-        assert isinstance(block, list)
-        return np.array(block).reshape(3, 2, 2)
+        assert isinstance(blocks, list)
+        return np.array(blocks[block_idx % 0x280]).reshape(3, 2, 2)
 
     def get_map_blocks(self) -> NDArray[np.int_]:
         """Gets the map blocks.
 
         Returns:
-            npt.NDArray[np.int_]: The map blocks
+            npt.NDArray[np.int_]: The map blocks, shape [h, w, 2]
         """
         assert self.project is not None, 'Project is None'
         blocks = get_member_by_path(

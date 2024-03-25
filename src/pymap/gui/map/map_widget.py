@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib.resources as resources
 from functools import partial
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Iterable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -559,7 +559,7 @@ class MapWidget(QWidget):
             padded_width + x : padded_width + x + blocks.shape[1],
             layers,
         ] = blocks[:, :, layers]
-        assert isinstance(layers, Sequence), 'Layers is not a sequence'
+        assert isinstance(layers, Iterable), 'Layers is not an iterable'
         # Redraw relevant pixel maps
         if 0 in layers:
             for (yy, xx), block_idx in np.ndenumerate(blocks[:, :, 0]):

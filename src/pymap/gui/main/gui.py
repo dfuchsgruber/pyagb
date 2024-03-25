@@ -175,7 +175,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
     def undo(self):
         """Undo the last action."""
-        print('main undo')
         self.central_widget.currentWidget().undo_stack.undo()  # type: ignore
 
     def redo(self):
@@ -251,7 +250,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.header_bank = None
         self.header_map_idx = None
         # Render subwidgets
-        self.update()
+        self.update_gui()
 
     def prompt_shift_blocks_and_events(
         self, shift_blocks: bool = False, shift_events: bool = False
@@ -441,7 +440,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if label_primary is not None or label_secondary is not None:
             # Load the gfx and render tiles
             self.load_blocks()
-            self.update()
+            self.update_gui()
 
     def load_blocks(self):
         """Updates blocks and their tiles."""
@@ -614,10 +613,12 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """Replaces all blocks that are like (x, y) w.r.t. to the layer by the new value."""
         if not self.footer_loaded:
             return
-        map_blocks = self.get_map_blocks()
-        idx = np.where(map_blocks == map_blocks[y, x])
+        map_blocks = self.get_map_blocks()[:, :, layer]
+        value_old = map_blocks[y, x].copy()
+        idx = np.where(map_blocks == value_old)
+        assert value_old.shape == value.shape
         self.map_widget.undo_stack.push(
-            ReplaceBlocks(self, idx, layer, value, map_blocks[y, x])
+            ReplaceBlocks(self, idx, layer, value, value_old)
         )
 
     def resize_map(self, height_new: int, width_new: int):

@@ -139,7 +139,7 @@ class TilesScene(QGraphicsScene):
         """Event handler for releasing the mouse."""
         if not self.tileset_widget.tileset_loaded:
             return
-        if event.button() in (Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton):
+        if event.button() in (Qt.MouseButton.LeftButton, Qt.MouseButton.RightButton):
             self.selection_box = None
 
     def select_tiles(self):

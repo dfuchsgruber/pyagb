@@ -529,7 +529,7 @@ class TilesetWidget(QtWidgets.QWidget):
             palette_idx, tile_idx = tile['palette_idx'], tile['tile_idx']  # type: ignore
             assert isinstance(palette_idx, int)
             assert isinstance(tile_idx, int)
-            tile_img = self.main_gui.tiles[tile_idx][palette_idx]
+            tile_img = self.main_gui.tiles[palette_idx][tile_idx]
             if tile['horizontal_flip']:
                 tile_img = tile_img.transpose(Image.FLIP_LEFT_RIGHT)
             if tile['vertical_flip']:

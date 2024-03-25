@@ -82,8 +82,8 @@ class BlocksScene(QGraphicsScene):
         if not self.tileset_widget.tileset_loaded:
             return
         x, y = (
-            self.tileset_widget.selected_block % 8,
-            self.tileset_widget.selected_block // 8,
+            self.tileset_widget.selected_block_idx % 8,
+            self.tileset_widget.selected_block_idx // 8,
         )
         size = 16 * self.tileset_widget.zoom_slider.value() / 10
         x, y = int(x * size), int(y * size)
