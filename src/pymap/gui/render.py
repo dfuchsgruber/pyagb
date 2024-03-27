@@ -111,7 +111,7 @@ def get_blocks(
     tileset_secondary: ModelValue,
     tiles: TileImages,
     project: Project,
-) -> list[Image.Image]:
+) -> BlockImages:
     """Computes the set of blocks for a combination of tilesets.
 
     Parameters:
@@ -182,7 +182,7 @@ def get_block(block: ModelValue, tiles: TileImages) -> Image.Image:
 
 def get_tiles(
     tileset_primary: ModelValue, tileset_secondary: ModelValue, project: Project
-) -> list[list[Image.Image]]:
+) -> TileImages:
     """A list if all tiles in all possible palettes.
 
     Parameters:
@@ -196,7 +196,7 @@ def get_tiles(
 
     Returns:
     --------
-    tiles : list[list[Image.Image]]
+    tiles : TileImages
         A list with #palettes entries. Each list contains a list of at most 0x400 tiles
         of size 8x8.
     """
@@ -240,14 +240,14 @@ def get_tiles(
     ]
 
 
-def split_image_into_tiles(image: Image.Image) -> list[list[Image.Image]]:
+def split_image_into_tiles(image: Image.Image) -> TileImages:
     """Splits an image into 8x8 tiles.
 
     Args:
         image (Image.Image): The image to split.
 
     Returns:
-        list[list[Image.Image]]: A flat list of 8x8 tiles.
+        TileImages: A flat list of 8x8 tiles.
     """
     width, height = image.size
     return [

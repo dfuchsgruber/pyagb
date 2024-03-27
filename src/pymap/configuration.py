@@ -120,7 +120,7 @@ PymapConnectionConnectionConfigType = TypedDict(
     'PymapConnectionConnectionConfigType',
     connections_path=list[str],
     connections_size_path=list[str],
-    connection_types=dict[int, str],
+    connection_types=dict[int | str, str],
     connection_type_path=list[str],
     connection_offset_path=list[str],
     connection_bank_path=list[str],

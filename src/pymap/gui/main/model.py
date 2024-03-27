@@ -7,10 +7,10 @@ from pathlib import Path
 import numpy as np
 from agb.model.type import ModelValue
 from numpy.typing import NDArray
-from PIL import Image
 
 from pymap.configuration import PymapEventConfigType
 from pymap.gui.properties import get_member_by_path, set_member_by_path
+from pymap.gui.render import BlockImages, TileImages
 from pymap.project import Project
 
 
@@ -30,8 +30,8 @@ class PymapGuiModel:
         self.tileset_primary_label = None
         self.tileset_secondary = None
         self.tileset_secondary_label = None
-        self.blocks: list[Image.Image] | None = None
-        self.tiles: list[list[Image.Image]] | None = None
+        self.blocks: BlockImages | None = None
+        self.tiles: TileImages | None = None
 
     @property
     def project_loaded(self) -> bool:

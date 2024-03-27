@@ -126,7 +126,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         # Load connections
         connections_model = self.main_gui.get_connections()
         self.connections = blocks.unpack_connections(
-            connections_model,  # type: ignore
+            connections_model,
             self.main_gui.project,
         )
         assert self.main_gui.blocks is not None
@@ -308,10 +308,6 @@ class ConnectionWidget(QtWidgets.QWidget):
 
         connections_model = self.main_gui.get_connections()
         packed = connections_model[connection_idx]
-        assert isinstance(
-            packed, UnpackedConnection
-        ), f'Expected Connection, got {type(packed)}'
-
         # Update the unpacked version
         self.connections[connection_idx] = blocks.unpack_connection(
             packed, self.main_gui.project, connection_blocks=None
@@ -388,10 +384,8 @@ class ConnectionWidget(QtWidgets.QWidget):
         # Check which blocks have changed and only render those
 
         for y, x in zip(*np.where(new_blocks[:, :, 0] != self.blocks[:, :, 0])):
-            assert isinstance(y, int), f'Expected int, got {type(y)}'
-            assert isinstance(x, int), f'Expected int, got {type(x)}'
-            block_idx = new_blocks[y, x, 0]
-            assert isinstance(block_idx, int), f'Expected int, got {type(block_idx)}'
+            y, x = int(y), int(x)
+            block_idx = int(new_blocks[y, x, 0])
             pixmap = QPixmap.fromImage(ImageQt(self.main_gui.blocks[block_idx]))
             self.block_pixmaps[y, x].setPixmap(pixmap)
 

@@ -18,12 +18,12 @@ class ConnectionType(StrEnum):
 
 
 class UnpackedConnection(NamedTuple):
-    """A connection between two maps."""
+    """A connection between two maps, unpacked from the actual model value."""
 
     type: str
     offset: int
-    bank: str
-    map_idx: str
+    bank: str | int
+    map_idx: str | int
     blocks: NDArray[np.int_]
 
 

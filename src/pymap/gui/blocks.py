@@ -7,7 +7,7 @@ import numpy as np
 from agb.model.type import ModelValue
 from numpy.typing import NDArray
 
-from pymap.gui.types import Block, UnpackedConnection, ConnectionType
+from pymap.gui.types import Block, ConnectionType, UnpackedConnection
 from pymap.project import Project
 
 from . import properties
@@ -125,6 +125,8 @@ def insert_connection(
     """
     if connection is None:
         return
+    offset = connection.offset
+    connection_blocks = connection.blocks
     padded_width, padded_height = project.config['pymap']['display']['border_padding']
     map_width = properties.get_member_by_path(
         footer, project.config['pymap']['footer']['map_width_path']
@@ -152,8 +154,6 @@ def insert_connection(
             -(padded_height + connection.offset) :, :, :
         ]
         offset = -padded_height
-    else:
-        return
 
     # Get the segment
     match connection.type:
@@ -214,19 +214,16 @@ def unpack_connection(
         connection,
         project.config['pymap']['header']['connections']['connection_bank_path'],
     )
-    assert isinstance(bank, str), f'Expected str, got {type(bank)}'
+    assert isinstance(bank, (str, int)), f'Expected str, got {type(bank)}'
     map_idx = properties.get_member_by_path(
         connection,
         project.config['pymap']['header']['connections']['connection_map_idx_path'],
     )
-    assert isinstance(map_idx, str), f'Expected str, got {type(map_idx)}'
+    assert isinstance(map_idx, (str, int)), f'Expected str, got {type(map_idx)}'
     try:
         connection_type = int(str(connection_type), 0)
     except ValueError:
         pass
-    assert isinstance(
-        connection_type, int
-    ), f'Expected int, got {type(connection_type)}: {connection_type}'
     connection_type = project.config['pymap']['header']['connections'][
         'connection_types'
     ].get(connection_type, None)
