@@ -14,8 +14,8 @@ from PIL import Image
 from PIL.ImageQt import ImageQt
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QPen, QPixmap
-from PySide6.QtWidgets import QFileDialog, QGraphicsPixmapItem, QMessageBox
+from PySide6.QtGui import QColor, QPen, QPixmap
+from PySide6.QtWidgets import QFileDialog, QGraphicsPixmapItem, QMessageBox, QSizePolicy
 
 from pymap.gui.tileset.block_properties import BlockProperties
 from pymap.gui.tileset.tileset_properties import TilesetProperties
@@ -55,13 +55,15 @@ class TilesetWidget(QtWidgets.QWidget):
         self.main_gui = main_gui
         self.undo_stack = QtGui.QUndoStack()
         self.behaviour_clipboard = None
-        layout = QtWidgets.QGridLayout()
+        layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
 
         self.zoom_slider = QtWidgets.QSlider(Qt.Orientation.Horizontal, self)
         self.zoom_slider.setMinimum(5)
         self.zoom_slider.setMaximum(40)
         self.zoom_slider.setTickInterval(1)
+
+        self.horizontal_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
 
         blocks_group = QtWidgets.QGroupBox('Blocks')
         self.blocks_scene = BlocksScene(self)
@@ -71,7 +73,11 @@ class TilesetWidget(QtWidgets.QWidget):
         blocks_layout = QtWidgets.QGridLayout()
         blocks_group.setLayout(blocks_layout)
         blocks_layout.addWidget(self.blocks_scene_view)
-        layout.addWidget(blocks_group, 2, 1, 4, 1)
+        self.horizontal_splitter.addWidget(blocks_group)
+
+        self.gfx_column = QtWidgets.QFrame()
+        self.gfx_column_layout = QtWidgets.QVBoxLayout()
+        self.gfx_column.setLayout(self.gfx_column_layout)
 
         gfx_group = QtWidgets.QGroupBox('Gfx')
         gfx_layout = QtWidgets.QGridLayout()
@@ -91,7 +97,7 @@ class TilesetWidget(QtWidgets.QWidget):
         )
         gfx_layout.setColumnStretch(1, 0)
         gfx_layout.setColumnStretch(2, 1)
-        layout.addWidget(gfx_group, 2, 2, 1, 1)
+        self.gfx_column_layout.addWidget(gfx_group, 1)
 
         properties_group = QtWidgets.QGroupBox('Properties')
         properties_layout = QtWidgets.QGridLayout()
@@ -100,7 +106,7 @@ class TilesetWidget(QtWidgets.QWidget):
         properties_layout.addWidget(self.properties_tree_tsp, 0, 0, 1, 1)
         self.properties_tree_tss = TilesetProperties(self, False)
         properties_layout.addWidget(self.properties_tree_tss, 0, 1, 1, 1)
-        layout.addWidget(properties_group, 3, 2, 1, 1)
+        self.gfx_column_layout.addWidget(properties_group, 1)
 
         seleciton_group = QtWidgets.QGroupBox('Selection')
         selection_layout = QtWidgets.QGridLayout()
@@ -110,7 +116,7 @@ class TilesetWidget(QtWidgets.QWidget):
         self.selection_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.selection_scene_view.setScene(self.selection_scene)
         selection_layout.addWidget(self.selection_scene_view)
-        layout.addWidget(seleciton_group, 4, 2, 1, 1)
+        self.gfx_column_layout.addWidget(seleciton_group, 1)
 
         current_block_group = QtWidgets.QGroupBox('Current Block')
         current_block_layout = QtWidgets.QGridLayout()
@@ -156,16 +162,13 @@ class TilesetWidget(QtWidgets.QWidget):
         self.behaviour_clipboard_clear.clicked.connect(self.clear_behaviour)
         behaviour_clipboard_layout.addWidget(self.behaviour_clipboard_clear, 1, 3)
         behaviour_clipboard_layout.addWidget(QtWidgets.QLabel(), 1, 4)
-        layout.setColumnStretch(1, 0)
-        layout.setColumnStretch(2, 0)
-        layout.setColumnStretch(3, 0)
-        layout.setColumnStretch(4, 1)
 
         current_block_layout.setRowStretch(1, 0)
         current_block_layout.setRowStretch(2, 1)
         current_block_layout.setRowStretch(3, 0)
 
-        layout.addWidget(current_block_group, 5, 2, 1, 1)
+        self.gfx_column_layout.addWidget(current_block_group, 1)
+        self.horizontal_splitter.addWidget(self.gfx_column)
 
         tiles_group = QtWidgets.QGroupBox('Tiles')
         tiles_layout = QtWidgets.QGridLayout()
@@ -203,7 +206,7 @@ class TilesetWidget(QtWidgets.QWidget):
         tiles_layout.setColumnStretch(1, 1)
         tiles_layout.setColumnStretch(2, 0)
         tiles_layout.setColumnStretch(3, 0)
-        layout.addWidget(tiles_group, 2, 3, 4, 1)
+        self.horizontal_splitter.addWidget(tiles_group)
 
         zoom_group = QtWidgets.QGroupBox('Zoom')
         zoom_layout = QtWidgets.QGridLayout()
@@ -211,22 +214,25 @@ class TilesetWidget(QtWidgets.QWidget):
         zoom_layout.addWidget(self.zoom_slider, 1, 1, 1, 1)
         self.zoom_label = QtWidgets.QLabel()
         zoom_layout.addWidget(self.zoom_label, 1, 2, 1, 1)
-        layout.addWidget(zoom_group, 1, 1, 1, 3)
         self.zoom_slider.valueChanged.connect(self.zoom_changed)
         self.zoom_slider.setValue(self.main_gui.settings['tileset.zoom'])
 
         self.info_label = QtWidgets.QLabel('')
-        layout.addWidget(self.info_label, 6, 1, 1, 3)
+        self.info_label.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
+        )
 
-        layout.setRowStretch(1, 0)
-        layout.setRowStretch(2, 0)
-        layout.setRowStretch(3, 1)
-        layout.setRowStretch(4, 0)
-        layout.setRowStretch(5, 3)
-        layout.setRowStretch(6, 0)
-        layout.setColumnStretch(1, 1)
-        layout.setColumnStretch(2, 1)
-        layout.setColumnStretch(3, 1)
+        layout.addWidget(zoom_group)
+        self.horizontal_splitter.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        layout.addWidget(self.horizontal_splitter)
+        layout.addWidget(self.info_label)
+
+        self.gfx_column_layout.setStretch(0, 0)
+        self.gfx_column_layout.setStretch(1, 1)
+        self.gfx_column_layout.setStretch(2, 0)
+        self.gfx_column_layout.setStretch(3, 3)
 
         self.load_project()  # Initialize widgets as disabled
 
@@ -461,7 +467,7 @@ class TilesetWidget(QtWidgets.QWidget):
             0,
             0,
             pen=QPen(color, 1.0 * self.zoom_slider.value() / 10),
-            brush=QBrush(0),
+            brush=Qt.BrushStyle.NoBrush,
         )
         self.blocks_scene.update_selection_rect()
 

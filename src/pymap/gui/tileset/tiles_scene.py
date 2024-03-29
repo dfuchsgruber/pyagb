@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import numpy.typing as npt
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QPen
+from PySide6.QtGui import QColor, QPen
 from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsSceneMouseEvent,
@@ -90,7 +90,9 @@ class TilesScene(QGraphicsScene):
         """Adds the selection rectangle."""
         color = QColor.fromRgbF(1.0, 0.0, 0.0, 1.0)
         pen = QPen(color, 1.0 * self.tileset_widget.zoom_slider.value() / 10)
-        self.selection_rect = self.addRect(0, 0, 0, 0, pen=pen, brush=QBrush(0))
+        self.selection_rect = self.addRect(
+            0, 0, 0, 0, pen=pen, brush=Qt.BrushStyle.NoBrush
+        )
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse.
