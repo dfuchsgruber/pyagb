@@ -64,7 +64,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         self.connection_widget.setLayout(connection_layout)
         self.mirror_offset = QtWidgets.QCheckBox('Mirror Displacement to Adjacent Map')
         self.mirror_offset.setChecked(
-            self.main_gui.settings['connections.mirror_offset']
+            self.main_gui.settings.value('connections/mirror_offset', True, bool)  # type: ignore
         )
         self.mirror_offset.stateChanged.connect(self.mirror_offset_changed)
         connection_layout.addWidget(self.mirror_offset, 1, 1, 1, 3)
@@ -97,9 +97,9 @@ class ConnectionWidget(QtWidgets.QWidget):
 
     def mirror_offset_changed(self):
         """Event handler for when the mirror offset checkbox is toggled."""
-        self.main_gui.settings[
-            'connections.mirror_offset'
-        ] = self.mirror_offset.isChecked()
+        self.main_gui.settings.setValue(
+            'connections/mirror_offset', self.mirror_offset.isChecked()
+        )
 
     def load_project(self):
         """Loads a new project."""

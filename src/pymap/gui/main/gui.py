@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 from numpy.typing import NDArray
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSettings, Qt
 from PySide6.QtGui import QCloseEvent, QImage, QKeySequence, QPainter
 from PySide6.QtWidgets import (
     QApplication,
@@ -40,7 +40,6 @@ from pymap.gui.history import (
 )
 from pymap.gui.map import MapWidget
 from pymap.gui.resource_tree import HeaderSorting, ResourceParameterTree
-from pymap.gui.settings import Settings
 from pymap.gui.tileset import TilesetWidget
 from pymap.gui.types import MapLayers
 from pymap.project import Project
@@ -59,7 +58,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """
         super().__init__(parent)
         PymapGuiModel.__init__(self)
-        self.settings = Settings()
+        self.settings = QSettings('dfuchsgruber', 'pymap')
 
         # Add the project tree widget
         self.resource_tree_widget = QDockWidget('Project Resources')
@@ -228,14 +227,14 @@ class PymapGui(QMainWindow, PymapGuiModel):
         path, _ = QFileDialog.getOpenFileName(
             self,
             'Open project',
-            self.settings['recent.project'],
+            self.settings.value('project/recent', '.', str),  # type: ignore
             'Pymap projects (*.pmp)',
         )
         if len(path):
             path = Path(path)
             os.chdir(path.parent)
             self.project_path: Path | None = path
-            self.settings['recent.project'] = str(path.absolute())
+            self.settings.setValue('project/recent', str(path.absolute()))
             self.project = Project(path)
             self.resource_tree.load_project()
             self.map_widget.load_project()
@@ -513,10 +512,17 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if not self.project_loaded:
             return
 
-        self.settings['resource_tree.header_listing'] = {
-            HeaderSorting.BANK: HeaderSorting.NAMESPACE,
-            HeaderSorting.NAMESPACE: HeaderSorting.BANK,
-        }[self.settings['resource_tree.header_listing']]
+        self.settings.setValue(
+            'resource_tree/header_listing',
+            {
+                HeaderSorting.BANK: HeaderSorting.NAMESPACE,
+                HeaderSorting.NAMESPACE: HeaderSorting.BANK,
+            }[
+                self.settings.value(
+                    'resource_tree/header_listing', HeaderSorting.NAMESPACE, str
+                )
+            ],  # type: ignore
+        )
         self.resource_tree.load_headers()
 
     def save_map_image(self):
@@ -532,11 +538,11 @@ class PymapGui(QMainWindow, PymapGuiModel):
         path, _ = QFileDialog.getSaveFileName(
             self,
             'Save Map Image',
-            self.settings['recent.map_image'],
+            self.settings.value('map_image/recent', '.'),  # type: ignore
             'Portable Network Graphis (*.png)',
         )
         if len(path):
-            self.settings['recent.map_image'] = os.path.dirname(path)
+            self.settings.setValue('map_image/recent', os.path.dirname(path))
             image = QImage(
                 self.map_widget.map_scene.sceneRect().size().toSize(),
                 QImage.Format.Format_ARGB32,
@@ -550,9 +556,10 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """Toggles if events are associated with pictures or not."""
         if self.project is None:
             return
-        self.settings['event_widget.show_pictures'] = not self.settings[
-            'event_widget.show_pictures'
-        ]
+        self.settings.setValue(
+            'event_widget/show_pictures',
+            not self.settings.value('event_widget/show_pictures', False, bool),
+        )
         self.event_widget.load_header()
 
     def set_border(self, x: int, y: int, blocks: npt.NDArray[np.int_]):
@@ -610,7 +617,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
     def replace_blocks(
         self, x: int, y: int, layer: int, value: npt.NDArray[np.int_]
     ) -> None:
-        """Replaces all blocks that are like (x, y) w.r.t. to the layer by the new value."""
+        """Replaces all blocks that are like (x, y) in the layer by the new value."""
         if not self.footer_loaded:
             return
         map_blocks = self.get_map_blocks()[:, :, layer]

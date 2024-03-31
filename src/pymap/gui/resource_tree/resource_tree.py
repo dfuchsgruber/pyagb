@@ -343,12 +343,16 @@ class ResourceParameterTree(QTreeWidget):
         path, _ = QFileDialog.getSaveFileName(
             self,
             'Create New Map Header',
-            str(Path(self.main_gui.settings['recent.header']).parent),
+            str(
+                Path(
+                    self.main_gui.settings.value('header/recent', '.', str)  # type: ignore
+                ).parent
+            ),
             'Pymap Structure (*.pms)',
         )
         if not len(path):
             return
-        self.main_gui.settings['recent.header'] = path
+        self.main_gui.settings.setValue('header/recent', path)
 
         # Create new map file
         header = self.main_gui.project.new_header(label, path, namespace, bank, map_idx)
@@ -408,12 +412,14 @@ class ResourceParameterTree(QTreeWidget):
             self,
             'Import Header',
             str(
-                Path(self.main_gui.settings['recent.header']).parent
+                Path(
+                    self.main_gui.settings.value('header/recent', '.', str)  # type: ignore
+                ).parent
                 / f'{bank}_{map_idx}.pms'
             ),
             'Pymap Structure (*.pms)',
         )
-        self.main_gui.settings['recent.header'] = path
+        self.main_gui.settings.setValue('header/recent', path)
         if not len(path):
             return
         label = self.prompt_header_label('Import Header')
@@ -529,12 +535,17 @@ class ResourceParameterTree(QTreeWidget):
         path, _ = QFileDialog.getSaveFileName(
             self,
             'Create New Footer',
-            str(Path(self.main_gui.settings['recent.footer']).parent / f'{label}.pms'),
+            str(
+                Path(
+                    self.main_gui.settings.value('footer/recent', '.', str)  # type: ignore
+                ).parent
+                / f'{label}.pms'
+            ),
             'Pymap Structure (*.pms)',
         )
         if not len(path):
             return
-        self.main_gui.settings['recent.footer'] = path
+        self.main_gui.settings.setValue('footer/recent', path)
 
         # Create new footer
         footer = self.main_gui.project.new_footer(label, path, int(footer_idx))
@@ -630,10 +641,15 @@ class ResourceParameterTree(QTreeWidget):
         path, _ = QFileDialog.getOpenFileName(
             self,
             'Import Footer',
-            str(Path(self.main_gui.settings['recent.footer']).parent / 'footer.pms'),
+            str(
+                Path(
+                    self.main_gui.settings.value('footer/recent', '.', str)  # type: ignore
+                ).parent
+                / 'footer.pms'
+            ),
             'Pymap Structure (*.pms)',
         )
-        self.main_gui.settings['recent.footer'] = path
+        self.main_gui.settings.setValue('footer/recent', path)
         if not len(path):
             return
         footer_idx = self.prompt_unused_footer_idx('Import Footer')
@@ -730,12 +746,17 @@ class ResourceParameterTree(QTreeWidget):
         path, _ = QFileDialog.getSaveFileName(
             self,
             'Create Tileset',
-            str(Path(self.main_gui.settings['recent.tileset']).parent / f'{label}.pms'),
+            str(
+                Path(
+                    self.main_gui.settings.value('tileset/recent', '.', str)  # type: ignore
+                ).parent
+                / f'{label}.pms'
+            ),
             'Pymap Structure (*.pms)',
         )
         if not len(path):
             return
-        self.main_gui.settings['recent.tileset'] = path
+        self.main_gui.settings.setValue('tileset/recent', path)
 
         # Create new tileset and assign the gfx
         tileset = self.main_gui.project.new_tileset(primary, label, path)
@@ -764,12 +785,17 @@ class ResourceParameterTree(QTreeWidget):
         path, _ = QFileDialog.getSaveFileName(
             self,
             'Save duplicate of Tileset {src_label}',
-            str(Path(self.main_gui.settings['recent.tileset']).parent / f'{label}.pms'),
+            str(
+                Path(
+                    self.main_gui.settings.value('tileset/recent', '.', str)  # type: ignore
+                ).parent
+                / f'{label}.pms'
+            ),
             'Pymap Structure (*.pms)',
         )
         if not len(path):
             return
-        self.main_gui.settings['recent.tileset'] = path
+        self.main_gui.settings.setValue('tileset/recent', path)
 
         tileset = deepcopy(self.main_gui.project.load_tileset(primary, src_label))
         self.main_gui.project.new_tileset(primary, label, path, tileset=tileset)
@@ -862,10 +888,15 @@ class ResourceParameterTree(QTreeWidget):
         path, _ = QFileDialog.getOpenFileName(
             self,
             'Import Tileset',
-            str(Path(self.main_gui.settings['recent.tileset']).parent / 'tileset.pms'),
+            str(
+                Path(
+                    self.main_gui.settings.value('tileset/recent', '.', str)  # type: ignore
+                ).parent
+                / 'tileset.pms'
+            ),
             'Pymap Structure (*.pms)',
         )
-        self.main_gui.settings['recent.tileset'] = path
+        self.main_gui.settings.setValue('tileset/recent', path)
         if not len(path):
             return
         label = self.prompt_tileset_label('Import Tileset', primary)
@@ -966,10 +997,15 @@ class ResourceParameterTree(QTreeWidget):
         path, _ = QFileDialog.getOpenFileName(
             self,
             'Import Gfx',
-            str(Path(self.main_gui.settings['recent.gfx']).parent / 'tileset.png'),
+            str(
+                Path(
+                    self.main_gui.settings.value('recent.gfx', '.', str)  # type: ignore
+                ).parent
+                / 'tileset.png'
+            ),
             '4BPP PNG (*.png)',
         )
-        self.main_gui.settings['recent.gfx'] = path
+        self.main_gui.settings.setValue('recent.gfx', path)
         if not len(path):
             return
         label = self.prompt_gfx_label(
@@ -992,7 +1028,9 @@ class ResourceParameterTree(QTreeWidget):
         """Updates the headers of a project."""
         assert self.main_gui.project is not None
         project = self.main_gui.project
-        sort_headers = self.main_gui.settings['resource_tree.header_listing']
+        sort_headers = self.main_gui.settings.value(
+            'resource_tree/header_listing', HeaderSorting.NAMESPACE, str
+        )
         # Remove old headers
         remove_children(self.header_root)
         # Add new headers
