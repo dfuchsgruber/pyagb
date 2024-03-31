@@ -64,6 +64,9 @@ class TilesetWidget(QtWidgets.QWidget):
         self.zoom_slider.setTickInterval(1)
 
         self.horizontal_splitter = QtWidgets.QSplitter(Qt.Orientation.Horizontal)
+        self.horizontal_splitter.restoreState(
+            self.main_gui.settings.value('tileset/splitter/horizontal', b'', bytes)  # type: ignore
+        )
 
         blocks_group = QtWidgets.QGroupBox('Blocks')
         self.blocks_scene = BlocksScene(self)
@@ -74,6 +77,11 @@ class TilesetWidget(QtWidgets.QWidget):
         blocks_group.setLayout(blocks_layout)
         blocks_layout.addWidget(self.blocks_scene_view)
         self.horizontal_splitter.addWidget(blocks_group)
+        self.horizontal_splitter.splitterMoved.connect(
+            lambda: self.main_gui.settings.setValue(
+                'tileset/splitter/horizontal', self.horizontal_splitter.saveState()
+            )
+        )
 
         self.gfx_column = QtWidgets.QFrame()
         self.gfx_column_layout = QtWidgets.QVBoxLayout()

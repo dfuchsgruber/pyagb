@@ -42,6 +42,21 @@ class TilesetProperties(ParameterTree):
         self.is_primary = is_primary
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
         self.header().setStretchLastSection(True)  # type: ignore
+        self.header().restoreState(  # type: ignore
+            self.tileset_widget.main_gui.settings.value(
+                f'tileset_widget_{"primary" if \
+                is_primary else "secondary"}/header_state',
+                b'',
+                type=bytes,
+            )
+        )
+        self.header().sectionResized.connect(  # type: ignore
+            lambda: self.tileset_widget.main_gui.settings.setValue(  # type: ignore
+                f'tileset_widget_{"primary" if \
+                is_primary else "secondary"}/header_state',
+                self.header().saveState(),  # type: ignore
+            )
+        )
         self.root = None
 
     def _load_tileset(self):

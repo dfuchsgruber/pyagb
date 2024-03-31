@@ -38,6 +38,16 @@ class HeaderWidget(ParameterTree):
         self.setHeaderLabels(['Property', 'Value'])  # type: ignore
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
         self.header().setStretchLastSection(True)  # type: ignore
+        self.header().restoreState(  # type: ignore
+            self.main_gui.settings.value('header_widget/header_state', b'', type=bytes)  # type: ignore
+        )
+        self.header().sectionResized.connect(  # type: ignore
+            lambda: self.main_gui.settings.setValue(  # type: ignore
+                'header_widget/header_state',
+                self.header().saveState(),  # type: ignore
+            )
+        )
+
         self.load_project()
 
     def load_project(self, *args: Any):

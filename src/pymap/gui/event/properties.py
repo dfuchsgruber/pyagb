@@ -40,6 +40,19 @@ class EventProperties(ParameterTree):
         self.setHeaderLabels(['Property', 'Value'])  # type: ignore
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
         self.header().setStretchLastSection(True)  # type: ignore
+        self.header().restoreState(  # type: ignore
+            self.event_tab.event_widget.main_gui.settings.value(
+                f'event_widget_{self.event_tab.event_type["name"]}/header_state',
+                b'',
+                type=bytes,
+            )
+        )
+        self.header().sectionResized.connect(  # type: ignore
+            lambda: self.event_tab.event_widget.main_gui.settings.setValue(  # type: ignore
+                f'event_widget_{self.event_tab.event_type["name"]}/header_state',
+                self.header().saveState(),  # type: ignore
+            )
+        )
         self.root = None
 
     def _get_current_event(self) -> ModelValue:

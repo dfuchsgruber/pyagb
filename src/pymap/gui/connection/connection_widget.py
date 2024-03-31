@@ -44,6 +44,14 @@ class ConnectionWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
         splitter = QtWidgets.QSplitter()
+        splitter.restoreState(
+            self.main_gui.settings.value('connections/splitter', bytes(), bytes)  # type: ignore
+        )
+        splitter.splitterMoved.connect(
+            lambda: self.main_gui.settings.setValue(
+                'connections/splitter', splitter.saveState()
+            )
+        )
 
         layout.addWidget(splitter, 1, 1, 1, 1)
 

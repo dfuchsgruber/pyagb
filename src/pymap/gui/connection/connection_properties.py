@@ -38,6 +38,19 @@ class ConnectionProperties(ParameterTree):
         self.setHeaderLabels(['Property', 'Value'])  # type: ignore
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
         self.header().setStretchLastSection(True)  # type: ignore
+        self.header().restoreState(  # type: ignore
+            self.connection_widget.main_gui.settings.value(
+                'connection_widget/header_state',
+                b'',
+                type=bytes,
+            )
+        )
+        self.header().sectionResized.connect(  # type: ignore
+            lambda: self.connection_widget.main_gui.settings.setValue(  # type: ignore
+                'connection_widget/header_state',
+                self.header().saveState(),  # type: ignore
+            )
+        )
 
         self.root = None
 

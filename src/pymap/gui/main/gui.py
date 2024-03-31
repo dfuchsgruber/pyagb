@@ -80,6 +80,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.connection_widget = ConnectionWidget(self)
         self.header_widget = HeaderWidget(self)
         self.footer_widget = FooterWidget(self)
+
         self.tileset_widget = TilesetWidget(self)
         self.central_widget.addTab(self.map_widget, 'Map')
         self.central_widget.addTab(self.event_widget, 'Events')

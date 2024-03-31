@@ -63,6 +63,15 @@ class MapWidget(QWidget):
         layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
         splitter = QSplitter()
+        splitter.restoreState(
+            self.main_gui.settings.value('MapWidget/splitterState', bytes(), type=bytes)  # type: ignore
+        )
+        splitter.splitterMoved.connect(
+            lambda: self.main_gui.settings.setValue(
+                'MapWidget/splitterState', splitter.saveState()
+            )
+        )
+
         layout.addWidget(splitter, 1, 1, 1, 1)
 
         self.map_scene = MapScene(self)
