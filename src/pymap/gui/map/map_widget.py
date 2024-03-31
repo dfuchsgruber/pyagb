@@ -454,6 +454,10 @@ class MapWidget(QWidget):
             self.map_change_dimensions.setEnabled(True)
             self.select_levels.setEnabled(True)
 
+    def update_grid(self):
+        """Updates the grid."""
+        self.map_scene.update_grid()
+
     def load_map(self):
         """Loads the entire map image."""
         self.map_scene.clear()
@@ -554,6 +558,7 @@ class MapWidget(QWidget):
             16 * (2 * padded_width + map_width),
             16 * (2 * padded_height + map_height),
         )
+        self.update_grid()
 
     def update_map(self, x: int, y: int, layers: MapLayers, blocks: NDArray[np.int_]):
         """Updates the map image with new blocks rooted at a certain position."""

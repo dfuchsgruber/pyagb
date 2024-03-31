@@ -8,12 +8,12 @@ import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
-    QGraphicsScene,
     QGraphicsSceneMouseEvent,
     QWidget,
 )
 
 import pymap.gui.render as render
+from pymap.gui.map_scene import MapScene as BaseMapScene
 from pymap.gui.smart_shape import SmartPath
 
 from .level_blocks import level_to_info
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from .map_widget import MapWidget
 
 
-class MapScene(QGraphicsScene):
+class MapScene(BaseMapScene):
     """Scene for the map view."""
 
     def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):  #
@@ -32,7 +32,7 @@ class MapScene(QGraphicsScene):
             map_widget (MapWidget): The map widget.
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
-        super().__init__(parent=parent)
+        super().__init__(map_widget.main_gui, parent=parent)
         self.map_widget = map_widget
         self.selection_box = None
         # Store the position where a draw happend recently so there are not multiple

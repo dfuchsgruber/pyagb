@@ -103,6 +103,11 @@ class ConnectionWidget(QtWidgets.QWidget):
         """Returns whether a connection is loaded."""
         return self.main_gui.project is not None and self.main_gui.header is not None
 
+    def update_grid(self):
+        """Updates the grid."""
+        if self.connection_loaded:
+            self.map_scene.update_grid()
+
     def mirror_offset_changed(self):
         """Event handler for when the mirror offset checkbox is toggled."""
         self.main_gui.settings.setValue(
@@ -243,6 +248,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         # is -1 in order to clear the properties
         self.select_connection()
         self.idx_combobox.blockSignals(False)
+        self.update_grid()
 
     def select_connection(self):
         """Selects the event of the current index."""

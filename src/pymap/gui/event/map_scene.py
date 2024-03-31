@@ -9,13 +9,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPen
 from PySide6.QtWidgets import (
     QGraphicsItemGroup,
-    QGraphicsScene,
     QGraphicsSceneMouseEvent,
     QWidget,
 )
 
 from pymap.configuration import PymapEventConfigType
 from pymap.gui.history import path_to_statement
+from pymap.gui.map_scene import MapScene as BaseMapScene
 from pymap.gui.properties import get_member_by_path
 
 from ..history import ChangeEventProperty
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from .event_widget import EventWidget
 
 
-class MapScene(QGraphicsScene):
+class MapScene(BaseMapScene):
     """Scene for the map view."""
 
     def __init__(self, event_widget: EventWidget, parent: QWidget | None = None):
@@ -35,7 +35,7 @@ class MapScene(QGraphicsScene):
             event_widget (EventWidget): The event widget.
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
-        super().__init__(parent=parent)
+        super().__init__(event_widget.main_gui, parent=parent)
         self.event_widget = event_widget
 
         self.event_groups = defaultdict(list)  # Items for each event type

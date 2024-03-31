@@ -80,6 +80,11 @@ class EventWidget(QWidget):
         """
         return self.main_gui.header is not None and self.main_gui.project is not None
 
+    def update_grid(self):
+        """Updates the grid of the map scene."""
+        if self.header_loaded:
+            self.map_scene.update_grid()
+
     def load_project(self):
         """Load a new project."""
         assert self.main_gui.project is not None, 'Project is None'
@@ -117,6 +122,7 @@ class EventWidget(QWidget):
         self.map_scene.clear()
         self.load_map()
         self.load_events()
+        self.update_grid()
 
     def load_map(self):
         """Reloads the map image by using tiles of the map widget."""

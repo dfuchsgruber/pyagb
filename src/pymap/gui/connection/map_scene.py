@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QGraphicsScene,
     QGraphicsSceneMouseEvent,
     QWidget,
 )
 
+from pymap.gui.map_scene import MapScene as BaseMapScene
 from pymap.gui.types import ConnectionType, UnpackedConnection
 
 from .. import history
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from .connection_widget import ConnectionWidget
 
 
-class MapScene(QGraphicsScene):
+class MapScene(BaseMapScene):
     """Scene for the map view."""
 
     def __init__(
@@ -33,7 +33,7 @@ class MapScene(QGraphicsScene):
             connection_widget (ConnectionWidget): The connection widget.
             parent (QtWidgets.QWidget | None, optional): The parent. Defaults to None.
         """
-        super().__init__(parent=parent)
+        super().__init__(connection_widget.main_gui, parent=parent)
         self.connection_widget = connection_widget
 
         # Store the position where a drag happend recently so there are not multiple
@@ -240,6 +240,6 @@ class MapScene(QGraphicsScene):
                         ):
                             if connection is not None and direction == connection.type:
                                 self.connection_widget.main_gui.open_header(
-                                    connection.bank, connection.map_idx
+                                    str(connection.bank), str(connection.map_idx)
                                 )
                                 break

@@ -135,7 +135,9 @@ class PymapGui(QMainWindow, PymapGuiModel):
         edit_menu_redo_action.triggered.connect(self.redo)
         edit_menu_redo_action.setShortcut(QKeySequence.StandardKey.Redo)
         edit_menu.addSeparator()
-        edit_menu_shift_blocks_and_events_action = edit_menu.addAction(  # type: ignore
+
+        edit_menu_shift_submenu = edit_menu.addMenu('Shift')
+        edit_menu_shift_blocks_and_events_action = edit_menu_shift_submenu.addAction(  # type: ignore
             'Shift Blocks and Events'
         )
         edit_menu_shift_blocks_and_events_action.triggered.connect(
@@ -143,13 +145,17 @@ class PymapGui(QMainWindow, PymapGuiModel):
                 shift_blocks=True, shift_events=True
             )
         )
-        edit_menu_shift_blocks_action = edit_menu.addAction('Shift Blocks')  # type: ignore
+        edit_menu_shift_blocks_action = edit_menu_shift_submenu.addAction(  # type: ignore
+            'Shift Blocks'
+        )
         edit_menu_shift_blocks_action.triggered.connect(
             lambda: self.prompt_shift_blocks_and_events(
                 shift_blocks=True, shift_events=False
             )
         )
-        edit_menu_shift_events_action = edit_menu.addAction('Shift Events')  # type: ignore
+        edit_menu_shift_events_action = edit_menu_shift_submenu.addAction(  # type: ignore
+            'Shift Events'
+        )
         edit_menu_shift_events_action.triggered.connect(
             lambda: self.prompt_shift_blocks_and_events(
                 shift_blocks=False, shift_events=True
@@ -165,6 +171,9 @@ class PymapGui(QMainWindow, PymapGuiModel):
         )
         view_menu_event_action = view_menu.addAction('Toggle Event Pictures')  # type: ignore
         view_menu_event_action.triggered.connect(self.event_widget_toggle_pictures)
+        view_menu_grid_action = view_menu.addAction('Toggle Grid')  # type: ignore
+        view_menu_grid_action.setShortcut('Ctrl+G')
+        view_menu_grid_action.triggered.connect(self.toggle_grid)
 
         # 'Tools' menu
         tools_menu = self.menuBar().addMenu('Tools')
@@ -525,6 +534,22 @@ class PymapGui(QMainWindow, PymapGuiModel):
             ],  # type: ignore
         )
         self.resource_tree.load_headers()
+
+    def toggle_grid(self):
+        """Toggles the visibility of the grid."""
+        self.settings.setValue(
+            'grid_visible',
+            not self.settings.value('grid_visible', False, bool),
+        )
+        if self.header_loaded:
+            self.map_widget.update_grid()
+            self.event_widget.update_grid()
+            self.connection_widget.update_grid()
+
+    @property
+    def grid_visible(self) -> bool:
+        """Returns whether the grid is visible."""
+        return self.settings.value('grid_visible', False, bool)  # type: ignore
 
     def save_map_image(self):
         """Exports an image of the current map by issuing a prompt."""
