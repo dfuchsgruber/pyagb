@@ -55,4 +55,4 @@ class BorderScene(QGraphicsScene):
             and event.button() == Qt.MouseButton.LeftButton
         ):
             assert self.map_widget.selection is not None, 'Selection is not set'
-            self.map_widget.main_gui.set_border(x, y, self.map_widget.selection)
+            self.map_widget.main_gui.set_border_at(x, y, self.map_widget.selection)

@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
     QGraphicsPixmapItem,
     QGraphicsScene,
     QHBoxLayout,
-    QInputDialog,
     QMessageBox,
     QSizePolicy,
     QSlider,
@@ -29,6 +28,7 @@ from PySide6.QtWidgets import (
 
 from pymap.gui import blocks, render
 from pymap.gui.blocks import compute_blocks
+from pymap.gui.map.dimensions import DimensionLineEdit
 from pymap.gui.types import MapLayers
 
 from .auto_shape import AutoScene
@@ -62,13 +62,15 @@ class MapWidget(QWidget):
         # (Re-)Build the ui
         layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
-        splitter = QSplitter()
+        splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.restoreState(
-            self.main_gui.settings.value('MapWidget/splitterState', bytes(), type=bytes)  # type: ignore
+            self.main_gui.settings.value(
+                'map_widget/horizontal_splitter_state', bytes(), type=bytes
+            )  # type: ignore
         )
         splitter.splitterMoved.connect(
             lambda: self.main_gui.settings.setValue(
-                'MapWidget/splitterState', splitter.saveState()
+                'map_widget/horizontal_splitter_state', splitter.saveState()
             )
         )
 
@@ -87,9 +89,9 @@ class MapWidget(QWidget):
 
         # Divide into a widget for blocks and levels
         self.tabs = QTabWidget()
-        blocks_widget = QWidget()
+
         level_widget = QWidget()
-        self.tabs.addTab(blocks_widget, 'Blocks')
+        self.tabs.addTab(self._setup_blocks_widget(), 'Blocks')
         self.tabs.addTab(level_widget, 'Level')
         self.tabs.currentChanged.connect(self.tab_changed)
 
@@ -141,15 +143,32 @@ class MapWidget(QWidget):
         item.hoverLeaveEvent = lambda event: self.info_label.setText('')
         self.level_scene.setSceneRect(0, 0, 4 * 16 * 2, 16 * 16 * 2)
 
-        blocks_container = QVBoxLayout()
-        blocks_widget.setLayout(blocks_container)
         splitter.addWidget(self.tabs)
         splitter.setSizes(
             [12 * 10**6, 3 * 10**6]
         )  # Ugly as hell hack to take large values
 
+        self.load_header()  # Disables all widgets
+
+    def _setup_blocks_widget(self) -> QWidget:
+        """Sets up the blocks widget to the right."""
+        blocks_widget = QSplitter(Qt.Orientation.Vertical)
+
+        blocks_widget.restoreState(
+            self.main_gui.settings.value(
+                'map_widget/blocks_splitter_state', bytes(), type=bytes
+            )  # type: ignore
+        )
+        blocks_widget.splitterMoved.connect(
+            lambda: self.main_gui.settings.setValue(
+                'map_widget/blocks_splitter_state', blocks_widget.saveState()
+            )
+        )
         group_tileset = QtWidgets.QGroupBox('Tileset')
-        blocks_container.addWidget(group_tileset)
+        group_tileset.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
+        )
+        blocks_widget.addWidget(group_tileset)
         tileset_layout = QtWidgets.QGridLayout()
         tileset_layout.addWidget(QtWidgets.QLabel('Primary'), 0, 0)
         tileset_layout.addWidget(QtWidgets.QLabel('Secondary'), 1, 0)
@@ -167,22 +186,21 @@ class MapWidget(QWidget):
         tileset_layout.setColumnStretch(0, 0)
         tileset_layout.setColumnStretch(1, 1)
 
-        dimensions_and_border_layout = QHBoxLayout()
-        dimensions_and_border_widget = QWidget()
-        dimensions_and_border_widget.setLayout(dimensions_and_border_layout)
-
         group_dimensions = QtWidgets.QGroupBox('Dimensions')
+        group_dimensions.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
+        )
         dimensions_layout = QtWidgets.QGridLayout()
-        self.label_dimensions = QtWidgets.QLabel('[]')
-        self.label_dimensions.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label_dimensions = DimensionLineEdit()
+        self.label_dimensions.editingFinished.connect(self.resize_map)
         dimensions_layout.addWidget(self.label_dimensions, 1, 1, 1, 1)
-        self.map_change_dimensions = QtWidgets.QPushButton('Change')
-        self.map_change_dimensions.clicked.connect(self.resize_map)
-        dimensions_layout.addWidget(self.map_change_dimensions, 2, 1, 1, 1)
         group_dimensions.setLayout(dimensions_layout)
-        dimensions_and_border_layout.addWidget(group_dimensions)
+        blocks_widget.addWidget(group_dimensions)
 
         group_border = QtWidgets.QGroupBox('Border')
+        group_border.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
+        )
         border_layout = QtWidgets.QGridLayout()
         group_border.setLayout(border_layout)
         self.border_scene = BorderScene(self)
@@ -192,21 +210,22 @@ class MapWidget(QWidget):
         self.border_scene_view.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
         )
-        border_layout.addWidget(self.border_scene_view, 1, 1, 1, 1)
-        self.border_change_dimenions = QtWidgets.QPushButton('Change')
-        self.border_change_dimenions.clicked.connect(self.resize_border)
-        border_layout.addWidget(self.border_change_dimenions, 2, 1, 1, 1)
+        border_layout.addWidget(self.border_scene_view, 1, 1, 1, 2)
+        self.border_change_dimenions = DimensionLineEdit()
+        self.border_change_dimenions.editingFinished.connect(self.resize_border)
+        border_layout.addWidget(self.border_change_dimenions, 2, 2, 1, 1)
         self.show_border = QtWidgets.QCheckBox('Show')
         self.show_border.setChecked(True)
         self.show_border.toggled.connect(self.load_map)
-        border_layout.addWidget(self.show_border, 3, 1, 1, 1)
-        dimensions_and_border_layout.addWidget(group_border)
-
-        blocks_container.addWidget(dimensions_and_border_widget)
+        border_layout.addWidget(self.show_border, 2, 1, 1, 1)
+        blocks_widget.addWidget(group_border)
 
         selection_and_auto_layout = QHBoxLayout()
         selection_and_auto_widget = QWidget()
         selection_and_auto_widget.setLayout(selection_and_auto_layout)
+        selection_and_auto_widget.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
+        )
 
         group_selection = QtWidgets.QGroupBox('Selection')
         group_selection_layout = QtWidgets.QGridLayout()
@@ -235,7 +254,7 @@ class MapWidget(QWidget):
         auto_group_layout.addWidget(self.auto_shapes_scene_view)
         selection_and_auto_layout.addWidget(self.auto_group)
         # selection_and_auto_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        blocks_container.addWidget(selection_and_auto_widget)
+        blocks_widget.addWidget(selection_and_auto_widget)
 
         group_blocks = QWidget()
         group_blocks_layout = QtWidgets.QGridLayout()
@@ -248,9 +267,15 @@ class MapWidget(QWidget):
         group_blocks.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        blocks_container.addWidget(group_blocks)
+        blocks_widget.addWidget(group_blocks)
 
-        self.load_header()  # Disables all widgets
+        blocks_widget.setStretchFactor(0, 0)  # Tileset
+        blocks_widget.setStretchFactor(1, 0)  # Dimensions
+        blocks_widget.setStretchFactor(2, 0)  # Border
+        blocks_widget.setStretchFactor(3, 0)  # Selection and Auto
+        blocks_widget.setStretchFactor(4, 1)  # Blocks
+
+        return blocks_widget
 
     @property
     def header_loaded(self) -> bool:
@@ -266,33 +291,28 @@ class MapWidget(QWidget):
         if not self.main_gui.footer_loaded:
             return
         assert self.main_gui.project is not None, 'Project is not loaded'
-        blocks = self.main_gui.get_map_blocks()
-        height, width = blocks.shape[0], blocks.shape[1]
-        input, ok_pressed = QInputDialog.getText(
-            self,
-            'Change Map Dimensions',
-            f'Enter new dimensions of footer {self.main_gui.footer_label} '
-            'in the format "width,height".',
-            text=f'{width},{height}',
-        )
-        if not ok_pressed:
-            return
-        tokens = input.split(',')
+        width, height = self.main_gui.get_map_dimensions()
+        tokens = self.label_dimensions.text().split(',')
         if not len(tokens) == 2:
-            return QMessageBox.critical(
+            self.update_map_dimensions()
+            QMessageBox.critical(
                 self,
                 'Invalid Dimensions',
                 f'"{input}" is not of format "width,height".',
             )
+            return
         try:
             width_new = int(tokens[0].strip(), 0)
         except Exception:
-            return QMessageBox.critical(
+            self.update_map_dimensions()
+            QMessageBox.critical(
                 self, 'Invalid Dimensions', f'"{tokens[0]}" is not a valid width.'
             )
+            return
         width_max = self.main_gui.project.config['pymap']['footer']['map_width_max']
         if width_new > width_max or width_new <= 0:
-            return QMessageBox.critical(
+            self.update_map_dimensions()
+            QMessageBox.critical(
                 self,
                 'Invalid Dimeinsions',
                 f'Width {width_new} larger than maximum width {width_max} or '
@@ -301,9 +321,11 @@ class MapWidget(QWidget):
         try:
             height_new = int(tokens[1].strip(), 0)
         except Exception:
-            return QMessageBox.critical(
+            self.update_map_dimensions()
+            QMessageBox.critical(
                 self, 'Invalid Dimensions', f'"{tokens[1]}" is not a valid height.'
             )
+            return
         height_max = self.main_gui.project.config['pymap']['footer']['map_height_max']
         if height_new > height_max or height_new <= 0:
             return QMessageBox.critical(
@@ -312,6 +334,8 @@ class MapWidget(QWidget):
                 f'Height {height_new} larger than maximum height {height_max} '
                 'or non positive',
             )
+        if height_new == height and width_new == width:
+            return
         self.main_gui.resize_map(height_new, width_new)
 
     def resize_border(self) -> Any:
@@ -319,53 +343,55 @@ class MapWidget(QWidget):
         if not self.main_gui.footer_loaded:
             return
         assert self.main_gui.project is not None, 'Project is not loaded'
-        blocks = self.main_gui.get_borders()
-        height, width = blocks.shape[0], blocks.shape[1]
-        input, ok_pressed = QInputDialog.getText(
-            self,
-            'Change Border Dimensions',
-            f'Enter new dimensions of border of footer {self.main_gui.footer_label} '
-            'in the format "width,height".',
-            text=f'{width},{height}',
-        )
-        if not ok_pressed:
-            return
-        tokens = input.split(',')
+        width, height = self.main_gui.get_border_dimensions()
+        tokens = self.border_change_dimenions.text().split(',')
         if not len(tokens) == 2:
-            return QMessageBox.critical(
+            self.update_border_dimensions()
+            QMessageBox.critical(
                 self,
                 'Invalid Dimensions',
                 f'"{input}" is not of format "width,height".',
             )
+            return
         try:
             width_new = int(tokens[0].strip(), 0)
         except Exception:
-            return QMessageBox.critical(
+            self.update_border_dimensions()
+            QMessageBox.critical(
                 self, 'Invalid Dimensions', f'"{tokens[0]}" is not a valid width.'
             )
+            return
         assert self.main_gui.project is not None, 'Project is not loaded'
         width_max = self.main_gui.project.config['pymap']['footer']['border_width_max']
         if width_new > width_max:
-            return QMessageBox.critical(
+            self.update_border_dimensions()
+            QMessageBox.critical(
                 self,
                 'Invalid Dimeinsions',
                 f'Width {width_new} larger than maximum width {width_max}',
             )
+            return
         try:
             height_new = int(tokens[1].strip(), 0)
         except Exception:
-            return QMessageBox.critical(
+            self.update_border_dimensions()
+            QMessageBox.critical(
                 self, 'Invalid Dimensions', f'"{tokens[1]}" is not a valid height.'
             )
+            return
         height_max = self.main_gui.project.config['pymap']['footer'][
             'border_height_max'
         ]
         if height_new > height_max:
-            return QMessageBox.critical(
+            self.update_border_dimensions()
+            QMessageBox.critical(
                 self,
                 'Invalid Dimeinsions',
                 f'Height {height_new} larger than maximum height {height_max}',
             )
+            return
+        if height_new == height and width_new == width:
+            return
         self.main_gui.resize_border(height_new, width_new)
 
     def tab_changed(self):
@@ -413,6 +439,22 @@ class MapWidget(QWidget):
         self.set_levels_selection(np.zeros((1, 1, 2), dtype=int))
         self.load_header()
 
+    def update_map_dimensions(self):
+        """Updates the map dimensions label."""
+        if self.main_gui.project is None or self.main_gui.header is None:
+            self.label_dimensions.setText('')
+        else:
+            map_width, map_height = self.main_gui.get_map_dimensions()
+            self.label_dimensions.setText(f'{map_width}, {map_height}')
+
+    def update_border_dimensions(self):
+        """Updates the border dimensions label."""
+        if self.main_gui.project is None or self.main_gui.header is None:
+            self.border_change_dimenions.setText('')
+        else:
+            border_width, border_height = self.main_gui.get_border_dimensions()
+            self.border_change_dimenions.setText(f'{border_width}, {border_height}')
+
     def load_header(self, *args: Any):
         """Updates the entire header related widgets."""
         # Clear graphics
@@ -420,16 +462,17 @@ class MapWidget(QWidget):
         self.load_border()
         self.load_blocks()
         self.load_auto_shapes()
+        self.update_map_dimensions()
+        self.update_border_dimensions()
 
         if self.main_gui.project is None or self.main_gui.header is None:
             # Reset all widgets
             self.blocks = None
-            self.label_dimensions.setText('[]')
             self.combo_box_tileset_primary.setEnabled(False)
             self.combo_box_tileset_secondary.setEnabled(False)
             self.show_border.setEnabled(False)
             self.border_change_dimenions.setEnabled(False)
-            self.map_change_dimensions.setEnabled(False)
+            self.label_dimensions.setEnabled(False)
             self.select_levels.setEnabled(False)
         else:
             # Update selection blocks
@@ -438,8 +481,6 @@ class MapWidget(QWidget):
             self.combo_box_tileset_primary.setEnabled(True)
             self.combo_box_tileset_secondary.setEnabled(True)
             self.show_border.setEnabled(True)
-            map_width, map_height = self.main_gui.get_map_dimensions()
-            self.label_dimensions.setText(f'[{map_width}, {map_height}]')
             self.combo_box_tileset_primary.blockSignals(True)
             self.combo_box_tileset_primary.setCurrentText(
                 self.main_gui.get_tileset_label(True)
@@ -451,7 +492,7 @@ class MapWidget(QWidget):
             )
             self.combo_box_tileset_secondary.blockSignals(False)
             self.border_change_dimenions.setEnabled(True)
-            self.map_change_dimensions.setEnabled(True)
+            self.label_dimensions.setEnabled(True)
             self.select_levels.setEnabled(True)
 
     def update_grid(self):

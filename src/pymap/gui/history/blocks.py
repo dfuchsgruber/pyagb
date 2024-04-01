@@ -9,6 +9,8 @@ import numpy.typing as npt
 from agb.model.type import IntArray
 from PySide6.QtGui import QUndoCommand
 
+from pymap.gui.properties.utils import set_member_by_path
+
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
 
@@ -56,8 +58,12 @@ class ResizeMap(Resize):
 
     def _change_size(self, blocks: IntArray):
         assert self.main_gui.project is not None
-        self.main_gui.set_map_dimensions(*blocks.shape[:2])
-        self.main_gui.set_blocks(0, 0, list(range(blocks.shape[-1])), blocks)
+        self.main_gui.set_map_dimensions(blocks.shape[1], blocks.shape[0])
+        set_member_by_path(
+            self.main_gui.footer,
+            blocks,
+            self.main_gui.project.config['pymap']['footer']['map_blocks_path'],
+        )
         self.main_gui.map_widget.load_header()
 
     def redo(self):
@@ -74,8 +80,12 @@ class ResizeBorder(Resize):
 
     def _change_size(self, blocks: IntArray):
         assert self.main_gui.project is not None
-        self.main_gui.set_border_dimensions(*blocks.shape[:2])
-        self.main_gui.set_border(0, 0, blocks)
+        self.main_gui.set_border_dimensions(blocks.shape[1], blocks.shape[0])
+        set_member_by_path(
+            self.main_gui.footer,
+            blocks,
+            self.main_gui.project.config['pymap']['footer']['border_path'],
+        )
         self.main_gui.map_widget.load_header()
 
     def redo(self):

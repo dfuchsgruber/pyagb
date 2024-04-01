@@ -589,7 +589,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         )
         self.event_widget.load_header()
 
-    def set_border(self, x: int, y: int, blocks: npt.NDArray[np.int_]):
+    def set_border_at(self, x: int, y: int, blocks: npt.NDArray[np.int_]):
         """Sets the blocks of the border and adds an action to the history."""
         if not self.footer_loaded:
             return
@@ -598,7 +598,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         blocks = blocks[: window.shape[0], : window.shape[1]].copy()
         self.map_widget.undo_stack.push(SetBorder(self, x, y, blocks, window))
 
-    def set_blocks(
+    def set_blocks_at(
         self,
         x: int,
         y: int,
@@ -627,7 +627,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             blocks = blocks[-y:, :]
             y = 0
         if x < map_width and y < map_height:
-            self.set_blocks(x, y, layers, blocks)
+            self.set_blocks_at(x, y, layers, blocks)
 
     def flood_fill(self, x: int, y: int, layer: int, value: npt.NDArray[np.int_]):
         """Flood fills with origin (x, y) and a certain layer with a new value."""
@@ -660,7 +660,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if not self.footer_loaded:
             return
         blocks = self.get_map_blocks()
-        height, width = blocks.shape[0], blocks.shape[1]
+        height, width = self.get_map_dimensions()
         if height != height_new or width != width_new:
             self.map_widget.undo_stack.push(
                 ResizeMap(self, height_new, width_new, blocks)
@@ -671,7 +671,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if not self.header_loaded:
             return
         blocks = self.get_borders()
-        height, width = blocks.shape[0], blocks.shape[1]
+        width, height = self.get_border_dimensions()
         if height != height_new or width != width_new:
             self.map_widget.undo_stack.push(
                 ResizeBorder(self, height_new, width_new, blocks)

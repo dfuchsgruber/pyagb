@@ -83,6 +83,28 @@ class PymapGuiModel:
         assert isinstance(map_height, int), f'Expected int, got {type(map_height)}'
         return map_width, map_height
 
+    def get_border_dimensions(self) -> tuple[int, int]:
+        """Gets the border dimensions.
+
+        Returns:
+            tuple[int, int]: The border dimensions (w, h).
+        """
+        assert self.project is not None
+        border_width = get_member_by_path(
+            self.footer,
+            self.project.config['pymap']['footer']['border_width_path'],
+        )
+        assert isinstance(border_width, int), f'Expected int, got {type(border_width)}'
+
+        border_height = get_member_by_path(
+            self.footer,
+            self.project.config['pymap']['footer']['border_height_path'],
+        )
+        assert isinstance(
+            border_height, int
+        ), f'Expected int, got {type(border_height)}'
+        return border_width, border_height
+
     def get_connections(self) -> list[ModelValue]:
         """Gets the connections of the current map.
 

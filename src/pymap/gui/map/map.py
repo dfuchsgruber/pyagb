@@ -99,7 +99,7 @@ class MapScene(BaseMapScene):
                 ].flatten()
                 for idx in (-2, -1, 0):
                     (y, x), shape_idx = self.smart_drawing.get_by_path_idx(idx)
-                    self.map_widget.main_gui.set_blocks(
+                    self.map_widget.main_gui.set_blocks_at(
                         x, y, (0,), np.array([[[auto_shape[shape_idx]]]])
                     )
 
@@ -124,7 +124,7 @@ class MapScene(BaseMapScene):
         if self.smart_drawing is not None:
             self._draw_selection_smart(x, y)
         else:
-            self.map_widget.main_gui.set_blocks(
+            self.map_widget.main_gui.set_blocks_at(
                 x - border_width,
                 y - border_height,
                 self.map_widget.layers,
