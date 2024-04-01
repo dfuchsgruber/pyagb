@@ -317,8 +317,8 @@ class TilesetWidget(QtWidgets.QWidget):
 
             self.properties_tree_tsp.setEnabled(True)  # type: ignore
             self.properties_tree_tss.setEnabled(True)  # type: ignore
-            self.properties_tree_tsp.load_tileset()
-            self.properties_tree_tss.load_tileset()
+            self.properties_tree_tsp.load()
+            self.properties_tree_tss.load()
 
             self.load_tiles()
             self.load_blocks()
@@ -447,7 +447,7 @@ class TilesetWidget(QtWidgets.QWidget):
         self.block_mid_scene.update_block()
         self.block_upper_scene.update_block()
         self.blocks_scene.update_selection_rect()
-        self.block_properties.load_block()
+        self.block_properties.load()
 
     def update_blocks(self):
         """Updates the display of the blocks."""
@@ -629,7 +629,7 @@ class TilesetWidget(QtWidgets.QWidget):
             or self.main_gui.tileset_secondary is None
         ):
             return
-        self.behaviour_clipboard = self.block_properties.get_value()
+        self.behaviour_clipboard = self.block_properties.model_value
         self.behaviour_clipboard_paste.setEnabled(True)
 
     def paste_behaviour(self):

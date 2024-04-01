@@ -1,14 +1,21 @@
 """Undo-Redo statements for the history of the GUI."""
 
-from typing import Sequence
+from typing import Sequence, TypedDict
 
-from agb.model.type import ModelValue
-from deepdiff import DeepDiff  # type: ignore
+import numpy as np
+from agb.model.type import ModelContext, ModelValue, ScalarModelValue
 from PySide6.QtGui import QUndoCommand
 
 from pymap.configuration import AttributePathType
 
 UndoRedoStatements = Sequence[str]
+
+
+class ModelValueDifference(TypedDict):
+    """Dict for the difference between model values."""
+
+    old_value: ModelValue
+    new_value: ModelValue
 
 
 class ChangeProperty(QUndoCommand):
@@ -44,6 +51,48 @@ class ChangeProperty(QUndoCommand):
             exec(statement)
 
 
+def model_value_difference(  # noqa: C901
+    old: ModelValue, new: ModelValue
+) -> dict[ModelContext, ModelValueDifference]:
+    """Compares two model values and returns the differences.
+
+    For now, we do not handle additions and deletions, those should not occur...
+
+    Args:
+        old (ModelValue): The old value
+        new (ModelValue): The new value
+
+    Returns:
+        dict[ModelContext, ModelValueDifference]: The differences
+    """
+    if isinstance(old, np.ndarray):
+        return model_value_difference(old.tolist(), new)
+    elif isinstance(new, np.ndarray):
+        return model_value_difference(old, new.tolist())
+    elif isinstance(old, ScalarModelValue) and isinstance(new, ScalarModelValue):
+        if str(old) != str(new):
+            return {(): {'old_value': old, 'new_value': new}}
+        else:
+            return {}
+    elif isinstance(old, dict) and isinstance(new, dict):
+        # Recursively compare the values of the dictionaries
+        diffs: dict[ModelContext, ModelValueDifference] = {}
+        for key in old.keys() & new.keys():
+            for path, diff in model_value_difference(old[key], new[key]).items():
+                diffs[(key,) + tuple(path)] = diff
+        return diffs
+    elif isinstance(old, Sequence) and isinstance(new, Sequence):
+        diffs: dict[ModelContext, ModelValueDifference] = {}
+        for i, (old_value, new_value) in enumerate(zip(old, new)):
+            for path, diff in model_value_difference(old_value, new_value).items():
+                diffs[(i,) + tuple(path)] = diff
+        return diffs
+    else:
+        raise NotImplementedError(
+            f'Comparison of {type(old)} and {type(new)} not supported'
+        )
+
+
 def model_value_difference_to_undo_redo_statements(
     old_value: ModelValue, new_value: ModelValue
 ) -> tuple[UndoRedoStatements, UndoRedoStatements]:
@@ -56,17 +105,14 @@ def model_value_difference_to_undo_redo_statements(
     Returns:
         tuple[UndoRedoStatements, UndoRedoStatements]: The undo and redo statements
     """
-    diffs = DeepDiff(old_value, new_value)
     statements_redo: UndoRedoStatements = []
     statements_undo: UndoRedoStatements = []
-
-    for change in ('values_changed',):
-        if change in diffs:
-            for path in diffs[change]:  # type: ignore
-                value_new = diffs[change][path]['new_value']  # type: ignore
-                value_old = diffs[change][path]['old_value']  # type: ignore
-                statements_redo.append(f"{path} = '{value_new}'")
-                statements_undo.append(f"{path} = '{value_old}'")
+    for path, diff in model_value_difference(old_value, new_value).items():
+        statement_redo, statement_undo = path_to_statement(
+            path, diff['old_value'], diff['new_value']
+        )
+        statements_redo.append(statement_redo)
+        statements_undo.append(statement_undo)
     return statements_redo, statements_undo
 
 

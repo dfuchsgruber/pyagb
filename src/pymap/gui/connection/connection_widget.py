@@ -252,7 +252,7 @@ class ConnectionWidget(QtWidgets.QWidget):
 
     def select_connection(self):
         """Selects the event of the current index."""
-        self.connection_properties.load_connection()
+        self.connection_properties.load()
         self.update_border_rectangles()
 
     def compute_blocks(self):

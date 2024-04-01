@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 
 import pymap.gui.render as render
 from pymap.gui.map_scene import MapScene as BaseMapScene
-from pymap.gui.smart_shape import SmartPath
+from pymap.gui.smart_path import SmartPath
 
 from .level_blocks import level_to_info
 
@@ -52,11 +52,11 @@ class MapScene(BaseMapScene):
         ):
             assert self.map_widget.blocks is not None, 'Blocks are not set'
             match self.map_widget.tabs.currentIndex():
-                case 0:
+                case 1:
                     self.map_widget.info_label.setText(
                         level_to_info(self.map_widget.blocks[y, x, 1])
                     )
-                case 1:
+                case 0:
                     block = self.map_widget.blocks[y, x]
                     self.map_widget.info_label.setText(
                         (

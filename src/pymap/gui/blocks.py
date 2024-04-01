@@ -244,7 +244,7 @@ def unpack_connection(
             assert isinstance(
                 footer_label, str
             ), f'Expected str, got {type(footer_label)}'
-            footer, _ = project.load_footer(footer_label)
+            footer, _, _ = project.load_footer(footer_label)
             connection_blocks_model = properties.get_member_by_path(
                 footer, project.config['pymap']['footer']['map_blocks_path']
             )

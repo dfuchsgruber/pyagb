@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict
 import agb.string.agbstring
 from agb import image
 
-from pymap.gui.properties.utils import set_member_by_path
+from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
+from pymap.gui.smart_shape.smart_shape import SerializedSmartShape
 
 if TYPE_CHECKING:
     from agb.model.type import Model, ModelValue
@@ -471,9 +472,10 @@ class Project:
                         f'Refactored footer reference in header '
                         f'[{bank}, {map_idx.zfill(2)}]'
                     )
-        footer, _ = self.load_footer(label_old)
+        footer, _, smart_shapes = self.load_footer(label_old)
+        assert smart_shapes is not None, 'Smart shapes not found.'
         self.footers[label_new] = self.footers.pop(label_old)
-        self.save_footer(footer, label_new)
+        self.save_footer(footer, label_new, smart_shapes)
         self.autosave()
 
     def remove_footer(self, label: str):
@@ -495,7 +497,10 @@ class Project:
         label: str,
         map_blocks_to_ndarray: bool = False,
         border_blocks_to_ndarray: bool = False,
-    ) -> tuple[ModelValue, int] | tuple[None, Literal[-1]]:
+    ) -> (
+        tuple[ModelValue, int, list[SerializedSmartShape]]
+        | tuple[None, Literal[-1], list[SerializedSmartShape]]
+    ):
         """Opens a footer by its label and verifies the label and type of json instance.
 
         Parameters:
@@ -529,6 +534,9 @@ class Project:
                 assert (
                     footer['type'] == self.config['pymap']['footer']['datatype']
                 ), 'Footer datatype mismatches the configuration'
+                smart_shapes: list[SerializedSmartShape] = footer.get(
+                    'smart_shapes', []
+                )
                 footer = footer['data']
                 assert isinstance(footer, dict), 'Footer is not a dictionary'
                 if map_blocks_to_ndarray:
@@ -555,14 +563,15 @@ class Project:
                         border_blocks,
                         self.config['pymap']['footer']['border_path'],
                     )
-                return (footer, footer_idx)  # type: ignore
+                return footer, footer_idx, smart_shapes  # type: ignore
             else:
-                return None, -1
+                return None, -1, []
 
     def save_footer(
         self,
         footer: ModelValue,
         label: str,
+        smart_shapes: list[SerializedSmartShape],
         map_blocks_to_list: bool = False,
         border_blocks_to_list: bool = False,
     ):
@@ -583,7 +592,9 @@ class Project:
             footer = deepcopy(footer)
 
             map_blocks = ndarray_to_blocks(
-                footer[self.config['pymap']['footer']['map_blocks_path']]  # type: ignore
+                get_member_by_path(
+                    footer, self.config['pymap']['footer']['map_blocks_path']
+                )  # type: ignore
             )
             set_member_by_path(
                 footer, map_blocks, self.config['pymap']['footer']['map_blocks_path']
@@ -594,7 +605,10 @@ class Project:
             footer = deepcopy(footer)
 
             border_blocks = ndarray_to_blocks(
-                footer[self.config['pymap']['footer']['border_path']]  # type: ignore
+                get_member_by_path(
+                    footer,
+                    self.config['pymap']['footer']['border_path'],
+                )  # type: ignore
             )
             set_member_by_path(
                 footer, border_blocks, self.config['pymap']['footer']['border_path']
@@ -611,6 +625,7 @@ class Project:
                             'data': footer,
                             'label': label,
                             'type': self.config['pymap']['footer']['datatype'],
+                            'smart_shapes': smart_shapes,
                         },
                         f,
                         indent=self.config['json']['indent'],
@@ -643,7 +658,7 @@ class Project:
                 datatype = self.config['pymap']['footer']['datatype']
                 footer = self.model[datatype](self, [], [])
                 # Save the footer
-                self.save_footer(footer, label)
+                self.save_footer(footer, label, [])
                 self.autosave()
                 return footer
 
@@ -672,7 +687,7 @@ class Project:
                 footer['type'] == self.config['pymap']['footer']['datatype']
             ), 'Footer datatype mismatches the configuration'
             self.footers[label] = FooterType(footer_idx, os.path.relpath(path))
-            self.save_footer(footer['data'], label)
+            self.save_footer(footer['data'], label, footer.get('smart_shapes', []))
             self.autosave()
 
     def remove_tileset(self, primary: bool, label: str):
@@ -830,9 +845,11 @@ class Project:
         assert label_old in tilesets, f'Tileset {label_old} not existent.'
         assert label_new not in tilesets, f'Tileset {label_new} already existent.'
         for label in self.footers:
-            footer, _ = self.load_footer(
+            footer, footer_idx, smart_shapes = self.load_footer(
                 label, border_blocks_to_ndarray=False, map_blocks_to_ndarray=False
             )
+            assert footer_idx != -1, f'Footer {label} not existent.'
+            assert smart_shapes is not None, 'Smart shapes not initialized.'
             if (
                 get_member_by_path(
                     footer,
@@ -849,7 +866,7 @@ class Project:
                         'tileset_primary_path' if primary else 'tileset_secondary_path'
                     ],
                 )
-                self.save_footer(footer, label)
+                self.save_footer(footer, label, smart_shapes)
                 print(f'Refactored tileset reference in footer {label}')
         tileset = self.load_tileset(primary, label_old)
         tilesets[label_new] = tilesets.pop(label_old)

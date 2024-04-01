@@ -24,7 +24,6 @@ dependencies = [
     "pyside6",
     "pyqtgraph",
     "appdirs",
-    "deepdiff",
     "scipy",
     "scikit-image",
     "colormath",

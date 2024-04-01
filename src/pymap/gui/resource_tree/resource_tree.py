@@ -560,7 +560,7 @@ class ResourceParameterTree(QTreeWidget):
             tileset_secondary,
             self.main_gui.project.config['pymap']['footer']['tileset_secondary_path'],
         )
-        self.main_gui.project.save_footer(footer, label)
+        self.main_gui.project.save_footer(footer, label, [])
         self.load_footers()
         self.main_gui.update()
 
@@ -821,7 +821,7 @@ class ResourceParameterTree(QTreeWidget):
                     ):
                         footers.append(footer_label)
                 else:
-                    footer, _ = self.main_gui.project.load_footer(footer_label)
+                    footer, _, _ = self.main_gui.project.load_footer(footer_label)
                     if label == get_member_by_path(
                         footer,
                         self.main_gui.project.config['pymap']['footer'][

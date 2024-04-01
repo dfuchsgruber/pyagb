@@ -58,6 +58,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """
         super().__init__(parent)
         PymapGuiModel.__init__(self)
+        self.smart_shapes = []
         self.settings = QSettings('dfuchsgruber', 'pymap')
 
         # Add the project tree widget
@@ -188,7 +189,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
     def redo(self):
         """Redo the last action."""
-        print('main redo')
         self.central_widget.currentWidget().undo_stack.redo()  # type: ignore
 
     @property
@@ -248,8 +248,8 @@ class PymapGui(QMainWindow, PymapGuiModel):
             self.project = Project(path)
             self.resource_tree.load_project()
             self.map_widget.load_project()
-            self.footer_widget.load_project()
-            self.header_widget.load_project()
+            self.footer_widget.load()
+            self.header_widget.load()
             self.event_widget.load_project()
             self.tileset_widget.load_project()
 
@@ -395,7 +395,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             return
         self.map_widget.undo_stack.clear()
         self.footer_widget.undo_stack.clear()
-        self.footer, footer_idx = self.project.load_footer(
+        self.footer, footer_idx, self.smart_shapes = self.project.load_footer(
             label, map_blocks_to_ndarray=True, border_blocks_to_ndarray=True
         )
         self.footer_label = label
@@ -487,6 +487,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.project.save_footer(
             self.footer,
             self.footer_label,
+            self.smart_shapes,
             map_blocks_to_list=True,
             border_blocks_to_list=True,
         )
@@ -511,8 +512,8 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """Updates this gui and all child widgets."""
         self.tileset_widget.load_header()
         self.map_widget.load_header()
-        self.footer_widget.load_footer()
-        self.header_widget.load_header()
+        self.footer_widget.load()
+        self.header_widget.load()
         # It is important to place this after the map widget, since it reuses its tiling
         self.event_widget.load_header()
         self.connection_widget.load_header()

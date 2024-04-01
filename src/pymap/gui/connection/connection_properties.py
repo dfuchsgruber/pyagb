@@ -4,24 +4,25 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
+from agb.model.type import ModelContext, ModelValue
 from PySide6.QtWidgets import (
-    QHeaderView,
     QWidget,
 )
 
-from pymap.gui import properties
 from pymap.gui.history import (
     ChangeConnectionProperty,
 )
-from pymap.gui.history.statement import model_value_difference_to_undo_redo_statements
+from pymap.gui.history.statement import (
+    UndoRedoStatements,
+)
+from pymap.gui.properties.tree import ModelValueNotAvailableError, PropertiesTree
 
 if TYPE_CHECKING:
     from .connection_widget import ConnectionWidget
 
 
-class ConnectionProperties(ParameterTree):
-    """Tree to display event properties."""
+class ConnectionProperties(PropertiesTree):
+    """Tree to display connection properties."""
 
     def __init__(
         self, connection_widget: ConnectionWidget, parent: QWidget | None = None
@@ -32,95 +33,67 @@ class ConnectionProperties(ParameterTree):
             connection_widget (ConnectionWidget): The connection widget.
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
-        super().__init__(parent=parent)  # type: ignore
-        self.connection_widget = connection_widget
-        self.connection_widget = connection_widget
-        self.setHeaderLabels(['Property', 'Value'])  # type: ignore
-        self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
-        self.header().setStretchLastSection(True)  # type: ignore
-        self.header().restoreState(  # type: ignore
-            self.connection_widget.main_gui.settings.value(
-                'connection_widget/header_state',
-                b'',
-                type=bytes,
-            )
+        super().__init__(
+            'connection_widget',
+            connection_widget.main_gui,
+            parent=parent,
         )
-        self.header().sectionResized.connect(  # type: ignore
-            lambda: self.connection_widget.main_gui.settings.setValue(  # type: ignore
-                'connection_widget/header_state',
-                self.header().saveState(),  # type: ignore
-            )
-        )
+        self.connection_widget = connection_widget
 
-        self.root = None
+    @property
+    def datatype(self) -> str:
+        """Returns the datatype.
 
-    def load_connection(self):
-        """Loads the currently displayed connection."""
-        if not self.connection_widget.connection_loaded:
-            return
-        self.clear()
-        self.connection_widget
+        Returns:
+            str: The datatype.
+        """
+        assert self.connection_widget.main_gui.project is not None, 'Project is None'
+        return self.connection_widget.main_gui.project.config['pymap']['header'][
+            'connections'
+        ]['datatype']
 
+    @property
+    def model_value(self) -> ModelValue:
+        """Returns the model value.
+
+        Returns:
+            Any: The model value.
+        """
         if (
-            self.connection_widget.main_gui.project is None
-            or self.connection_widget.main_gui.header is None
+            not self.connection_widget.connection_loaded
             or self.connection_widget.idx_combobox.currentIndex() < 0
         ):
-            self.root = None
-
+            raise ModelValueNotAvailableError()
         else:
-            datatype = self.connection_widget.main_gui.project.config['pymap'][
-                'header'
-            ]['connections']['datatype']
-
-            connection = self.connection_widget.main_gui.get_connections()[
+            return self.connection_widget.main_gui.get_connections()[
                 self.connection_widget.idx_combobox.currentIndex()
             ]
 
-            parameter = properties.type_to_parameter(
-                self.connection_widget.main_gui.project, datatype
-            )
-            self.root = parameter(
-                '.',
-                self.connection_widget.main_gui.project,
-                datatype,
-                connection,
-                [self.connection_widget.idx_combobox.currentIndex()],
-                None,
-            )
+    @property
+    def model_context(self) -> ModelContext:
+        """Returns the model context.
 
-            self.addParameters(self.root, showTop=False)  # type: ignore
-            self.root.sigTreeStateChanged.connect(self.tree_changed)  # type: ignore
+        Returns:
+            ModelContext: The model context.
+        """
+        assert self.connection_widget.main_gui.project is not None, 'Project is None'
+        return [self.connection_widget.idx_combobox.currentIndex()]
 
-    def update(self):
-        """Updates all values in the tree according to the current connection."""
-        if not self.connection_widget.connection_loaded:
-            return
-        assert self.root is not None
-        assert self.connection_widget.main_gui.project is not None
-        connection = self.connection_widget.main_gui.get_connections()[
-            self.connection_widget.idx_combobox.currentIndex()
-        ]
-        self.root.blockSignals(True)  # type: ignore
-        self.root.update(connection)
-        self.root.blockSignals(False)  # type: ignore
+    def value_changed(
+        self, statements_redo: UndoRedoStatements, statements_undo: UndoRedoStatements
+    ) -> None:
+        """Handles changes in the value.
 
-    def tree_changed(self, changes: list[tuple[object, object, object]] | None):
-        """When the tree changes values."""
-        if not self.connection_widget.connection_loaded:
-            return
-        assert self.root is not None
-        assert self.connection_widget.main_gui.project is not None
-        root = self.connection_widget.main_gui.get_connections()[
-            self.connection_widget.idx_combobox.currentIndex()
-        ]
+        Args:
+            statements_redo (UndoRedoStatements): Redo statements.
+            statements_undo (UndoRedoStatements): Undo statements.
+        """
         self.connection_widget.undo_stack.push(
             ChangeConnectionProperty(
                 self.connection_widget,
                 self.connection_widget.idx_combobox.currentIndex(),
                 self.connection_widget.mirror_offset.isChecked(),
-                *model_value_difference_to_undo_redo_statements(
-                    root, self.root.model_value
-                ),
+                statements_redo,
+                statements_undo,
             )
         )

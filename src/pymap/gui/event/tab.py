@@ -77,7 +77,7 @@ class EventTab(QWidget):
     def select_event(self):
         """Selects the event of the current index."""
         self.event_widget.map_scene.update_selection()
-        self.event_properties.load_event()
+        self.event_properties.load()
 
     def load_events(self):
         """Updates the events according to the model."""
