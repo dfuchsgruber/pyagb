@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -137,6 +138,24 @@ class PymapGui(QMainWindow, PymapGuiModel):
         edit_menu_redo_action.setShortcut(QKeySequence.StandardKey.Redo)
         edit_menu.addSeparator()
 
+        edit_menu_resize_map_action = edit_menu.addAction('Resize Map')  # type: ignore
+        edit_menu_resize_map_action.triggered.connect(self.prompt_resize_map)
+        edit_menu_resize_border_action = edit_menu.addAction('Resize Border')  # type: ignore
+        edit_menu_resize_border_action.triggered.connect(self.prompt_resize_border)
+        edit_menu_change_tileset_submenu = edit_menu.addMenu('Change Tileset')
+        edit_menu_change_tileset_primary_action = (
+            edit_menu_change_tileset_submenu.addAction('Primary')  # type: ignore
+        )
+        edit_menu_change_tileset_primary_action.triggered.connect(
+            partial(self.prompt_change_tileset, primary=True)
+        )
+        edit_menu_change_tileset_secondary_action = (
+            edit_menu_change_tileset_submenu.addAction('Secondary')  # type: ignore
+        )
+        edit_menu_change_tileset_secondary_action.triggered.connect(
+            partial(self.prompt_change_tileset, primary=False)
+        )
+
         edit_menu_shift_submenu = edit_menu.addMenu('Shift')
         edit_menu_shift_blocks_and_events_action = edit_menu_shift_submenu.addAction(  # type: ignore
             'Shift Blocks and Events'
@@ -260,6 +279,80 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.header_map_idx = None
         # Render subwidgets
         self.update_gui()
+
+    def prompt_resize_map(self):
+        """Prompts the user to enter new map dimensions."""
+        if self.project is None or self.header is None or self.footer is None:
+            return False
+        width, height = self.get_map_dimensions()
+        text, ok_pressed = QInputDialog.getText(
+            self,
+            'Resize Map',
+            'Enter new map dimensions in the format "width, height"',
+            text=f'{width}, {height}',
+        )
+        if ok_pressed:
+            try:
+                width_new, height_new = (
+                    int(value.strip()) for value in text.split(',')
+                )
+            except Exception:
+                QMessageBox.critical(
+                    self,
+                    'Invalid format',
+                    'Enter new map dimensions as comma separated values!',
+                )
+                return
+            if height_new != height or width_new != width:
+                self.resize_map(height_new, width_new)
+
+    def prompt_resize_border(self):
+        """Prompts the user to enter new border dimensions."""
+        if self.project is None or self.header is None or self.footer is None:
+            return False
+        width, height = self.get_border_dimensions()
+        text, ok_pressed = QInputDialog.getText(
+            self,
+            'Resize Border',
+            'Enter new border dimensions in the format "width, height"',
+            text=f'{width}, {height}',
+        )
+        if ok_pressed:
+            try:
+                width_new, height_new = (
+                    int(value.strip()) for value in text.split(',')
+                )
+            except Exception:
+                QMessageBox.critical(
+                    self,
+                    'Invalid format',
+                    'Enter new border dimensions as comma separated values!',
+                )
+                return
+            if height_new != height or width_new != width:
+                self.resize_border(height_new, width_new)
+
+    def prompt_change_tileset(self, primary: bool):
+        """Prompts the user to enter new tileset labels."""
+        if self.project is None or self.header is None or self.footer is None:
+            return False
+        # Use a QInputDialog to select from self.project.tilesets_primary
+        # as a combo box, only allowing choices from the list
+        title = 'Primary' if primary else 'Secondary'
+        choices: list[str] = list(
+            self.project.tilesets_primary
+            if primary
+            else self.project.tilesets_secondary
+        )
+        text, ok_pressed = QInputDialog.getItem(
+            self,
+            f'Change {title} Tileset',
+            f'Select a new {title} tileset',
+            choices,
+            editable=False,
+        )
+        if ok_pressed:
+            self.change_tileset(text, primary)
 
     def prompt_shift_blocks_and_events(
         self, shift_blocks: bool = False, shift_events: bool = False

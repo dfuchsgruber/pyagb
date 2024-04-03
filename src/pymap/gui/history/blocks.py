@@ -218,7 +218,6 @@ class ReplaceBlocks(QUndoCommand):
         self.layer = layer
         self.value_new = value_new
         self.value_old = value_old
-        print(self.idx, self.layer, self.value_new)
 
     def redo(self):
         """Performs the flood fill."""

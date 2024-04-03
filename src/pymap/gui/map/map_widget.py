@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib.resources as resources
-from functools import partial
 from typing import TYPE_CHECKING, Any, Iterable
 
 import numpy as np
@@ -17,7 +16,6 @@ from PySide6.QtWidgets import (
     QGraphicsPixmapItem,
     QGraphicsScene,
     QHBoxLayout,
-    QMessageBox,
     QSizePolicy,
     QSlider,
     QSplitter,
@@ -28,7 +26,6 @@ from PySide6.QtWidgets import (
 
 from pymap.gui import blocks, render
 from pymap.gui.blocks import compute_blocks
-from pymap.gui.map.dimensions import DimensionLineEdit
 from pymap.gui.types import MapLayers
 
 from .auto_shape import AutoScene
@@ -63,6 +60,33 @@ class MapWidget(QWidget):
         layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
         splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        layout.addWidget(splitter, 1, 1, 1, 1)
+
+        self.map_scene = MapScene(self)
+        self.map_scene_view = QtWidgets.QGraphicsView()
+        self.map_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        self.map_scene_view.setScene(self.map_scene)
+        self.map_scene_view.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        splitter.addWidget(self.map_scene_view)
+
+        self.info_label = QtWidgets.QLabel()
+        layout.addWidget(self.info_label, 2, 1, 1, 1)
+        layout.setRowStretch(1, 1)
+        layout.setRowStretch(2, 0)
+
+        # Divide into a widget for blocks and levels
+        self.tabs = QTabWidget()
+
+        self.tabs.addTab(self._setup_blocks_widget(), 'Blocks')
+        self.tabs.addTab(self._setup_levels_widget(), 'Level')
+        self.tabs.currentChanged.connect(self.tab_changed)
+
+        splitter.addWidget(self.tabs)
+        self.tabs.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
         splitter.restoreState(
             self.main_gui.settings.value(
                 'map_widget/horizontal_splitter_state', bytes(), type=bytes
@@ -73,28 +97,112 @@ class MapWidget(QWidget):
                 'map_widget/horizontal_splitter_state', splitter.saveState()
             )
         )
+        self.load_header()  # Disables all widgets
 
-        layout.addWidget(splitter, 1, 1, 1, 1)
+    def _setup_blocks_widget(self) -> QWidget:
+        """Sets up the blocks widget to the right."""
+        blocks_widget = QSplitter(Qt.Orientation.Vertical)
 
-        self.map_scene = MapScene(self)
-        self.map_scene_view = QtWidgets.QGraphicsView()
-        self.map_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        self.map_scene_view.setScene(self.map_scene)
-        splitter.addWidget(self.map_scene_view)
+        splitter_selection_and_border = QSplitter(Qt.Orientation.Horizontal)
+        splitter_selection_and_border.restoreState(
+            self.main_gui.settings.value(
+                'map_widget/selection_and_border_splitter_state', bytes(), type=bytes
+            )  # type: ignore
+        )
+        splitter_selection_and_border.splitterMoved.connect(
+            lambda: self.main_gui.settings.setValue(
+                'map_widget/selection_and_border_splitter_state',
+                splitter_selection_and_border.saveState(),
+            )
+        )
 
-        self.info_label = QtWidgets.QLabel()
-        layout.addWidget(self.info_label, 2, 1, 1, 1)
-        layout.setRowStretch(1, 5)
-        layout.setRowStretch(2, 0)
+        splitter_selection_and_border.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
+        )
+        blocks_widget.addWidget(splitter_selection_and_border)
 
-        # Divide into a widget for blocks and levels
-        self.tabs = QTabWidget()
+        group_border = QtWidgets.QGroupBox('Border')
+        group_border.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
+        )
+        border_layout = QtWidgets.QGridLayout()
+        group_border.setLayout(border_layout)
+        self.border_scene = BorderScene(self)
+        self.border_scene_view = QtWidgets.QGraphicsView()
+        self.border_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        self.border_scene_view.setScene(self.border_scene)
+        self.border_scene_view.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
+        )
+        border_layout.addWidget(self.border_scene_view, 1, 1, 1, 1)
+        self.show_border = QtWidgets.QCheckBox('Show')
+        self.show_border.setChecked(True)
+        self.show_border.toggled.connect(self.load_map)
+        border_layout.addWidget(self.show_border, 2, 1, 1, 1)
 
+        group_selection = QtWidgets.QGroupBox('Selection')
+        group_selection_layout = QtWidgets.QGridLayout()
+        group_selection.setLayout(group_selection_layout)
+        self.selection_scene = QGraphicsScene()
+        self.selection_scene_view = QtWidgets.QGraphicsView()
+        self.selection_scene_view.setScene(self.selection_scene)
+        self.selection_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        group_selection_layout.addWidget(self.selection_scene_view, 1, 1, 2, 1)
+        self.select_levels = QtWidgets.QCheckBox('Select Levels')
+        self.select_levels.setChecked(False)
+        self.select_levels.toggled.connect(self.update_layers)
+        group_selection_layout.addWidget(self.select_levels, 3, 1, 1, 1)
+
+        splitter_selection_and_border.addWidget(group_selection)
+        splitter_selection_and_border.addWidget(group_border)
+
+        self.auto_group = QtWidgets.QGroupBox('Smart Shapes')
+        auto_group_layout = QHBoxLayout()
+        self.auto_group.setLayout(auto_group_layout)
+        self.auto_shapes_scene = AutoScene(self)
+        self.auto_shapes_scene_view = QtWidgets.QGraphicsView()
+        self.auto_shapes_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        self.auto_shapes_scene_view.setScene(self.auto_shapes_scene)
+        self.auto_shapes_scene_view.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
+        )
+        auto_group_layout.addWidget(self.auto_shapes_scene_view)
+        # selection_and_auto_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        blocks_widget.addWidget(self.auto_group)
+
+        group_blocks = QWidget()
+        group_blocks_layout = QtWidgets.QGridLayout()
+        group_blocks.setLayout(group_blocks_layout)
+        self.blocks_scene = BlocksScene(self)
+        self.blocks_scene_view = QtWidgets.QGraphicsView()
+        self.blocks_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        self.blocks_scene_view.setScene(self.blocks_scene)
+        group_blocks_layout.addWidget(self.blocks_scene_view)
+        group_blocks.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        blocks_widget.addWidget(group_blocks)
+
+        blocks_widget.setStretchFactor(0, 0)  # Border
+        blocks_widget.setStretchFactor(1, 0)  # Selection and Auto
+        blocks_widget.setStretchFactor(2, 1)  # Blocks
+
+        blocks_widget.restoreState(
+            self.main_gui.settings.value(
+                'map_widget/blocks_splitter_state', bytes(), type=bytes
+            )  # type: ignore
+        )
+        blocks_widget.splitterMoved.connect(
+            lambda: self.main_gui.settings.setValue(
+                'map_widget/blocks_splitter_state', blocks_widget.saveState()
+            )
+        )
+
+        return blocks_widget
+
+    def _setup_levels_widget(self) -> QWidget:
+        """Sets up the levels widget to the right."""
         level_widget = QWidget()
-        self.tabs.addTab(self._setup_blocks_widget(), 'Blocks')
-        self.tabs.addTab(level_widget, 'Level')
-        self.tabs.currentChanged.connect(self.tab_changed)
-
         level_layout = QVBoxLayout()
         level_widget.setLayout(level_layout)
         self.level_opacity_slider = QSlider(Qt.Orientation.Horizontal)
@@ -142,140 +250,7 @@ class MapWidget(QWidget):
         item.setAcceptHoverEvents(True)
         item.hoverLeaveEvent = lambda event: self.info_label.setText('')
         self.level_scene.setSceneRect(0, 0, 4 * 16 * 2, 16 * 16 * 2)
-
-        splitter.addWidget(self.tabs)
-        splitter.setSizes(
-            [12 * 10**6, 3 * 10**6]
-        )  # Ugly as hell hack to take large values
-
-        self.load_header()  # Disables all widgets
-
-    def _setup_blocks_widget(self) -> QWidget:
-        """Sets up the blocks widget to the right."""
-        blocks_widget = QSplitter(Qt.Orientation.Vertical)
-
-        blocks_widget.restoreState(
-            self.main_gui.settings.value(
-                'map_widget/blocks_splitter_state', bytes(), type=bytes
-            )  # type: ignore
-        )
-        blocks_widget.splitterMoved.connect(
-            lambda: self.main_gui.settings.setValue(
-                'map_widget/blocks_splitter_state', blocks_widget.saveState()
-            )
-        )
-        group_tileset = QtWidgets.QGroupBox('Tileset')
-        group_tileset.setSizePolicy(
-            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
-        )
-        blocks_widget.addWidget(group_tileset)
-        tileset_layout = QtWidgets.QGridLayout()
-        tileset_layout.addWidget(QtWidgets.QLabel('Primary'), 0, 0)
-        tileset_layout.addWidget(QtWidgets.QLabel('Secondary'), 1, 0)
-        self.combo_box_tileset_primary = QtWidgets.QComboBox()
-        tileset_layout.addWidget(self.combo_box_tileset_primary, 0, 1)
-        self.combo_box_tileset_secondary = QtWidgets.QComboBox()
-        tileset_layout.addWidget(self.combo_box_tileset_secondary, 1, 1)
-        self.combo_box_tileset_primary.currentTextChanged.connect(
-            partial(self.main_gui.change_tileset, primary=True)
-        )
-        self.combo_box_tileset_secondary.currentTextChanged.connect(
-            partial(self.main_gui.change_tileset, primary=False)
-        )
-        group_tileset.setLayout(tileset_layout)
-        tileset_layout.setColumnStretch(0, 0)
-        tileset_layout.setColumnStretch(1, 1)
-
-        group_dimensions = QtWidgets.QGroupBox('Dimensions')
-        group_dimensions.setSizePolicy(
-            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
-        )
-        dimensions_layout = QtWidgets.QGridLayout()
-        self.label_dimensions = DimensionLineEdit()
-        self.label_dimensions.editingFinished.connect(self.resize_map)
-        dimensions_layout.addWidget(self.label_dimensions, 1, 1, 1, 1)
-        group_dimensions.setLayout(dimensions_layout)
-        blocks_widget.addWidget(group_dimensions)
-
-        group_border = QtWidgets.QGroupBox('Border')
-        group_border.setSizePolicy(
-            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
-        )
-        border_layout = QtWidgets.QGridLayout()
-        group_border.setLayout(border_layout)
-        self.border_scene = BorderScene(self)
-        self.border_scene_view = QtWidgets.QGraphicsView()
-        self.border_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        self.border_scene_view.setScene(self.border_scene)
-        self.border_scene_view.setSizePolicy(
-            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
-        )
-        border_layout.addWidget(self.border_scene_view, 1, 1, 1, 2)
-        self.border_change_dimenions = DimensionLineEdit()
-        self.border_change_dimenions.editingFinished.connect(self.resize_border)
-        border_layout.addWidget(self.border_change_dimenions, 2, 2, 1, 1)
-        self.show_border = QtWidgets.QCheckBox('Show')
-        self.show_border.setChecked(True)
-        self.show_border.toggled.connect(self.load_map)
-        border_layout.addWidget(self.show_border, 2, 1, 1, 1)
-        blocks_widget.addWidget(group_border)
-
-        selection_and_auto_layout = QHBoxLayout()
-        selection_and_auto_widget = QWidget()
-        selection_and_auto_widget.setLayout(selection_and_auto_layout)
-        selection_and_auto_widget.setSizePolicy(
-            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
-        )
-
-        group_selection = QtWidgets.QGroupBox('Selection')
-        group_selection_layout = QtWidgets.QGridLayout()
-        group_selection.setLayout(group_selection_layout)
-        self.selection_scene = QGraphicsScene()
-        self.selection_scene_view = QtWidgets.QGraphicsView()
-        self.selection_scene_view.setScene(self.selection_scene)
-        self.selection_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        group_selection_layout.addWidget(self.selection_scene_view, 1, 1, 2, 1)
-        self.select_levels = QtWidgets.QCheckBox('Select Levels')
-        self.select_levels.setChecked(False)
-        self.select_levels.toggled.connect(self.update_layers)
-        group_selection_layout.addWidget(self.select_levels, 3, 1, 1, 1)
-        selection_and_auto_layout.addWidget(group_selection)
-
-        self.auto_group = QtWidgets.QGroupBox('Smart Shapes')
-        auto_group_layout = QHBoxLayout()
-        self.auto_group.setLayout(auto_group_layout)
-        self.auto_shapes_scene = AutoScene(self)
-        self.auto_shapes_scene_view = QtWidgets.QGraphicsView()
-        self.auto_shapes_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        self.auto_shapes_scene_view.setScene(self.auto_shapes_scene)
-        self.auto_shapes_scene_view.setSizePolicy(
-            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
-        )
-        auto_group_layout.addWidget(self.auto_shapes_scene_view)
-        selection_and_auto_layout.addWidget(self.auto_group)
-        # selection_and_auto_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        blocks_widget.addWidget(selection_and_auto_widget)
-
-        group_blocks = QWidget()
-        group_blocks_layout = QtWidgets.QGridLayout()
-        group_blocks.setLayout(group_blocks_layout)
-        self.blocks_scene = BlocksScene(self)
-        self.blocks_scene_view = QtWidgets.QGraphicsView()
-        self.blocks_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        self.blocks_scene_view.setScene(self.blocks_scene)
-        group_blocks_layout.addWidget(self.blocks_scene_view)
-        group_blocks.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        blocks_widget.addWidget(group_blocks)
-
-        blocks_widget.setStretchFactor(0, 0)  # Tileset
-        blocks_widget.setStretchFactor(1, 0)  # Dimensions
-        blocks_widget.setStretchFactor(2, 0)  # Border
-        blocks_widget.setStretchFactor(3, 0)  # Selection and Auto
-        blocks_widget.setStretchFactor(4, 1)  # Blocks
-
-        return blocks_widget
+        return level_widget
 
     @property
     def header_loaded(self) -> bool:
@@ -285,114 +260,6 @@ class MapWidget(QWidget):
             bool: Whether the header is loaded.
         """
         return self.main_gui.header_loaded
-
-    def resize_map(self) -> Any:
-        """Prompts a resizing of the map."""
-        if not self.main_gui.footer_loaded:
-            return
-        assert self.main_gui.project is not None, 'Project is not loaded'
-        width, height = self.main_gui.get_map_dimensions()
-        tokens = self.label_dimensions.text().split(',')
-        if not len(tokens) == 2:
-            self.update_map_dimensions()
-            QMessageBox.critical(
-                self,
-                'Invalid Dimensions',
-                f'"{input}" is not of format "width,height".',
-            )
-            return
-        try:
-            width_new = int(tokens[0].strip(), 0)
-        except Exception:
-            self.update_map_dimensions()
-            QMessageBox.critical(
-                self, 'Invalid Dimensions', f'"{tokens[0]}" is not a valid width.'
-            )
-            return
-        width_max = self.main_gui.project.config['pymap']['footer']['map_width_max']
-        if width_new > width_max or width_new <= 0:
-            self.update_map_dimensions()
-            QMessageBox.critical(
-                self,
-                'Invalid Dimeinsions',
-                f'Width {width_new} larger than maximum width {width_max} or '
-                'non positive',
-            )
-        try:
-            height_new = int(tokens[1].strip(), 0)
-        except Exception:
-            self.update_map_dimensions()
-            QMessageBox.critical(
-                self, 'Invalid Dimensions', f'"{tokens[1]}" is not a valid height.'
-            )
-            return
-        height_max = self.main_gui.project.config['pymap']['footer']['map_height_max']
-        if height_new > height_max or height_new <= 0:
-            return QMessageBox.critical(
-                self,
-                'Invalid Dimeinsions',
-                f'Height {height_new} larger than maximum height {height_max} '
-                'or non positive',
-            )
-        if height_new == height and width_new == width:
-            return
-        self.main_gui.resize_map(height_new, width_new)
-
-    def resize_border(self) -> Any:
-        """Prompts a resizing of the border."""
-        if not self.main_gui.footer_loaded:
-            return
-        assert self.main_gui.project is not None, 'Project is not loaded'
-        width, height = self.main_gui.get_border_dimensions()
-        tokens = self.border_change_dimenions.text().split(',')
-        if not len(tokens) == 2:
-            self.update_border_dimensions()
-            QMessageBox.critical(
-                self,
-                'Invalid Dimensions',
-                f'"{input}" is not of format "width,height".',
-            )
-            return
-        try:
-            width_new = int(tokens[0].strip(), 0)
-        except Exception:
-            self.update_border_dimensions()
-            QMessageBox.critical(
-                self, 'Invalid Dimensions', f'"{tokens[0]}" is not a valid width.'
-            )
-            return
-        assert self.main_gui.project is not None, 'Project is not loaded'
-        width_max = self.main_gui.project.config['pymap']['footer']['border_width_max']
-        if width_new > width_max:
-            self.update_border_dimensions()
-            QMessageBox.critical(
-                self,
-                'Invalid Dimeinsions',
-                f'Width {width_new} larger than maximum width {width_max}',
-            )
-            return
-        try:
-            height_new = int(tokens[1].strip(), 0)
-        except Exception:
-            self.update_border_dimensions()
-            QMessageBox.critical(
-                self, 'Invalid Dimensions', f'"{tokens[1]}" is not a valid height.'
-            )
-            return
-        height_max = self.main_gui.project.config['pymap']['footer'][
-            'border_height_max'
-        ]
-        if height_new > height_max:
-            self.update_border_dimensions()
-            QMessageBox.critical(
-                self,
-                'Invalid Dimeinsions',
-                f'Height {height_new} larger than maximum height {height_max}',
-            )
-            return
-        if height_new == height and width_new == width:
-            return
-        self.main_gui.resize_border(height_new, width_new)
 
     def tab_changed(self):
         """Triggered when the user switches from the blocks to levels tab."""
@@ -423,37 +290,9 @@ class MapWidget(QWidget):
         if not self.main_gui.project_loaded:
             return
         assert self.main_gui.project is not None, 'Project is not loaded'
-        self.combo_box_tileset_primary.blockSignals(True)
-        self.combo_box_tileset_primary.clear()
-        self.combo_box_tileset_primary.addItems(
-            list(self.main_gui.project.tilesets_primary.keys())
-        )
-        self.combo_box_tileset_primary.blockSignals(False)
-        self.combo_box_tileset_secondary.blockSignals(True)
-        self.combo_box_tileset_secondary.clear()
-        self.combo_box_tileset_secondary.addItems(
-            list(self.main_gui.project.tilesets_secondary.keys())
-        )
-        self.combo_box_tileset_secondary.blockSignals(False)
         self.set_blocks_selection(np.zeros((1, 1, 2), dtype=int))
         self.set_levels_selection(np.zeros((1, 1, 2), dtype=int))
         self.load_header()
-
-    def update_map_dimensions(self):
-        """Updates the map dimensions label."""
-        if self.main_gui.project is None or self.main_gui.header is None:
-            self.label_dimensions.setText('')
-        else:
-            map_width, map_height = self.main_gui.get_map_dimensions()
-            self.label_dimensions.setText(f'{map_width}, {map_height}')
-
-    def update_border_dimensions(self):
-        """Updates the border dimensions label."""
-        if self.main_gui.project is None or self.main_gui.header is None:
-            self.border_change_dimenions.setText('')
-        else:
-            border_width, border_height = self.main_gui.get_border_dimensions()
-            self.border_change_dimenions.setText(f'{border_width}, {border_height}')
 
     def load_header(self, *args: Any):
         """Updates the entire header related widgets."""
@@ -462,37 +301,17 @@ class MapWidget(QWidget):
         self.load_border()
         self.load_blocks()
         self.load_auto_shapes()
-        self.update_map_dimensions()
-        self.update_border_dimensions()
 
         if self.main_gui.project is None or self.main_gui.header is None:
             # Reset all widgets
             self.blocks = None
-            self.combo_box_tileset_primary.setEnabled(False)
-            self.combo_box_tileset_secondary.setEnabled(False)
             self.show_border.setEnabled(False)
-            self.border_change_dimenions.setEnabled(False)
-            self.label_dimensions.setEnabled(False)
             self.select_levels.setEnabled(False)
         else:
             # Update selection blocks
             assert self.selection is not None, 'Selection is not loaded'
             self.set_selection(self.selection)
-            self.combo_box_tileset_primary.setEnabled(True)
-            self.combo_box_tileset_secondary.setEnabled(True)
             self.show_border.setEnabled(True)
-            self.combo_box_tileset_primary.blockSignals(True)
-            self.combo_box_tileset_primary.setCurrentText(
-                self.main_gui.get_tileset_label(True)
-            )
-            self.combo_box_tileset_primary.blockSignals(False)
-            self.combo_box_tileset_secondary.blockSignals(True)
-            self.combo_box_tileset_secondary.setCurrentText(
-                self.main_gui.get_tileset_label(False)
-            )
-            self.combo_box_tileset_secondary.blockSignals(False)
-            self.border_change_dimenions.setEnabled(True)
-            self.label_dimensions.setEnabled(True)
             self.select_levels.setEnabled(True)
 
     def update_grid(self):
