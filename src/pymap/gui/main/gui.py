@@ -633,7 +633,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """Flood fills with origin (x, y) and a certain layer with a new value."""
         if not self.footer_loaded:
             return
-        map_blocks = self.get_map_blocks()
+        map_blocks = self.get_map_blocks()[..., layer]
         # Value 0 is not recognized by the connected component algorithm
         labeled: NDArray[np.int_] = label_image(map_blocks + 1, connectivity=1)  # type: ignore
         idx = np.where(labeled == labeled[y, x])
