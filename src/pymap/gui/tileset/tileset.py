@@ -425,8 +425,8 @@ class TilesetWidget(QtWidgets.QWidget):
             or self.main_gui.tileset_secondary is None
         ):
             return
-        assert self.main_gui.blocks is not None
-        self.blocks_image = render.draw_blocks_pool(self.main_gui.blocks)
+        assert self.main_gui.block_images is not None
+        self.blocks_image = render.draw_blocks_pool(self.main_gui.block_images)
         self.update_blocks()
 
     def set_current_block(self, block_idx: int):

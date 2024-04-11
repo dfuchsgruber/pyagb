@@ -142,14 +142,14 @@ class ConnectionWidget(QtWidgets.QWidget):
             connections_model,
             self.main_gui.project,
         )
-        assert self.main_gui.blocks is not None
+        assert self.main_gui.block_images is not None
 
         # Load the current blocks
         self.blocks = self.compute_blocks()
         self.block_pixmaps = np.empty_like(self.blocks[:, :, 0], dtype=object)
         for (y, x), block_idx in np.ndenumerate(self.blocks[:, :, 0]):
             # Draw the blocks
-            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.blocks[block_idx]))
+            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.block_images[block_idx]))
             item = QGraphicsPixmapItem(pixmap)
             item.setAcceptHoverEvents(True)
             self.map_scene.addItem(item)
@@ -390,7 +390,7 @@ class ConnectionWidget(QtWidgets.QWidget):
             self.main_gui.project is None
             or self.main_gui.header is None
             or self.main_gui.footer is None
-            or self.main_gui.blocks is None
+            or self.main_gui.block_images is None
         ):
             return
         new_blocks = self.compute_blocks()
@@ -400,7 +400,7 @@ class ConnectionWidget(QtWidgets.QWidget):
         for y, x in zip(*np.where(new_blocks[:, :, 0] != self.blocks[:, :, 0])):
             y, x = int(y), int(x)
             block_idx = int(new_blocks[y, x, 0])
-            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.blocks[block_idx]))
+            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.block_images[block_idx]))
             self.block_pixmaps[y, x].setPixmap(pixmap)
 
         self.blocks = new_blocks

@@ -30,7 +30,7 @@ class PymapGuiModel:
         self.tileset_primary_label = None
         self.tileset_secondary = None
         self.tileset_secondary_label = None
-        self.blocks: BlockImages | None = None
+        self.block_images: BlockImages | None = None
         self.tiles: TileImages | None = None
 
     @property

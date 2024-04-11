@@ -130,7 +130,7 @@ class EventWidget(QWidget):
             return
 
         # Load pixel maps directly from the map widget
-        for (y, x), item in np.ndenumerate(self.main_gui.map_widget.map_images):
+        for (y, x), item in np.ndenumerate(self.main_gui.map_widget.block_images):
             pixmap = item.pixmap()
             item = QGraphicsPixmapItem(pixmap)  # Create a new item bound to this canvas
             item.setAcceptHoverEvents(True)
@@ -169,8 +169,8 @@ class EventWidget(QWidget):
         self.map_scene.setSceneRect(
             0,
             0,
-            16 * self.main_gui.map_widget.map_images.shape[1],
-            16 * self.main_gui.map_widget.map_images.shape[0],
+            16 * self.main_gui.map_widget.block_images.shape[1],
+            16 * self.main_gui.map_widget.block_images.shape[0],
         )
 
     def load_events(self):

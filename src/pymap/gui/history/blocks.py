@@ -131,8 +131,7 @@ class SetBorder(QUndoCommand):
         footer_blocks[
             self.y : self.y + blocks.shape[0], self.x : self.x + blocks.shape[1], 0
         ] = blocks[:, :, 0]
-        self.main_gui.map_widget.load_map()
-        self.main_gui.map_widget.load_border()
+        self.main_gui.map_widget.load_header()
 
     def redo(self):
         """Performs the setting of border blocks."""

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from PIL.ImageQt import ImageQt
+from pymap.gui.render import draw_blocks
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
@@ -16,29 +17,27 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pymap.gui.render import draw_blocks
-
 if TYPE_CHECKING:
-    from .map_widget import MapWidget
+    from .auto_shapes import AutoShapesTab
 
 
-class AutoScene(QGraphicsScene):
+class AutoShapesScene(QGraphicsScene):
     """Scene for automatic shapes."""
 
-    def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):
+    def __init__(self, auto_shapes_tab: AutoShapesTab, parent: QWidget | None = None):
         """Initializes the scene.
 
         Args:
-            map_widget (MapWidget): The map widget.
+            auto_shapes_tab (AutoShapesTab): The parent tab.
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        self.map_widget = map_widget
+        self.auto_shapes_tab = auto_shapes_tab
         self.auto_shape = np.zeros((3, 5, 2), dtype=int)
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
-        if not self.map_widget.header_loaded:
+        if not self.auto_shapes_tab.map_widget.header_loaded:
             return
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
@@ -46,14 +45,16 @@ class AutoScene(QGraphicsScene):
             self.auto_shape.shape[0]
         ):
             block_idx = self.auto_shape[y, x, 0]
-            self.map_widget.info_label.setText(f'Block : {hex(block_idx)}')
+            self.auto_shapes_tab.map_widget.info_label.setText(
+                f'Block : {hex(block_idx)}'
+            )
 
         else:
-            return self.map_widget.info_label.setText('')
+            return self.auto_shapes_tab.map_widget.info_label.setText('')
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for pressing the mouse."""
-        if not self.map_widget.header_loaded:
+        if not self.auto_shapes_tab.map_widget.header_loaded:
             return
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)
@@ -63,7 +64,7 @@ class AutoScene(QGraphicsScene):
             and event.button() == Qt.MouseButton.LeftButton
         ):
             # Set a new auto-shape
-            blocks = self.map_widget.selection
+            blocks = self.auto_shapes_tab.map_widget.selection
             assert blocks is not None, 'Expected blocks to be set'
             window = self.auto_shape[
                 y : y + blocks.shape[0], x : x + blocks.shape[1]
@@ -80,16 +81,27 @@ class AutoScene(QGraphicsScene):
         self.clear()
 
         self.auto_shape_background_pixmap = QPixmap(
-            str(resources.files('pymap.gui.map').joinpath('auto_shape_background.png')),
+            str(
+                resources.files('pymap.gui.map.tabs').joinpath(
+                    'auto_shape_background.png'
+                )
+            ),
         )
         self.addPixmap(self.auto_shape_background_pixmap)
 
-        if not self.map_widget.header_loaded:
+        if not self.auto_shapes_tab.map_widget.header_loaded:
             return
 
-        assert self.map_widget.main_gui.blocks is not None, 'Blocks is None'
+        assert (
+            self.auto_shapes_tab.map_widget.main_gui.block_images is not None
+        ), 'Blocks is None'
         self.blocks_image = QPixmap.fromImage(
-            ImageQt(draw_blocks(self.map_widget.main_gui.blocks, self.auto_shape))
+            ImageQt(
+                draw_blocks(
+                    self.auto_shapes_tab.map_widget.main_gui.block_images,
+                    self.auto_shape,
+                )
+            )
         )
 
         item = QGraphicsPixmapItem(self.blocks_image)

@@ -206,8 +206,8 @@ class SetTiles(QUndoCommand):
         blocks[self.block_idx % 0x280] = block.flatten().tolist()
         # Update the block
         assert self.tileset_widget.main_gui.tiles is not None
-        assert self.tileset_widget.main_gui.blocks is not None
-        self.tileset_widget.main_gui.blocks[self.block_idx] = render.get_block(
+        assert self.tileset_widget.main_gui.block_images is not None
+        self.tileset_widget.main_gui.block_images[self.block_idx] = render.get_block(
             blocks[self.block_idx % 0x280],
             self.tileset_widget.main_gui.tiles,
         )

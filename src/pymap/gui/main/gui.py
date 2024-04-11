@@ -213,7 +213,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
     @property
     def show_borders(self) -> bool:
         """Returns whether the borders are shown."""
-        return self.map_widget.show_border.isChecked()
+        return self.map_widget.blocks_tab.show_border.isChecked()
 
     def tab_changed(self):
         """Callback method for when a tab is changed."""
@@ -550,7 +550,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.tiles = render.get_tiles(
             self.tileset_primary, self.tileset_secondary, self.project
         )
-        self.blocks = render.get_blocks(
+        self.block_images = render.get_blocks(
             self.tileset_primary, self.tileset_secondary, self.tiles, self.project
         )
 
