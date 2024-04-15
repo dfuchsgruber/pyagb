@@ -62,6 +62,9 @@ class ResourceParameterTree(QTreeWidget):
         self.setHeaderItem(self.tree_header)
         self.header_root = ResourceParameterTreeItemHeaderRoot(self, ['Map Header'])
         self.header_root.setIcon(0, QIcon(icon_paths[Icon.TREE]))
+        self.header_items: dict[
+            tuple[str, str], ResourceParameterTreeItemHeader
+        ] = dict()
         self.footer_root = ResourceParameterTreeItemFooterRoot(self, ['Map Footer'])
         self.footer_root.setIcon(0, QIcon(icon_paths[Icon.TREE]))
         self.tileset_root = ResourceParameterTreeItem(self, ['Tileset'])
@@ -106,6 +109,19 @@ class ResourceParameterTree(QTreeWidget):
         """Triggered when an item is double clicked."""
         assert isinstance(item, ResourceParameterTreeItem)
         item.double_clicked(self)
+
+    def select_map(self, bank: str, map_idx: str):
+        """Selects a map in the tree.
+
+        Args:
+            bank (str): The bank.
+            map_idx (str): The map.
+        """
+        item: QTreeWidgetItem | None = self.header_items[(bank, map_idx)]
+        self.setCurrentItem(item)
+        while item is not None:  # type: ignore
+            self.expandItem(item)
+            item = item.parent()
 
     def create_bank(self, *args: Any):
         """Prompts a dialog to create a new map bank."""
@@ -1033,6 +1049,7 @@ class ResourceParameterTree(QTreeWidget):
         )
         # Remove old headers
         remove_children(self.header_root)
+        self.header_items = {}
         # Add new headers
         if sort_headers == HeaderSorting.BANK:
             for bank in sorted(project.headers, key=int):
@@ -1049,6 +1066,7 @@ class ResourceParameterTree(QTreeWidget):
                         map_idx=map_idx,
                     )
                     map_root.setIcon(0, QIcon(icon_paths[Icon.HEADER]))
+                    self.header_items[(bank, map_idx)] = map_root
         elif sort_headers == HeaderSorting.NAMESPACE:
             namespace_roots: dict[str, ResourceParameterTreeItemNamespace] = {}
             for bank in sorted(project.headers, key=int):
@@ -1069,6 +1087,7 @@ class ResourceParameterTree(QTreeWidget):
                         map_idx=map_idx,
                     )
                     map_root.setIcon(0, QIcon(icon_paths[Icon.HEADER]))
+                    self.header_items[(bank, map_idx)] = map_root
 
     def load_footers(self):
         """Updates the footers of a project."""

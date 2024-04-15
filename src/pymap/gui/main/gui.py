@@ -479,6 +479,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.header_map_idx = map_idx
         # Trigger opening of the footer
         self.open_footer(self.get_footer_label(), prompt_saving=False)
+        self.resource_tree.select_map(bank, map_idx)
 
     def open_footer(self, label: str, prompt_saving: bool = True):
         """Opens a new footer and assigns it to the current header."""
