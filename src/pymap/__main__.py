@@ -9,6 +9,7 @@ import agb.string.compile
 import pymap.compile
 import pymap.project
 from pymap.gui.main import gui
+from pymap.constants import Constants
 
 
 def pymap_gui_cli():
@@ -65,14 +66,17 @@ def pymap2s_cli():
 
 
 def pymap_export_constants_cli():
-    """Entry point for exporting constants to header files."""
+    """Entry point for exporting constants."""
     parser = argparse.ArgumentParser(
-        description='Preprocesses an assembly or ' 'C(++) file.'
+        description='Exports constants into either assembly or C header files.'
     )
     parser.add_argument('input', help='Path to the input file.')
-    parser.add_argument('project', help='Path to the project file.')
-    parser.add_argument('-o', dest='output', help='Path to the output file.')
+    parser.add_argument('output', help='Path to the output file.')
     parser.add_argument(
+        '-l', '--label', dest='label', help='Label for the constants.', default=None
+    )
+    parser.add_argument(
+        '-t',
         '--filetype',
         dest='file_type',
         help='Filetype,' ' either c or asm. Default: infered',
@@ -89,14 +93,36 @@ def pymap_export_constants_cli():
         else:
             raise RuntimeError(f'Unable to infer file type from path {file_type}')
 
-    project = pymap.project.Project(args.project)
-
-    if file_type in ('asm', 's'):
-        agb.string.compile.preprocess_assembly(args.input, project, args.output)
-    elif file_type in ('c', 'cpp'):
-        agb.string.compile.preprocess_cpp(args.input, project, args.output)
+    if args.label is None:
+        label = Path(args.input).stem
+        label = label[: label.find('.')]
     else:
-        raise RuntimeError(f'Unkown file type {file_type}')
+        label = args.label
+
+    constants = Constants({label: Path(args.input)})[label]
+
+    # Format the values
+    if file_type == 'as':
+        macro = (
+            '\n'.join([f'.equ {const}, {value}' for const, value in constants.items()])
+            + '\n'
+        )
+    elif file_type == 'c':
+        macro = '\n'.join(
+            [
+                f'#ifndef H_CONST_{label.upper()}',
+                f'#define H_CONST_{label.upper()}',
+                f'enum {label} ' + '{',
+            ]
+            + [f'{const} = {value},' for const, value in constants.items()]
+            + ['};', '#endif']
+        )
+    else:
+        raise RuntimeError(f'Unkown export type {type}')
+
+    with open(args.output, 'w+') as f:
+        f.write(macro)
+        print(f'Exported constants {label} to {args.output}')
 
 
 def bin2s_cli():

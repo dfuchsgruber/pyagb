@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Iterator, Literal
+from typing import ItemsView, Iterator, Literal
 
 
 class ConstantTable(Mapping[str, int]):
@@ -75,6 +75,14 @@ class ConstantTable(Mapping[str, int]):
             Iterator[str]: The constants.
         """
         return iter(self._values)
+
+    def items(self) -> ItemsView[str, int]:
+        """Iterates over the constants and their values.
+
+        Yields:
+            Iterator[tuple[str, int]]: The constants and their values.
+        """
+        return self._values.items()
 
     def __len__(self) -> int:
         """Returns the number of constants.
