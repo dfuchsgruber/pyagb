@@ -196,7 +196,7 @@ class Type(ABC):
 
 def associate_with_constant(
     value: ScalarModelValue, proj: Project, constant: str | None
-) -> int | str:
+) -> ScalarModelValue | str:
     """Tries to associate a value form a constant table of the pymap project.
 
     Parameters:
@@ -222,7 +222,7 @@ def associate_with_constant(
             warn(f'No match for value {value} found in constant table {constant}')
         else:
             warn(f'Constant table {constant} not found in project.')
-    assert isinstance(value, int)
+    assert isinstance(value, (ScalarModelValue, str))
     return value
 
 
