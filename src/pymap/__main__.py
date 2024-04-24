@@ -95,7 +95,6 @@ def pymap_export_constants_cli():
 
     if args.label is None:
         label = Path(args.input).stem
-        label = label[: label.find('.')]
     else:
         label = args.label
 
