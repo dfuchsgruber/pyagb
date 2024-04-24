@@ -99,7 +99,7 @@ class Agbstring:
         while True:
             sequence, size = self.str_to_hex_map[pattern]
             assert sequence is not None, f'Sequence is None at {pattern}'
-            encoded += sequence
+            encoded += tuple(sequence)
             if pattern == '':
                 break
             if size == 0:
