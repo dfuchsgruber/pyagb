@@ -1,6 +1,7 @@
 """Image module to provide a png-based image wrapper."""
 
 from itertools import product
+import math
 from pathlib import Path
 from typing import Sequence
 
@@ -202,7 +203,7 @@ def from_file(file_path: str) -> tuple[Image, Palette]:
         reader = png.Reader(f)
         width, height, data, attributes = reader.read() # type: ignore
         attributes: dict[str, int | str] = attributes
-        assert attributes['bitdepth'] in (2, 4, 8), 'Invalid bitdepth'
+        assert math.log2(attributes['bitdepth']) % 1 == 0, 'Invalid bitdepth'
         image = Image(None, width, height, depth=attributes['bitdepth'])
         image.data = np.array([*data]).T
         colors = attributes['palette']
