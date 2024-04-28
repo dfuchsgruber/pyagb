@@ -293,9 +293,6 @@ class ConnectionWidget(QtWidgets.QWidget):
             connections_model, list
         ), f'Expected list, got {type(connections_model)}'
         packed = connections_model[self.idx_combobox.currentIndex()]
-        assert isinstance(
-            packed, UnpackedConnection
-        ), f'Expected Connection, got {type(packed)}'
 
         # Update the unpacked version
 
