@@ -62,6 +62,8 @@ class MapScene(BaseMapScene):
         if tab is None:
             return
         idx = tab.idx_combobox.currentIndex()
+        if idx == -1:
+            return
 
         event = self.event_widget.main_gui.get_event(tab.event_type, idx)
 

@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QInputDialog,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QTabWidget,
     QWidget,
@@ -39,6 +40,7 @@ from pymap.gui.history import (
     SetBlocks,
     SetBorder,
 )
+from pymap.gui.main.open_history import OpenHistory, OpenHistoryItem
 from pymap.gui.map import MapWidget
 from pymap.gui.resource_tree import HeaderSorting, ResourceParameterTree
 from pymap.gui.tileset import TilesetWidget
@@ -61,6 +63,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         PymapGuiModel.__init__(self)
         self.smart_shapes = []
         self.settings = QSettings('dfuchsgruber', 'pymap')
+        self.open_history = OpenHistory(self)
 
         # Add the project tree widget
         self.resource_tree_widget = QDockWidget('Project Resources')
@@ -111,8 +114,11 @@ class PymapGui(QMainWindow, PymapGuiModel):
         )
         # Flat actions
         file_menu_open_action = file_menu.addAction('&Open Project')  # type: ignore
-        file_menu_open_action.triggered.connect(self.open_project)
+        file_menu_open_action.triggered.connect(self.prompt_open_project)
         file_menu_open_action.setShortcut('Ctrl+O')
+        self.file_menu_open_recent_menu = file_menu.addMenu('Open Recent')  # type: ignore
+        self.build_open_recent_menu(self.file_menu_open_recent_menu)
+
         # 'Save' submenu
         file_menu_save_menu = file_menu.addMenu('&Save')
         file_menu_save_all = file_menu_save_menu.addAction('All')  # type: ignore
@@ -202,6 +208,30 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
         self.setCentralWidget(self.central_widget)
 
+    def build_open_recent_menu(self, menu: QMenu):
+        """Builds the open recent menu.
+
+        Args:
+            menu (QMenu): The menu to build.
+        """
+        menu.clear()
+        for idx, item in enumerate(self.open_history):
+            action = menu.addAction(  # type: ignore
+                f'{Path(item["project_path"]).stem} - {item["label"]}'
+            )
+            action.triggered.connect(
+                partial(
+                    self.open_project_and_header,
+                    path_str=item['project_path'],
+                    bank=item['bank'],
+                    map_idx=item['map_idx'],
+                )
+            )  # type: ignore
+            action.setShortcut(QKeySequence(f'Ctrl+{idx}'))
+        menu.addSeparator()
+        action = menu.addAction('Clear History')  # type: ignore
+        action.triggered.connect(self.open_history.clear)
+
     def undo(self):
         """Undo the last action."""
         self.central_widget.currentWidget().undo_stack.undo()  # type: ignore
@@ -251,7 +281,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             return
         self.project.save(self.project_path)
 
-    def open_project(self):
+    def prompt_open_project(self):
         """Prompts a dialog to open a new project file."""
         path, _ = QFileDialog.getOpenFileName(
             self,
@@ -260,17 +290,37 @@ class PymapGui(QMainWindow, PymapGuiModel):
             'Pymap projects (*.pmp)',
         )
         if len(path):
-            path = Path(path)
-            os.chdir(path.parent)
-            self.project_path: Path | None = path
-            self.settings.setValue('project/recent', str(path.absolute()))
-            self.project = Project(path)
-            self.resource_tree.load_project()
-            self.map_widget.load_project()
-            self.footer_widget.load()
-            self.header_widget.load()
-            self.event_widget.load_project()
-            self.tileset_widget.load_project()
+            self.open_project(path)
+
+    def open_project_and_header(self, path_str: str, bank: str, map_idx: str):
+        """Opens a new project file and a header.
+
+        Args:
+            path_str (str): The path to the project file.
+            bank (str): The bank of the header.
+            map_idx (str): The index of the header.
+        """
+        if self.project_path != Path(path_str):
+            self.open_project(path_str)
+        self.open_header(bank, map_idx, prompt_saving=True)
+
+    def open_project(self, path_str: str):
+        """Opens a new project file.
+
+        Args:
+            path_str (str): The path to the project file.
+        """
+        path = Path(path_str)
+        os.chdir(path.parent)
+        self.project_path: Path | None = path
+        self.settings.setValue('project/recent', str(path.absolute()))
+        self.project = Project(path)
+        self.resource_tree.load_project()
+        self.map_widget.load_project()
+        self.footer_widget.load()
+        self.header_widget.load()
+        self.event_widget.load_project()
+        self.tileset_widget.load_project()
 
     def clear_header(self):
         """Unassigns the current header, footer, tilesets."""
@@ -480,6 +530,19 @@ class PymapGui(QMainWindow, PymapGuiModel):
         # Trigger opening of the footer
         self.open_footer(self.get_footer_label(), prompt_saving=False)
         self.resource_tree.select_map(bank, map_idx)
+        assert self.project_path is not None
+        assert self.project is not None
+        label = self.project.headers[bank][map_idx].label
+        assert label is not None
+        self.open_history.add(
+            OpenHistoryItem(
+                project_path=str(self.project_path.absolute()),
+                bank=bank,
+                map_idx=map_idx,
+                label=label,
+            )
+        )
+        self.build_open_recent_menu(self.file_menu_open_recent_menu)
 
     def open_footer(self, label: str, prompt_saving: bool = True):
         """Opens a new footer and assigns it to the current header."""

@@ -98,7 +98,15 @@ class Project:
             content = json.load(f)
 
         self.headers = content['headers']
+        for bank in self.headers:
+            self.headers[bank] = {
+                map_idx: HeaderType(*self.headers[bank][map_idx])
+                for map_idx in self.headers[bank]
+            }
+
         self.footers = content['footers']
+        for label in self.footers:
+            self.footers[label] = FooterType(*self.footers[label])
         self.tilesets_primary = content['tilesets_primary']
         self.tilesets_secondary = content['tilesets_secondary']
         self.gfxs_primary = content['gfxs_primary']
