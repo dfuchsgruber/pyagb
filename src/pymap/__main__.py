@@ -1,25 +1,23 @@
 """Entry points for the pymap command line interface."""
 
 import argparse
-import json
-from pathlib import Path
-
-import agb.string.compile
-
-import pymap.compile
-import pymap.project
-from pymap.gui.main import gui
-from pymap.constants import Constants
 
 
 def pymap_gui_cli():
     """Entry point for the pymap gui application."""
+    from pymap.gui.main import gui
+
     # os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1.5'  # Support for High DPI
     gui.main()
 
 
 def pymap2s_cli():
     """Entry point for compiling pymap files."""
+    import json
+
+    import pymap.compile
+    import pymap.project
+
     parser = argparse.ArgumentParser(description='Compiles pymap files.')
     generic_group = parser.add_argument_group('Compile generic file types')
     generic_group.add_argument('input', help='The file to compile.')
@@ -67,6 +65,10 @@ def pymap2s_cli():
 
 def pymap_export_constants_cli():
     """Entry point for exporting constants."""
+    from pathlib import Path
+
+    from pymap.constants import Constants
+
     parser = argparse.ArgumentParser(
         description='Exports constants into either assembly or C header files.'
     )
@@ -126,6 +128,8 @@ def pymap_export_constants_cli():
 
 def bin2s_cli():
     """Entry point for the bin2s script."""
+    from pathlib import Path
+
     parser = argparse.ArgumentParser(
         description='Converts a binary file to an ' 'assembly file.'
     )
@@ -150,6 +154,10 @@ def bin2s_cli():
 
 def pypreproc_cli():
     """Entry point for the pypreproc script."""
+    import agb.string.compile
+
+    import pymap.project
+
     parser = argparse.ArgumentParser(
         description='Preprocesses an assembly or ' 'C(++) file.'
     )
