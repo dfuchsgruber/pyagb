@@ -1,10 +1,11 @@
 """Actions for changing values of the data model."""
 
-from .blocks import ReplaceBlocks, Resize, ResizeBorder, ResizeMap, SetBlocks, SetBorder
+from .blocks import ReplaceBlocks, ResizeBorder, ResizeMap, SetBlocks, SetBorder
 from .connection import AppendConnection, ChangeConnectionProperty, RemoveConnection
 from .event import AppendEvent, ChangeEventProperty, RemoveEvent
 from .footer import AssignTileset, ChangeFooterProperty
 from .header import AssignFooter, ChangeHeaderProperty
+from .smart_shape import AddOrRemoveSmartShape
 from .statement import (
     UndoRedoStatements,
     model_value_difference_to_undo_redo_statements,
@@ -34,7 +35,6 @@ __all__ = [
     'RemoveConnection',
     'RemoveEvent',
     'ReplaceBlocks',
-    'Resize',
     'ResizeBorder',
     'ResizeMap',
     'SetBlocks',
@@ -43,4 +43,5 @@ __all__ = [
     'SetTiles',
     'UndoRedoStatements',
     'model_value_difference_to_undo_redo_statements',
+    'AddOrRemoveSmartShape',
 ]

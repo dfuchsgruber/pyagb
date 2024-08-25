@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 from numpy.typing import NDArray
 from PIL.ImageQt import ImageQt
-from pymap.gui import render
 from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
@@ -19,15 +18,19 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pymap.gui import render
+from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
+
 from ..blocks_like import BlocksLikeTab
-from .blocks_scene import BlocksScene
 from .border import BorderScene
 
 if TYPE_CHECKING:
+    from pymap.gui.main.gui import PymapGui
+
     from ...map_widget import MapWidget
 
 
-class BlocksTab(BlocksLikeTab):
+class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
     """Tab for the blocks."""
 
     def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):
@@ -84,6 +87,7 @@ class BlocksTab(BlocksLikeTab):
         group_blocks = QWidget()
         group_blocks_layout = QtWidgets.QGridLayout()
         group_blocks.setLayout(group_blocks_layout)
+
         self.blocks_scene = BlocksScene(self)
         self.blocks_scene_view = QtWidgets.QGraphicsView()
         self.blocks_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
@@ -155,7 +159,7 @@ class BlocksTab(BlocksLikeTab):
         item = QGraphicsPixmapItem(self.blocks_image)
         self.blocks_scene.addItem(item)
         item.setAcceptHoverEvents(True)
-        item.hoverLeaveEvent = lambda event: self.map_widget.info_label.setText('')
+        item.hoverLeaveEvent = lambda event: self.set_info_text('')
 
     def load_border(self):
         """Loads the border."""
@@ -198,4 +202,18 @@ class BlocksTab(BlocksLikeTab):
 
     def load_map(self):
         """Reloads the map image by using tiles of the map widget."""
-        self.map_widget.add_block_images_to_scene()
+        if self.map_widget.tabs.currentWidget() == self:
+            self.map_widget.add_block_images_to_scene()
+
+    @property
+    def main_gui(self) -> PymapGui:
+        """Returns whether the header is loaded."""
+        return self.map_widget.main_gui
+
+    def set_info_text(self, text: str):
+        """Sets the text of the info label.
+
+        Args:
+            text (str): The text to set.
+        """
+        self.map_widget.info_label.setText(text)

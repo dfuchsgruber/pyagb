@@ -150,6 +150,7 @@ PymapDisplayConfigType = TypedDict(
     connection_active_color=PymapColorType,
     connection_border_color=PymapColorType,
     connection_active_border_color=PymapColorType,
+    smart_shape_blocks_per_row=int,
 )
 PymapConfigType = TypedDict(
     'PymapConfigType',
@@ -428,6 +429,8 @@ default_configuration = ConfigType(
                         'connection_active_border_color': PymapColorType(
                             1.0, 0.0, 0.0, 1.0
                         ),
+                        # How many blocks the pool for smart shapes has per row
+                        'smart_shape_blocks_per_row': 8,
                     }
                 ),
             }

@@ -1,12 +1,17 @@
 """Utility for computing maps with borders and padding."""
 
-
-from typing import Sequence
+from typing import Any, Sequence
 
 import numpy as np
-from agb.model.type import ModelValue
 from numpy.typing import NDArray
+from PIL.ImageQt import ImageQt
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import (
+    QGraphicsPixmapItem,
+)
 
+from agb.model.type import ModelValue
+from pymap.gui.render import BlockImages
 from pymap.gui.types import Block, ConnectionType, UnpackedConnection
 from pymap.project import Project
 
@@ -286,3 +291,25 @@ def ndarray_to_blocks(x: NDArray[np.int_]) -> list[list[Block]]:
         [Block(block_idx=int(block_idx), level=int(level)) for block_idx, level in line]
         for line in x
     ]
+
+
+def block_idxs_to_pixmaps(
+    block_idxs: NDArray[np.int_],
+    block_images: BlockImages,
+) -> NDArray[Any]:
+    """Maps an ndarray of block_idxs to an array of pixmaps.
+
+    Args:
+        block_idxs (NDArray[np.int_]): An array of block idxs to map to pixmaps.
+        block_images (BlockImages): The images of blocks.
+
+    Returns:
+        NDArray: An array of block pixmaps.
+    """
+    result = np.empty_like(block_idxs, dtype=object)
+    for (y, x), block_idx in np.ndenumerate(block_idxs):
+        pixmap = QPixmap.fromImage(ImageQt(block_images[block_idx]))
+        item = QGraphicsPixmapItem(pixmap)
+        item.setPos(x * 16, y * 16)
+        result[y, x] = item
+    return result

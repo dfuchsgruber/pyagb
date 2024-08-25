@@ -19,6 +19,8 @@ class Icon(StrEnum):
     IMPORT = 'import'
     RENAME = 'rename'
     TAG = 'tag'
+    RELOAD = 'reload'
+    EDIT = 'edit'
 
 
 # Icon paths relative to the resources 'icon'
@@ -42,4 +44,6 @@ icon_paths: dict[Icon, str] = {
     Icon.IMPORT: str(resources.files('pymap.gui.icon').joinpath('import.png')),
     Icon.RENAME: str(resources.files('pymap.gui.icon').joinpath('rename.png')),
     Icon.TAG: str(resources.files('pymap.gui.icon').joinpath('tag.png')),
+    Icon.RELOAD: str(resources.files('pymap.gui.icon').joinpath('reload.png')),
+    Icon.EDIT: str(resources.files('pymap.gui.icon').joinpath('edit.png')),
 }

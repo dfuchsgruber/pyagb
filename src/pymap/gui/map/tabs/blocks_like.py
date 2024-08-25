@@ -7,13 +7,14 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
-from pymap.gui import render
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
     QGraphicsSceneMouseEvent,
     QWidget,
 )
+
+from pymap.gui import render
 
 from .tab import MapWidgetTab
 
@@ -82,10 +83,10 @@ class BlocksLikeTab(MapWidgetTab):
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
         if event.button() == Qt.MouseButton.RightButton:
-            assert self.map_widget.blocks is not None, 'Blocks are not loaded'
+            assert self.blocks is not None, 'Blocks are not loaded'
             self._cursor_state = CursorState.SELECT
             self._map_selected_rectangle = (x, x + 1, y, y + 1)
-            self.set_selection(self.map_widget.blocks[y : y + 1, x : x + 1])
+            self.set_selection(self.blocks[y : y + 1, x : x + 1])
         elif event.button() == Qt.MouseButton.LeftButton:
             self._position_last_drawn = None
             self._cursor_state = CursorState.DRAW
@@ -121,7 +122,7 @@ class BlocksLikeTab(MapWidgetTab):
             and x in range(border_width, map_width + border_width)
             and y in range(border_height, map_height + border_height)
         ):
-            self.map_widget.main_gui.replace_blocks(
+            self.replace_blocks(
                 x - border_width,
                 y - border_height,
                 self.connectivity_layer,
@@ -144,7 +145,7 @@ class BlocksLikeTab(MapWidgetTab):
             and x in range(border_width, map_width + border_width)
             and y in range(border_height, map_height + border_height)
         ):
-            self.map_widget.main_gui.flood_fill(
+            self.flood_fill(
                 x - border_width,
                 y - border_height,
                 self.connectivity_layer,
@@ -164,14 +165,12 @@ class BlocksLikeTab(MapWidgetTab):
         match self._cursor_state:
             case CursorState.SELECT:
                 assert self._map_selected_rectangle is not None, 'No selection box'
-                assert self.map_widget.blocks is not None, 'Blocks are not loaded'
+                assert self.blocks is not None, 'Blocks are not loaded'
                 x0, x1, y0, y1 = self._map_selected_rectangle
                 if x1 != x + 1 or y1 != y + 1:
                     self._map_selected_rectangle = x0, x + 1, y0, y + 1
                     self.set_selection(
-                        render.select_blocks(
-                            self.map_widget.blocks, *self._map_selected_rectangle
-                        )
+                        render.select_blocks(self.blocks, *self._map_selected_rectangle)
                     )
             case CursorState.DRAW:
                 if self._position_last_drawn == (x, y):
@@ -186,7 +185,7 @@ class BlocksLikeTab(MapWidgetTab):
                 ):
                     assert self.selection is not None, 'No selection'
                     self._position_last_drawn = (x, y)
-                    self.map_widget.main_gui.set_blocks_at(
+                    self.set_blocks_at(
                         x - border_width,
                         y - border_height,
                         self.selected_layers,
@@ -194,6 +193,46 @@ class BlocksLikeTab(MapWidgetTab):
                     )
             case _:
                 ...
+
+    @property
+    def blocks(self) -> NDArray[np.int_] | None:
+        """The blocks."""
+        return self.map_widget.blocks
+
+    def set_blocks_at(
+        self, x: int, y: int, layers: NDArray[np.int_], blocks: NDArray[np.int_]
+    ):
+        """Sets the blocks at the given position.
+
+        Args:
+            x (int): The x coordinate.
+            y (int): The y coordinate.
+            layers (NDArray[np.int_]): The layers.
+            blocks (NDArray[np.int_]): The blocks.
+        """
+        self.map_widget.main_gui.set_blocks_at(x, y, layers, blocks)
+
+    def replace_blocks(self, x: int, y: int, layer: int, block: NDArray[np.int_]):
+        """Replaces the blocks.
+
+        Args:
+            x (int): The x coordinate.
+            y (int): The y coordinate.
+            layer (int): The layer.
+            block (NDArray[np.int_]): The block.
+        """
+        self.map_widget.main_gui.replace_blocks(x, y, layer, block)
+
+    def flood_fill(self, x: int, y: int, layer: int, block: NDArray[np.int_]):
+        """Flood fills the blocks.
+
+        Args:
+            x (int): The x coordinate.
+            y (int): The y coordinate.
+            layer (int): The layer.
+            block (NDArray[np.int_]): The block.
+        """
+        self.map_widget.main_gui.flood_fill(x, y, layer, block)
 
     def map_scene_mouse_released(
         self, event: QGraphicsSceneMouseEvent, x: int, y: int

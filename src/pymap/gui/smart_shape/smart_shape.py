@@ -1,25 +1,50 @@
 """Base class for smart shapes."""
 
-from typing import Literal, Protocol, overload
-from numpy.typing import NDArray
+from typing import TypedDict
+
 import numpy as np
+from numpy.typing import NDArray
 
 
-class SerializedSmartShape(Protocol):
+class SerializedSmartShape(TypedDict):
     """A serialized smart shape."""
 
-    @overload
-    def __getitem__(self, key: Literal['type']) -> str:
-        ...
-
-    @overload
-    def __getitem__(self, key: Literal['blocks']) -> list[list[int]]:
-        ...
-
-
-class SmartShapeTemplate:
-    """Base class for all potential smart shape templates."""
+    template: str
+    blocks: list[list[int]]  # height x width
 
 
 class SmartShape:
-    """Base class for smart shape realizations."""
+    """Base class for smart shape realizations.
+
+    Every shape uses a template that specifies
+        i) which smart-shape-meta-blocks can be used for mapping the shape to the map
+        ii) which block is used for which part of the shape (`template_blocks`)
+
+    Each smart shape also holds a buffer that maps the smart-shape-meta-blocks
+    to the map.
+    """
+
+    def __init__(
+        self,
+        template: str,
+        template_blocks: list[list[int]],
+        buffer_width: int,
+        buffer_height: int,
+        *depth: int,
+    ):
+        """Initialize the smart shape."""
+        self.template = template
+        # The blocks are the template blocks mapped to the map
+        self.blocks: NDArray[np.int_] = np.array(template_blocks, dtype=int)
+        # The buffer is what is actually mapped to the map
+        # It is transient, i.e. not serialized
+        self.buffer = np.zeros((buffer_height, buffer_width) + depth, dtype=int)
+
+    def serialize(self) -> SerializedSmartShape:
+        """Serialize the smart shape."""
+        return {'template': self.template, 'blocks': self.blocks.tolist()}
+
+    @classmethod
+    def from_serialized(cls, serialized: SerializedSmartShape, *buffer_dimensions: int):
+        """Create a smart shape from a serialized smart shape."""
+        return cls(serialized['template'], serialized['blocks'], *buffer_dimensions)

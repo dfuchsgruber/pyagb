@@ -14,6 +14,9 @@ from agb import image
 
 from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 from pymap.gui.smart_shape.smart_shape import SerializedSmartShape
+from pymap.gui.smart_shape.template.default_templates import (
+    get_default_smart_shape_templates,
+)
 
 if TYPE_CHECKING:
     from agb.model.type import Model, ModelValue
@@ -59,6 +62,7 @@ class Project:
             self.gfxs_secondary: GfxsType = {}
             self.constants = constants.Constants({})
             self.config: ConfigType = configuration.default_configuration.copy()
+            self.smart_shape_templates = get_default_smart_shape_templates()
         else:
             self.from_file(file_path)
             self.path = file_path
@@ -120,6 +124,7 @@ class Project:
 
         # Initialize the configuration
         self.config = configuration.get_configuration(str(file_path) + '.config')
+        self.smart_shape_templates = get_default_smart_shape_templates()
 
     def autosave(self):
         """Saves the project if it is stated in the configuration."""
@@ -506,8 +511,8 @@ class Project:
         map_blocks_to_ndarray: bool = False,
         border_blocks_to_ndarray: bool = False,
     ) -> (
-        tuple[ModelValue, int, list[SerializedSmartShape]]
-        | tuple[None, Literal[-1], list[SerializedSmartShape]]
+        tuple[ModelValue, int, dict[str, SerializedSmartShape]]
+        | tuple[None, Literal[-1], dict[str, SerializedSmartShape]]
     ):
         """Opens a footer by its label and verifies the label and type of json instance.
 
@@ -542,8 +547,8 @@ class Project:
                 assert (
                     footer['type'] == self.config['pymap']['footer']['datatype']
                 ), 'Footer datatype mismatches the configuration'
-                smart_shapes: list[SerializedSmartShape] = footer.get(
-                    'smart_shapes', []
+                smart_shapes: dict[str, SerializedSmartShape] = footer.get(
+                    'smart_shapes', {}
                 )
                 footer = footer['data']
                 assert isinstance(footer, dict), 'Footer is not a dictionary'
@@ -573,13 +578,13 @@ class Project:
                     )
                 return footer, footer_idx, smart_shapes  # type: ignore
             else:
-                return None, -1, []
+                return None, -1, {}
 
     def save_footer(
         self,
         footer: ModelValue,
         label: str,
-        smart_shapes: list[SerializedSmartShape],
+        smart_shapes: dict[str, SerializedSmartShape],
         map_blocks_to_list: bool = False,
         border_blocks_to_list: bool = False,
     ):
@@ -666,7 +671,7 @@ class Project:
                 datatype = self.config['pymap']['footer']['datatype']
                 footer = self.model[datatype](self, [], [])
                 # Save the footer
-                self.save_footer(footer, label, [])
+                self.save_footer(footer, label, {})
                 self.autosave()
                 return footer
 

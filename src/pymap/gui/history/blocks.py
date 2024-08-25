@@ -6,17 +6,64 @@ from typing import TYPE_CHECKING, Any, Sequence
 
 import numpy as np
 import numpy.typing as npt
-from agb.model.type import IntArray
 from PySide6.QtGui import QUndoCommand
 
+from agb.model.type import IntArray
 from pymap.gui.properties.utils import set_member_by_path
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
 
 
-class Resize(QUndoCommand):
-    """Resizes a set of blocks."""
+class ResizeBuffer:
+    """Buffer for resizing blocks.
+
+    It stores the old blocks and the new dimensions.
+    """
+
+    def __init__(
+        self, width_new: int, height_new: int, values_old: IntArray, fill_value: int = 0
+    ):
+        """Initializes the buffer.
+
+        Args:
+            width_new (int): The new width of the buffer
+            height_new (int): The new height of the buffer
+            values_old (IntArray): The old values, of shape [height, width, ...]
+            fill_value (int, optional): The value to fill the buffer with.
+                Defaults to 0.
+        """
+        self.width_old, self.height_old = values_old.shape[1], values_old.shape[0]
+        self.width_new = width_new
+        self.height_new = height_new
+        width = max(self.width_new, self.width_old)
+        height = max(self.height_new, self.height_old)
+        self.buffer = np.full(
+            (height, width, *values_old.shape[2:]), fill_value, dtype=int
+        )
+        self.buffer[: self.height_old, : self.width_old, ...] = values_old.copy()
+
+    @property
+    def old(self) -> IntArray:
+        """Returns the old blocks.
+
+        Returns:
+            IntArray: The old blocks
+        """
+        return self.buffer[: self.height_old, : self.width_old, ...].copy()
+
+    @property
+    def new(self) -> IntArray:
+        """Returns the new blocks.
+
+        Returns:
+            IntArray: The new blocks
+        """
+        return self.buffer[: self.height_new, : self.width_new, ...].copy()
+
+
+class ResizeMap(QUndoCommand):
+    """Action for resizing the map blocks."""
 
     def __init__(
         self,
@@ -25,7 +72,7 @@ class Resize(QUndoCommand):
         width_new: int,
         values_old: IntArray,
     ):
-        """Initializes the resize action.
+        """Initializes the resize map action.
 
         Args:
             main_gui (PymapGui): reference to the main gui
@@ -35,28 +82,13 @@ class Resize(QUndoCommand):
         """
         super().__init__()
         self.main_gui = main_gui
-        self.height_old, self.width_old = values_old.shape[0], values_old.shape[1]
-        self.height_new, self.width_new = height_new, width_new
-        height, width = (
-            max(self.height_new, self.height_old),
-            max(self.width_new, self.width_old),
-        )
-        self.buffer = np.zeros((height, width, 2), dtype=int)
-        self.buffer[: self.height_old, : self.width_old, :] = values_old.copy()
+        self.buffer = ResizeBuffer(width_new, height_new, values_old)
+        self.smart_shape_buffers = {
+            name: ResizeBuffer(width_new, height_new, smart_shape.buffer)
+            for name, smart_shape in main_gui.smart_shapes.items()
+        }
 
-    def _old_blocks(self) -> IntArray:
-        """Returns a copy of the old blocks."""
-        return self.buffer[: self.height_old, : self.width_old, :].copy()
-
-    def _new_blocks(self) -> IntArray:
-        """Returns a copy of the new blocks."""
-        return self.buffer[: self.height_new, : self.width_new, :].copy()
-
-
-class ResizeMap(Resize):
-    """Action for resizing the map blocks."""
-
-    def _change_size(self, blocks: IntArray):
+    def _change_size(self, blocks: IntArray, smart_shape_buffers: dict[str, IntArray]):
         assert self.main_gui.project is not None
         self.main_gui.set_map_dimensions(blocks.shape[1], blocks.shape[0])
         set_member_by_path(
@@ -64,19 +96,47 @@ class ResizeMap(Resize):
             blocks,
             self.main_gui.project.config['pymap']['footer']['map_blocks_path'],
         )
+        for name, buffer in smart_shape_buffers.items():
+            self.main_gui.smart_shapes[name].buffer = buffer
+
         self.main_gui.map_widget.load_header()
 
     def redo(self):
         """Resizes the map blocks."""
-        self._change_size(self._new_blocks())
+        self._change_size(
+            self.buffer.new,
+            {name: buffer.new for name, buffer in self.smart_shape_buffers.items()},
+        )
 
     def undo(self):
         """Undoes resizing of the map blocks."""
-        self._change_size(self._old_blocks())
+        self._change_size(
+            self.buffer.old,
+            {name: buffer.old for name, buffer in self.smart_shape_buffers.items()},
+        )
 
 
-class ResizeBorder(Resize):
+class ResizeBorder(QUndoCommand):
     """Action for resizing the map border."""
+
+    def __init__(
+        self,
+        main_gui: PymapGui,
+        height_new: int,
+        width_new: int,
+        values_old: IntArray,
+    ):
+        """Initializes the resize map action.
+
+        Args:
+            main_gui (PymapGui): reference to the main gui
+            height_new (int): new height
+            width_new (int): new width
+            values_old (IntArray): old values
+        """
+        super().__init__()
+        self.main_gui = main_gui
+        self.buffer = ResizeBuffer(width_new, height_new, values_old)
 
     def _change_size(self, blocks: IntArray):
         assert self.main_gui.project is not None
@@ -90,11 +150,11 @@ class ResizeBorder(Resize):
 
     def redo(self):
         """Resizes the map blocks."""
-        self._change_size(self._new_blocks())
+        self._change_size(self.buffer.new)
 
     def undo(self):
         """Undoes resizing of the map blocks."""
-        self._change_size(self._old_blocks())
+        self._change_size(self.buffer.old)
 
 
 class SetBorder(QUndoCommand):
@@ -180,7 +240,7 @@ class SetBlocks(QUndoCommand):
             self.x : self.x + blocks.shape[1],
             self.layers,
         ] = blocks[:, :, self.layers]
-        self.main_gui.map_widget.update_map(self.x, self.y, self.layers, blocks)
+        self.main_gui.map_widget.update_map_at(self.x, self.y, self.layers, blocks)
 
     def redo(self):
         """Performs the setting of blocks."""

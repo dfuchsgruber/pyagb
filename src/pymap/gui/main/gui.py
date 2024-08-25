@@ -43,6 +43,7 @@ from pymap.gui.history import (
 from pymap.gui.main.open_history import OpenHistory, OpenHistoryItem
 from pymap.gui.map import MapWidget
 from pymap.gui.resource_tree import HeaderSorting, ResourceParameterTree
+from pymap.gui.smart_shape.smart_shape import SmartShape
 from pymap.gui.tileset import TilesetWidget
 from pymap.gui.types import MapLayers
 from pymap.project import Project
@@ -61,7 +62,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """
         super().__init__(parent)
         PymapGuiModel.__init__(self)
-        self.smart_shapes = []
+        self.smart_shapes: dict[str, SmartShape] = {}
         self.settings = QSettings('dfuchsgruber', 'pymap')
         self.open_history = OpenHistory(self)
 
@@ -552,12 +553,19 @@ class PymapGui(QMainWindow, PymapGuiModel):
             return
         self.map_widget.undo_stack.clear()
         self.footer_widget.undo_stack.clear()
-        self.footer, footer_idx, self.smart_shapes = self.project.load_footer(
+        self.footer, footer_idx, serialized_smart_shapes = self.project.load_footer(
             label, map_blocks_to_ndarray=True, border_blocks_to_ndarray=True
         )
         self.footer_label = label
         # Associate this header with the new footer
         self.set_footer(self.footer_label, footer_idx)
+        self.smart_shapes = {
+            name: SmartShape.from_serialized(
+                serialized_smart_shapes, *self.get_map_dimensions()
+            )
+            for name, serialized_smart_shapes in serialized_smart_shapes.items()
+        }
+
         self.open_tilesets(
             self.get_tileset_label(True),
             self.get_tileset_label(False),
@@ -644,7 +652,10 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.project.save_footer(
             self.footer,
             self.footer_label,
-            self.smart_shapes,
+            {
+                name: smart_shape.serialize()
+                for name, smart_shape in self.smart_shapes.items()
+            },
             map_blocks_to_list=True,
             border_blocks_to_list=True,
         )
@@ -733,7 +744,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             )
             painter = QPainter(image)
             self.map_widget.map_scene.render(painter)
-            image.save(path)
+            image.save(path)  # type: ignore
             painter.end()
 
     def event_widget_toggle_pictures(self):

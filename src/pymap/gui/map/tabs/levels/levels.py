@@ -109,10 +109,6 @@ class LevelsTab(BlocksLikeTab):
         """Loads the project."""
         self.set_selection(np.zeros((1, 1, 2), dtype=int))
 
-    def load_header(self):
-        """Loads the tab."""
-        ...
-
     def set_selection(self, selection: NDArray[np.int_]):
         """Sets the selection.
 
@@ -135,5 +131,6 @@ class LevelsTab(BlocksLikeTab):
 
     def load_map(self):
         """Reloads the map image by using tiles of the map widget."""
-        self.map_widget.add_block_images_to_scene()
-        self.map_widget.add_level_images_to_scene()
+        if self.map_widget.tabs.currentWidget() == self:
+            self.map_widget.add_block_images_to_scene()
+            self.map_widget.add_level_images_to_scene()
