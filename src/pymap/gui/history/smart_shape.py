@@ -50,7 +50,7 @@ class AddOrRemoveSmartShape(QUndoCommand):
         self.smart_shapes_tab.map_widget.main_gui.smart_shapes[self.name] = deepcopy(
             self.smart_shape
         )
-        self.smart_shapes_tab.load_smart_shapes(load_index=self.name)
+        self.smart_shapes_tab.update_smart_shapes(load_index=self.name)
 
     def _remove(self):
         """Helper for removing a smart shape."""
@@ -58,7 +58,7 @@ class AddOrRemoveSmartShape(QUndoCommand):
             self.name in self.smart_shapes_tab.map_widget.main_gui.smart_shapes
         ), 'Smart shape does not exist.'
         del self.smart_shapes_tab.map_widget.main_gui.smart_shapes[self.name]
-        self.smart_shapes_tab.load_smart_shapes()
+        self.smart_shapes_tab.update_smart_shapes()
 
     def redo(self):
         """Performs the smart shape assignment."""

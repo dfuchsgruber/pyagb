@@ -202,8 +202,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
 
     def load_map(self):
         """Reloads the map image by using tiles of the map widget."""
-        if self.map_widget.tabs.currentWidget() == self:
-            self.map_widget.add_block_images_to_scene()
+        self.map_widget.add_block_images_to_scene()
 
     @property
     def main_gui(self) -> PymapGui:

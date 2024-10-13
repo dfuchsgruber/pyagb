@@ -165,13 +165,11 @@ class MapWidget(QWidget):
 
     def load_header(self, *args: Any):
         """Updates the entire header related widgets."""
-        self.smart_shapes_tab.load_smart_shapes()
-        self.load_map()
         for idx in range(self.tabs.count()):
             self.tabs.widget(idx).load_header()
+        self.load_map()
 
         if self.main_gui.project is None or self.main_gui.header is None:
-            # Reset all widgets
             self.blocks = None
 
     def load_map(self):
@@ -385,14 +383,12 @@ class MapWidget(QWidget):
 
     def add_block_images_to_scene(self):
         """Adds the block images to the scene."""
-        print('Add block images')
         for (y, x), item in np.ndenumerate(self.block_images[:, :]):
             item.setPos(16 * x, 16 * y)
             self.map_scene.addItem(item)
 
     def add_level_images_to_scene(self):
         """Adds the level images to the scene."""
-        print('Add level images')
         for (y, x), item in np.ndenumerate(self.level_images[:, :]):
             if item is not None:
                 item.setPos(16 * x, 16 * y)
@@ -400,7 +396,6 @@ class MapWidget(QWidget):
 
     def add_smart_shape_images_to_scene(self):
         """Adds the smart shape images to the scene."""
-        print('Add smart shape images')
         for (y, x), item in np.ndenumerate(self.smart_shape_images[:, :]):
             if item is not None:
                 item.setPos(16 * x, 16 * y)

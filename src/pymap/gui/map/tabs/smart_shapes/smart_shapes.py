@@ -51,7 +51,9 @@ class SmartShapesTab(BlocksLikeTab):
         self.combo_box_smart_shapes.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
         )
-        self.combo_box_smart_shapes.currentIndexChanged.connect(self.load_smart_shape)
+        self.combo_box_smart_shapes.currentIndexChanged.connect(
+            self.load_smart_shape_and_map
+        )
         buttons_layout.addWidget(self.combo_box_smart_shapes)
 
         self.button_add_auto_shape = QtWidgets.QPushButton('')
@@ -233,7 +235,13 @@ class SmartShapesTab(BlocksLikeTab):
         """Loads the tab."""
         super().load_header()
         self.button_add_auto_shape.setEnabled(self.map_widget.header_loaded)
+        self.update_smart_shapes()
         self.load_smart_shape()
+
+    def load_smart_shape_and_map(self):
+        """Reloads the smart shape and updates the map with the smart shape."""
+        self.load_smart_shape()
+        self.load_map()
 
     def set_selection(self, selection: NDArray[np.int_]) -> None:
         """Sets the selection.
@@ -291,7 +299,7 @@ class SmartShapesTab(BlocksLikeTab):
             and self.combo_box_smart_shapes.currentIndex() != -1
         )
 
-    def load_smart_shapes(self, load_index: str | None = None):
+    def update_smart_shapes(self, load_index: str | None = None):
         """Updates the list of smart shapes.
 
         Args:
@@ -323,10 +331,7 @@ class SmartShapesTab(BlocksLikeTab):
         self.combo_box_smart_shapes.setEnabled(self.smart_shape_loaded)
         self.smart_shapes_scene_view.setEnabled(self.smart_shape_loaded)
         self.selection_scene_view.setEnabled(self.smart_shape_loaded)
-
         self.update_smart_shapes_scene()
-        if self.map_widget.main_gui.footer_loaded:
-            self.load_map()
 
     def update_smart_shapes_scene(self):
         """Updates the smart shapes scene."""
@@ -377,6 +382,5 @@ class SmartShapesTab(BlocksLikeTab):
 
     def load_map(self):
         """Loads the map image."""
-        if self.map_widget.tabs.currentWidget() == self:
-            self.map_widget.add_block_images_to_scene()
-            self.map_widget.add_smart_shape_images_to_scene()
+        self.map_widget.add_block_images_to_scene()
+        self.map_widget.add_smart_shape_images_to_scene()
