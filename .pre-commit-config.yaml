@@ -19,7 +19,7 @@ repos:
         args: [--py38-plus, --keep-runtime-typing]
         files: .*\/__main__.py # We run ruff after pyugprade to remove unused imports
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.1
+    rev: v0.11.0
     hooks:
       - id: ruff # Run the linter.
         args: [--fix]

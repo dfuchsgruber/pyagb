@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Mapping, TypeAlias
 
 import agb.types
-
 import pymap.model.backend
 import pymap.model.connection
 import pymap.model.event
@@ -19,14 +18,14 @@ Model: TypeAlias = Mapping[str, agb.types.Type]
 
 # Basic scalar types
 default_model: dict[str, agb.types.Type] = {
-    'u8' : agb.types.ScalarType('u8'),
-    's8' : agb.types.ScalarType('s8'),
-    's16' : agb.types.ScalarType('s16'),
-    'u16' : agb.types.ScalarType('u16'),
-    'u32' : agb.types.ScalarType('u32'),
-    's32' : agb.types.ScalarType('s32'),
-    'int' : agb.types.ScalarType('s32'),
-    'pointer' : agb.types.ScalarType('pointer'),
+    'u8': agb.types.ScalarType('u8'),
+    's8': agb.types.ScalarType('s8'),
+    's16': agb.types.ScalarType('s16'),
+    'u16': agb.types.ScalarType('u16'),
+    'u32': agb.types.ScalarType('u32'),
+    's32': agb.types.ScalarType('s32'),
+    'int': agb.types.ScalarType('s32'),
+    'pointer': agb.types.ScalarType('pointer'),
 }
 
 # Import models from other model files
@@ -42,7 +41,8 @@ default_models: list[Model] = [
 for model in default_models:
     default_model |= model
 
-def get_model(models_file_paths: list[str])  -> Model:
+
+def get_model(models_file_paths: list[str]) -> Model:
     """Gets the models for pymap.
 
     Parameters:
@@ -69,8 +69,10 @@ def get_model(models_file_paths: list[str])  -> Model:
             try:
                 models = locals()['models_to_export']
             except Exception as e:
-                raise RuntimeError(f'{models_file_path} does not provide a ' \
-                    f'\'models_to_export\' variable (Exception: {e})')
+                raise RuntimeError(
+                    f'{models_file_path} does not provide a '
+                    f"'models_to_export' variable (Exception: {e})"
+                )
             for key, value in models.items():
                 model[key] = value
     return model
