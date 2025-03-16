@@ -6,10 +6,6 @@ repos:
       - id: check-toml
       - id: check-xml
       - id: check-yaml
-        exclude: |
-          (?x)^(
-              test/resources/config/config_with_duplicate_parameters_3.yaml
-          )$
       - id: check-added-large-files
       - id: trailing-whitespace
   - repo: https://github.com/asottile/pyupgrade
@@ -48,5 +44,5 @@ repos:
           - scipy
           - scikit-image
           - colormath
-        # check all python files in src
-        files: ^src/.*\.py$
+        # check python files recursively
+        files: .*
