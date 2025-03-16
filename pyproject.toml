@@ -40,9 +40,9 @@ quote-style="single"
 line-ending = "lf"
 
 [tool.ruff]
-select = ["F", "E", "D", "W", "C90", "I"]
+lint.select = ["F", "E", "D", "W", "C90", "I"]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [project.urls]

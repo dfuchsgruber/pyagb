@@ -1,4 +1,5 @@
 """Scene for the individual blocks."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -190,7 +191,7 @@ class BlocksScene(QGraphicsScene):
         if action == copy_action:
             self.clipboard = (
                 self.tileset_widget.main_gui.get_block(block_idx),
-                self.tileset_widget.block_properties.get_value(),
+                self.tileset_widget.block_properties.model_value,
             )
         elif action == paste_action:
             self._paste(block_idx)

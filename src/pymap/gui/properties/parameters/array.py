@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyqtgraph.parametertree.parameterTypes as parameterTypes  # type: ignore
+from pyqtgraph.parametertree.Parameter import Parameter  # type: ignore
+
 from agb.model.array import ArrayType, FixedSizeArrayType, VariableSizeArrayType
 from agb.model.type import ModelContext, ModelValue
 from agb.model.unbounded_array import UnboundedArrayType
-from pyqtgraph.parametertree.Parameter import Parameter  # type: ignore
 
 if TYPE_CHECKING:
     from pymap.project import Project
@@ -252,8 +253,9 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
         self.addChild(append_parameter)  # type: ignore
         append_parameter.sigActivated.connect(self._append)  # type: ignore
         # Make length in parent read-only
-        if self._size_location() is not None:  # type: ignore
-            self._size_location().setReadonly(True)
+        parameter = self._size_location()
+        if parameter is not None:
+            parameter.setReadonly(True)
         self.update_value()
 
     def _adaptLimits(self):
@@ -291,7 +293,7 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
             self.child('idx').setValue(len(self.values) - 1)  # type: ignore
             # self.update_value()
 
-    def _size_location(self) -> Parameter:
+    def _size_location(self) -> ModelParameterMixin | None:
         """Gets the parameter that controls the size of the array.
 
         Returns:
@@ -301,7 +303,7 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
         n_parents, location = self.datatype.size_path
         if n_parents <= 0:
             raise RuntimeError(
-                f'Upwards parent traversals must be positive, ' f'not {n_parents}'
+                f'Upwards parent traversals must be positive, not {n_parents}'
             )
         root = self
         for _ in range(n_parents):
@@ -317,7 +319,10 @@ class VariableSizeArrayTypeParameter(ArrayTypeParameter):
             int: The size of the array.
         """
         assert isinstance(self.datatype, VariableSizeArrayType)
-        return self.datatype.size_cast(self._size_location().value(), self.project)
+        parameter = self._size_location()
+        if parameter is not None:
+            return self.datatype.size_cast(parameter.value(), self.project)  # type: ignore
+        return 0
 
     def size_set(self, size: int | str):
         """Sets the size of the array.
@@ -360,7 +365,7 @@ class UnboundedArrayTypeParameter(VariableSizeArrayTypeParameter):
         """
         assert isinstance(value, list)
         # First, initialize with a stub to make the size available
-        self.values: list[Parameter | None] = [None] * len(value)
+        self.values: list[Parameter | None] = [None] * len(value)  # type: ignore
         super().__init__(
             name, project, datatype_name, value, context, parent_parameter, **kwargs
         )

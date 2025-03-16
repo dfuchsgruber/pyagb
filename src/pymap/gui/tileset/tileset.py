@@ -8,8 +8,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
-from agb import image as agbimage
-from agb.model.type import ModelValue
 from PIL import Image
 from PIL.ImageQt import ImageQt
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
@@ -17,6 +15,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPen, QPixmap
 from PySide6.QtWidgets import QFileDialog, QGraphicsPixmapItem, QMessageBox, QSizePolicy
 
+from agb import image as agbimage
+from agb.model.type import ModelValue
 from pymap.gui.tileset.block_properties import BlockProperties
 from pymap.gui.tileset.tileset_properties import TilesetProperties
 
@@ -403,12 +403,12 @@ class TilesetWidget(QtWidgets.QWidget):
                 for idx, tile_img in enumerate(self.main_gui.tiles[palette_idx]):
                     x, y = idx % 16, idx // 16
                     if flip & TileFlip.HORIZONTAL:
-                        tile_img = tile_img.transpose(Image.FLIP_LEFT_RIGHT)
+                        tile_img = tile_img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
                         x = 15 - x
                     if flip & TileFlip.VERTICAL:
-                        tile_img = tile_img.transpose(Image.FLIP_TOP_BOTTOM)
+                        tile_img = tile_img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
                         y = 63 - y
-                    image.paste(tile_img, box=(8 * x, 8 * y))
+                    image.paste(tile_img, box=(8 * x, 8 * y))  # type: ignore
                 pixmaps[flip] = QPixmap.fromImage(
                     ImageQt(image.convert('RGB').convert('RGBA'))
                 )
@@ -547,10 +547,10 @@ class TilesetWidget(QtWidgets.QWidget):
             assert isinstance(tile_idx, int)
             tile_img = self.main_gui.tiles[palette_idx][tile_idx]
             if tile['horizontal_flip']:
-                tile_img = tile_img.transpose(Image.FLIP_LEFT_RIGHT)
+                tile_img = tile_img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
             if tile['vertical_flip']:
-                tile_img = tile_img.transpose(Image.FLIP_TOP_BOTTOM)
-            image.paste(tile_img, box=(8 * x, 8 * y))
+                tile_img = tile_img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+            image.paste(tile_img, box=(8 * x, 8 * y))  # type: ignore
         width, height = (
             int(8 * selection.shape[1] * self.zoom_slider.value() / 10),
             int(8 * selection.shape[0] * self.zoom_slider.value() / 10),

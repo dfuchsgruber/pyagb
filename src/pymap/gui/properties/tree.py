@@ -5,7 +5,6 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from agb.model.type import ModelContext, ModelValue
 from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
 from PySide6.QtWidgets import (
     QHeaderView,
@@ -13,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 from typing_extensions import ParamSpec
 
+from agb.model.type import ModelContext, ModelValue
 from pymap.gui import properties
 from pymap.gui.history import (
     model_value_difference_to_undo_redo_statements,
@@ -51,12 +51,12 @@ class PropertiesTree(ParameterTree):
         self.setHeaderLabels(['Property', 'Value'])  # type: ignore
         self.header().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)  # type: ignore
         self.header().setStretchLastSection(True)  # type: ignore
-        self.header().restoreState(  # type: ignore
+        self.header().restoreState(
             self.main_gui.settings.value(
                 f'{name}/header_state',
                 b'',
                 type=bytes,
-            )
+            )  # type: ignore
         )
         self.header().sectionResized.connect(  # type: ignore
             lambda: self.main_gui.settings.setValue(  # type: ignore
@@ -130,7 +130,7 @@ class PropertiesTree(ParameterTree):
             self.addParameters(self.root, showTop=False)  # type: ignore
             self.root.sigTreeStateChanged.connect(self.tree_changed)  # type: ignore
 
-    def update(self):
+    def update(self):  # type: ignore
         """Updates all values in the tree according to the current event."""
         assert self.root is not None, 'Root is None'
         self.set_value(self.model_value)

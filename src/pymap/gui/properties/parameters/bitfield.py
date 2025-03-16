@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyqtgraph.parametertree.parameterTypes as parameterTypes  # type: ignore
+
 from agb.model.bitfield import BitfieldType
 from agb.model.type import ModelContext, ModelValue
-
 from pymap.gui.properties.parameters.scalar import ScalarTypeParameter
 
 if TYPE_CHECKING:

@@ -1,4 +1,5 @@
 """Scene for an individual block."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -61,14 +62,14 @@ class BlockScene(QGraphicsScene):
                 tile['palette_idx']
             ][tile['tile_idx']]
             if tile['horizontal_flip']:
-                tile_img = tile_img.transpose(Image.FLIP_LEFT_RIGHT)
+                tile_img = tile_img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
             if tile['vertical_flip']:
-                tile_img = tile_img.transpose(Image.FLIP_TOP_BOTTOM)
-            image.paste(tile_img, box=(8 * x, 8 * y))
+                tile_img = tile_img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+            image.paste(tile_img, box=(8 * x, 8 * y))  # type: ignore
         size = int(self.tileset_widget.zoom_slider.value() * 16 / 10)
         item = QGraphicsPixmapItem(
             QPixmap.fromImage(
-                ImageQt(image.convert('RGB').convert('RGBA')).scaled(size, size)
+                ImageQt(image.convert('RGB').convert('RGBA')).scaled(size, size)  # type: ignore
             )
         )
         self.addItem(item)

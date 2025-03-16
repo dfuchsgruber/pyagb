@@ -62,9 +62,9 @@ class ResourceParameterTree(QTreeWidget):
         self.setHeaderItem(self.tree_header)
         self.header_root = ResourceParameterTreeItemHeaderRoot(self, ['Map Header'])
         self.header_root.setIcon(0, QIcon(icon_paths[Icon.TREE]))
-        self.header_items: dict[
-            tuple[str, str], ResourceParameterTreeItemHeader
-        ] = dict()
+        self.header_items: dict[tuple[str, str], ResourceParameterTreeItemHeader] = (
+            dict()
+        )
         self.footer_root = ResourceParameterTreeItemFooterRoot(self, ['Map Footer'])
         self.footer_root.setIcon(0, QIcon(icon_paths[Icon.TREE]))
         self.tileset_root = ResourceParameterTreeItem(self, ['Tileset'])
@@ -576,7 +576,7 @@ class ResourceParameterTree(QTreeWidget):
             tileset_secondary,
             self.main_gui.project.config['pymap']['footer']['tileset_secondary_path'],
         )
-        self.main_gui.project.save_footer(footer, label, [])
+        self.main_gui.project.save_footer(footer, label, {})
         self.load_footers()
         self.main_gui.update()
 

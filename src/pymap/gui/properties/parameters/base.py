@@ -5,8 +5,9 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from agb.model.type import ModelContext, ModelParents, ModelValue
 from pyqtgraph.parametertree.Parameter import Parameter  # type: ignore
+
+from agb.model.type import ModelContext, ModelParents, ModelValue
 
 if TYPE_CHECKING:
     from pymap.project import Project

@@ -44,5 +44,3 @@ repos:
           - scipy
           - scikit-image
           - colormath
-        # check python files recursively
-        files: .*
