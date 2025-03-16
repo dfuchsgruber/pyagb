@@ -21,12 +21,14 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.0
     hooks:
+      - id: ruff
       - id: ruff # Run the linter.
         args: [--fix]
       - id: ruff # Sort improts
         name: sort imports with ruff
         args: [--select, I, --fix]
       - id: ruff-format # Run the formatter.
+
   - repo: https://github.com/RobertCraigie/pyright-python
     rev: v1.1.377
     hooks:
