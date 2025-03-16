@@ -1,0 +1,52 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+        exclude: |
+          (?x)^(
+              test/resources/config/config_with_duplicate_parameters_3.yaml
+          )$
+      - id: check-added-large-files
+      - id: trailing-whitespace
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.17.0
+    hooks:
+      - id: pyupgrade
+        name: pyupgrade
+        args: [--py38-plus]
+        exclude: .*\/__main__.py # typer doesn't supper PEP604 yet, so let's stick to the old typing
+      - id: pyupgrade
+        name: pyupgrade (__main__.py)
+        args: [--py38-plus, --keep-runtime-typing]
+        files: .*\/__main__.py # We run ruff after pyugprade to remove unused imports
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.1
+    hooks:
+      - id: ruff # Run the linter.
+        args: [--fix]
+      - id: ruff # Sort improts
+        name: sort imports with ruff
+        args: [--select, I, --fix]
+      - id: ruff-format # Run the formatter.
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.377
+    hooks:
+      - id: pyright
+        additional_dependencies: # these dependencies are synced via the first hook
+          - typing-extensions
+          - numpy
+          - pyclibrary
+          - Pillow
+          - pypng
+          - pyside6
+          - pyqtgraph
+          - appdirs
+          - scipy
+          - scikit-image
+          - colormath
+        # check all python files in src
+        files: ^src/.*\.py$
