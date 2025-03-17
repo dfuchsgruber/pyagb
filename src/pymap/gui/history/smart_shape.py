@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class AddOrRemoveSmartShape(QUndoCommand):
-    """Adds a new smart shape."""
+    """Adds or removes a new smart shape from a tileset."""
 
     def __init__(
         self,
@@ -28,7 +28,7 @@ class AddOrRemoveSmartShape(QUndoCommand):
         smart_shape: SmartShape,
         add: bool,
     ):
-        """Initializes the gfx assignment.
+        """Initializes the smart shape addition or removal.
 
         Args:
             smart_shapes_tab (PymapGui): reference to the main gui
@@ -54,9 +54,9 @@ class AddOrRemoveSmartShape(QUndoCommand):
 
     def _remove(self):
         """Helper for removing a smart shape."""
-        assert (
-            self.name in self.smart_shapes_tab.map_widget.main_gui.smart_shapes
-        ), 'Smart shape does not exist.'
+        assert self.name in self.smart_shapes_tab.map_widget.main_gui.smart_shapes, (
+            'Smart shape does not exist.'
+        )
         del self.smart_shapes_tab.map_widget.main_gui.smart_shapes[self.name]
         self.smart_shapes_tab.update_smart_shapes()
 

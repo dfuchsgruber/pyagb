@@ -157,9 +157,9 @@ class SmartShapesTab(BlocksLikeTab):
         """The current smart shape."""
         if not self.current_smart_shape_name:
             return None
-        assert (
-            self.current_smart_shape_name in self.map_widget.main_gui.smart_shapes
-        ), f'Smart shape {self.current_smart_shape_name} not found'
+        assert self.current_smart_shape_name in self.map_widget.main_gui.smart_shapes, (
+            f'Smart shape {self.current_smart_shape_name} not found'
+        )
         return self.map_widget.main_gui.smart_shapes[self.current_smart_shape_name]
 
     @property
@@ -174,9 +174,9 @@ class SmartShapesTab(BlocksLikeTab):
         dialog = AddSmartShapeDialog(self)
         if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             name, smart_shape = dialog.get_smart_shape()
-            assert (
-                name not in self.map_widget.main_gui.smart_shapes
-            ), f'Smart shape {name} already exists.'
+            assert name not in self.map_widget.main_gui.smart_shapes, (
+                f'Smart shape {name} already exists.'
+            )
             self.map_widget.undo_stack.push(
                 AddOrRemoveSmartShape(self, name, smart_shape, True)
             )
@@ -186,9 +186,9 @@ class SmartShapesTab(BlocksLikeTab):
         if self.combo_box_smart_shapes.currentIndex() == -1:
             return
         name = self.combo_box_smart_shapes.currentText()
-        assert (
-            name in self.map_widget.main_gui.smart_shapes
-        ), f'Smart shape {name} not found.'
+        assert name in self.map_widget.main_gui.smart_shapes, (
+            f'Smart shape {name} not found.'
+        )
         self.map_widget.undo_stack.push(
             AddOrRemoveSmartShape(
                 self,
@@ -318,12 +318,11 @@ class SmartShapesTab(BlocksLikeTab):
             index = self.combo_box_smart_shapes.findText(load_index)
             if index != -1:
                 self.combo_box_smart_shapes.setCurrentIndex(index)
+                self.load_smart_shape()
         self.combo_box_smart_shapes.blockSignals(False)
 
-    def load_smart_shape(self):
+    def _update_smart_shape_enabled(self):
         """Update the smart shape."""
-        self.selection_scene.clear()
-        self._clear_properties_layout()
         self.button_remove_auto_shape.setEnabled(self.smart_shape_loaded)
         self.button_edit_auto_shape.setEnabled(self.smart_shape_loaded)
         self.button_reload_auto_shape.setEnabled(self.smart_shape_loaded)
@@ -331,6 +330,12 @@ class SmartShapesTab(BlocksLikeTab):
         self.combo_box_smart_shapes.setEnabled(self.smart_shape_loaded)
         self.smart_shapes_scene_view.setEnabled(self.smart_shape_loaded)
         self.selection_scene_view.setEnabled(self.smart_shape_loaded)
+
+    def load_smart_shape(self):
+        """Update the smart shape."""
+        self.selection_scene.clear()
+        self._clear_properties_layout()
+        self._update_smart_shape_enabled()
         self.update_smart_shapes_scene()
 
     def update_smart_shapes_scene(self):
