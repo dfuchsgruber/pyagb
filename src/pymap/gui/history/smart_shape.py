@@ -52,6 +52,7 @@ class AddOrRemoveSmartShape(QUndoCommand):
             self.smart_shape
         )
         self.smart_shapes_tab.update_smart_shapes(load_index=self.name)
+        self.smart_shapes_tab.map_widget.load_map()
 
     def _remove(self):
         """Helper for removing a smart shape."""
@@ -60,6 +61,7 @@ class AddOrRemoveSmartShape(QUndoCommand):
         )
         del self.smart_shapes_tab.map_widget.main_gui.smart_shapes[self.name]
         self.smart_shapes_tab.update_smart_shapes()
+        self.smart_shapes_tab.map_widget.load_map()
 
     def redo(self):
         """Performs the smart shape assignment."""

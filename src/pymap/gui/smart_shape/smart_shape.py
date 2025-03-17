@@ -11,6 +11,7 @@ class SerializedSmartShape(TypedDict):
 
     template: str
     blocks: list[list[int]]  # height x width
+    buffer: list[list[list[int]]]  # map_height x map_width
 
 
 class SmartShape:
@@ -28,9 +29,7 @@ class SmartShape:
         self,
         template: str,
         template_blocks: list[list[int]],
-        buffer_width: int,
-        buffer_height: int,
-        *depth: int,
+        buffer_blocks: list[list[list[int]]],
     ):
         """Initialize the smart shape."""
         self.template = template
@@ -38,13 +37,17 @@ class SmartShape:
         self.blocks: NDArray[np.int_] = np.array(template_blocks, dtype=int)
         # The buffer is what is actually mapped to the map
         # It is transient, i.e. not serialized
-        self.buffer = np.zeros((buffer_height, buffer_width) + depth, dtype=int)
+        self.buffer: NDArray[np.int_] = np.array(buffer_blocks, dtype=int)
 
     def serialize(self) -> SerializedSmartShape:
         """Serialize the smart shape."""
-        return {'template': self.template, 'blocks': self.blocks.tolist()}
+        return {
+            'template': self.template,
+            'blocks': self.blocks.tolist(),  # type: ignore
+            'buffer': self.buffer.tolist(),  # type: ignore
+        }
 
     @classmethod
-    def from_serialized(cls, serialized: SerializedSmartShape, *buffer_dimensions: int):
+    def from_serialized(cls, serialized: SerializedSmartShape):
         """Create a smart shape from a serialized smart shape."""
-        return cls(serialized['template'], serialized['blocks'], *buffer_dimensions)
+        return cls(serialized['template'], serialized['blocks'], serialized['buffer'])

@@ -561,7 +561,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.set_footer(self.footer_label, footer_idx)
         self.smart_shapes = {
             name: SmartShape.from_serialized(
-                serialized_smart_shapes, *self.get_map_dimensions(), 2
+                serialized_smart_shapes,
             )
             for name, serialized_smart_shapes in serialized_smart_shapes.items()
         }
@@ -890,6 +890,26 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.map_widget.undo_stack.push(
             SmartShapeReplaceBlocks(
                 self, smart_shape_name, idx, layer, value, value_old
+            )
+        )
+
+    def smart_shape_clear(
+        self,
+        smart_shape_name: str,
+        value: int = 0,
+    ):
+        """Clears the smart shape map."""
+        if not self.footer_loaded:
+            return
+        smart_shape = self.smart_shapes[smart_shape_name]
+        self.map_widget.undo_stack.push(
+            SetSmartShapeBlocks(
+                self,
+                smart_shape_name,
+                0,
+                0,
+                np.full_like(smart_shape.buffer, value),
+                smart_shape.buffer.copy(),
             )
         )
 

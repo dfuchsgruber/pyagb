@@ -205,7 +205,7 @@ class SmartShapesTab(BlocksLikeTab):
 
     def clear_auto_shape(self):
         """Clear the automatic shape."""
-        ...
+        self.map_widget.main_gui.smart_shape_clear(self.current_smart_shape_name)
 
     def edit_auto_shape(self):
         """Edit the automatic shape."""
@@ -241,8 +241,7 @@ class SmartShapesTab(BlocksLikeTab):
 
     def load_smart_shape_and_map(self):
         """Reloads the smart shape and updates the map with the smart shape."""
-        self.load_smart_shape()
-        self.load_map()
+        self.map_widget.load_map()
 
     @property
     def blocks(self) -> NDArray[np.int_] | None:
@@ -372,7 +371,7 @@ class SmartShapesTab(BlocksLikeTab):
             index = self.combo_box_smart_shapes.findText(load_index)
             if index != -1:
                 self.combo_box_smart_shapes.setCurrentIndex(index)
-                self.load_smart_shape()
+        self.load_smart_shape()
         self.combo_box_smart_shapes.blockSignals(False)
 
     def _update_smart_shape_enabled(self):
