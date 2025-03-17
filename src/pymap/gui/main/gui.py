@@ -813,14 +813,27 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self, x: int, y: int, layer: int, value: npt.NDArray[np.int_]
     ) -> None:
         """Replaces all blocks that are like (x, y) in the layer by the new value."""
+        map_blocks = self.get_map_blocks()[:, :, layer]
+        idx = np.where(map_blocks == map_blocks[y, x])  # type: ignore
+        self.replace_blocks_at(
+            idx=idx,
+            layer=layer,
+            value=value,
+        )
+
+    def replace_blocks_at(
+        self,
+        idx: tuple[NDArray[np.int_], ...],
+        layer: int,
+        value: npt.NDArray[np.int_],
+    ):
+        """Replaces all blocks in the index by the new value."""
         if not self.footer_loaded:
             return
         map_blocks = self.get_map_blocks()[:, :, layer]
-        value_old = map_blocks[y, x].copy()
-        idx = np.where(map_blocks == value_old)
-        assert value_old.shape == value.shape
+        value_old = map_blocks[idx].copy()  # type: ignore
         self.map_widget.undo_stack.push(
-            ReplaceBlocks(self, idx, layer, value, value_old)
+            ReplaceBlocks(self, idx, layer, value, value_old)  # type: ignore
         )
 
     def smart_shape_set_blocks_at(

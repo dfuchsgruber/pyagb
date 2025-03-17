@@ -201,7 +201,18 @@ class SmartShapesTab(BlocksLikeTab):
 
     def reload_auto_shape(self):
         """Reload the automatic shape, i.e. re-generates it from the metatile map."""
-        ...
+        smart_shape = self.current_smart_shape
+        if smart_shape is None:
+            return
+        assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
+        template = self.map_widget.main_gui.project.smart_shape_templates[
+            smart_shape.template
+        ]
+        blocks, mask = template.generate_blocks(
+            smart_shape,
+            self.map_widget.main_gui.get_map_blocks(),
+        )
+        self.map_widget.main_gui.replace_blocks_at(mask, 0, blocks)
 
     def clear_auto_shape(self):
         """Clear the automatic shape."""
@@ -234,10 +245,10 @@ class SmartShapesTab(BlocksLikeTab):
 
     def load_header(self):
         """Loads the tab."""
-        super().load_header()
         self.button_add_auto_shape.setEnabled(self.map_widget.header_loaded)
         self.update_smart_shapes()
         self.load_smart_shape()
+        super().load_header()
 
     def load_smart_shape_and_map(self):
         """Reloads the smart shape and updates the map with the smart shape."""
