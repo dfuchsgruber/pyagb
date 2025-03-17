@@ -168,9 +168,9 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         """
         smart_shape = self.smart_shapes_tab.current_smart_shape
         assert smart_shape is not None, 'Smart shape is not loaded'
-        assert (
-            self.smart_shapes_tab.current_smart_shape_name is not None
-        ), 'Smart shape name is not loaded'
+        assert self.smart_shapes_tab.current_smart_shape_name is not None, (
+            'Smart shape name is not loaded'
+        )
 
         # Truncate to fit the smart shape map
         window = smart_shape.blocks[

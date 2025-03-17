@@ -1,8 +1,13 @@
 """Templates for smart shapes."""
 
 import importlib.resources as resources
+from abc import abstractmethod
 
+import numpy as np
+from numpy.typing import NDArray
 from PySide6.QtGui import QPixmap
+
+from pymap.gui.smart_shape.smart_shape import SmartShape
 
 
 class SmartShapeTemplate:
@@ -51,9 +56,9 @@ class SmartShapeTemplate:
             for x in range(width // 16)
         ]
         if block_tooltips is not None:
-            assert len(block_tooltips) == len(
-                self.block_pixmaps
-            ), 'The number of block tooltips must match the number of blocks.'
+            assert len(block_tooltips) == len(self.block_pixmaps), (
+                'The number of block tooltips must match the number of blocks.'
+            )
         else:
             block_tooltips = [''] * self.num_blocks
         self.block_tooltips = block_tooltips
@@ -67,3 +72,21 @@ class SmartShapeTemplate:
     def dimensions(self) -> tuple[int, int]:
         """Return the dimensions of the template."""
         return self.template_pixmap.width() // 16, self.template_pixmap.height() // 16
+
+    @abstractmethod
+    def generate_blocks(
+        self,
+        smart_shape: SmartShape,
+        map_blocks: NDArray[np.int_],
+    ) -> tuple[NDArray[np.int_], tuple[NDArray[np.int_], ...]]:
+        """Generates map blocks for the given smart shape.
+
+        Args:
+            smart_shape (SmartShape): The smart shape to generate blocks for.
+            map_blocks (NDArray[np.int_]): The blocks of the map.
+
+        Returns:
+            NDArray[np.int_]: The updated buffer.
+            NDArray[np.int_]: Which blocks in the buffer a to be changed.
+        """
+        raise NotImplementedError

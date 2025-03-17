@@ -1,16 +1,16 @@
 """Separate class to handel functionality for the ModelValues class."""
 
-
 from abc import abstractmethod
 from pathlib import Path
 
 import numpy as np
-from agb.model.type import ModelValue
 from numpy.typing import NDArray
 
+from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
 from pymap.gui.properties import get_member_by_path, set_member_by_path
 from pymap.gui.render import BlockImages, TileImages
+from pymap.gui.smart_shape.smart_shape import SmartShape
 from pymap.project import Project
 
 
@@ -32,6 +32,7 @@ class PymapGuiModel:
         self.tileset_secondary_label = None
         self.block_images: BlockImages | None = None
         self.tiles: TileImages | None = None
+        self.smart_shapes: dict[str, SmartShape] = {}
 
     @property
     def project_loaded(self) -> bool:
@@ -100,9 +101,9 @@ class PymapGuiModel:
             self.footer,
             self.project.config['pymap']['footer']['border_height_path'],
         )
-        assert isinstance(
-            border_height, int
-        ), f'Expected int, got {type(border_height)}'
+        assert isinstance(border_height, int), (
+            f'Expected int, got {type(border_height)}'
+        )
         return border_width, border_height
 
     def get_connections(self) -> list[ModelValue]:

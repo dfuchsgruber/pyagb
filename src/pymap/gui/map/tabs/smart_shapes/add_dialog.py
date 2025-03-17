@@ -41,9 +41,9 @@ class AddSmartShapeDialog(QDialog):
         layout.addWidget(QLabel('Template'), 2, 1)
         self.combo_box_smart_shapes = QComboBox()
         layout.addWidget(self.combo_box_smart_shapes, 2, 2)
-        assert (
-            self.smart_shapes_tab.map_widget.main_gui.project is not None
-        ), 'A project must be loaded.'
+        assert self.smart_shapes_tab.map_widget.main_gui.project is not None, (
+            'A project must be loaded.'
+        )
         self.combo_box_smart_shapes.addItems(
             list(
                 self.smart_shapes_tab.map_widget.main_gui.project.smart_shape_templates
@@ -77,9 +77,9 @@ class AddSmartShapeDialog(QDialog):
 
     def update_preview(self):
         """Update the preview."""
-        assert (
-            self.smart_shapes_tab.map_widget.main_gui.project is not None
-        ), 'A project must be loaded.'
+        assert self.smart_shapes_tab.map_widget.main_gui.project is not None, (
+            'A project must be loaded.'
+        )
         template = (
             self.smart_shapes_tab.map_widget.main_gui.project.smart_shape_templates[
                 self.combo_box_smart_shapes.currentText()
@@ -89,10 +89,14 @@ class AddSmartShapeDialog(QDialog):
         self.preview_scene.addPixmap(template.template_pixmap)
 
     def name_is_valid(self) -> bool:
-        """Checks that none of the smart shapes have the same name as the one entered."""
-        assert (
-            self.smart_shapes_tab.map_widget.main_gui.project is not None
-        ), 'A project must be loaded.'
+        """Asserts that no name collision happens.
+
+        Checks that none of the smart shapes have the same name as the
+        one entered.
+        """
+        assert self.smart_shapes_tab.map_widget.main_gui.project is not None, (
+            'A project must be loaded.'
+        )
         return (
             self.name_line_edit.text()
             not in self.smart_shapes_tab.map_widget.main_gui.smart_shapes.keys()
@@ -116,9 +120,9 @@ class AddSmartShapeDialog(QDialog):
 
     def get_smart_shape(self) -> tuple[str, SmartShape]:
         """Get the smart shape."""
-        assert (
-            self.smart_shapes_tab.map_widget.main_gui.project is not None
-        ), 'A project must be loaded.'
+        assert self.smart_shapes_tab.map_widget.main_gui.project is not None, (
+            'A project must be loaded.'
+        )
         template = (
             self.smart_shapes_tab.map_widget.main_gui.project.smart_shape_templates[
                 self.combo_box_smart_shapes.currentText()
@@ -127,7 +131,10 @@ class AddSmartShapeDialog(QDialog):
         width, height = template.dimensions
         blocks: list[list[int]] = np.zeros((height, width), dtype=int).tolist()
         width, height = self.smart_shapes_tab.map_widget.main_gui.get_map_dimensions()
+        buffer_blocks = np.zeros((height, width, 2), dtype=int).tolist()
         shape: SmartShape = SmartShape(
-            self.combo_box_smart_shapes.currentText(), blocks, height, width
+            self.combo_box_smart_shapes.currentText(),
+            blocks,
+            buffer_blocks,  # type: ignore
         )
         return self.name_line_edit.text(), shape

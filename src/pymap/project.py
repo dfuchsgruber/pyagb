@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict
 
 import agb.string.agbstring
 from agb import image
-
 from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 from pymap.gui.smart_shape.smart_shape import SerializedSmartShape
 from pymap.gui.smart_shape.template.default_templates import (
@@ -21,20 +20,37 @@ from pymap.gui.smart_shape.template.default_templates import (
 if TYPE_CHECKING:
     from agb.model.type import Model, ModelValue
 
-    ModelDataType = TypedDict(
-        'ModelDataType', {'data': ModelValue, 'label': str, 'type': str}
-    )
+    class ModelDataType(TypedDict):
+        """Type of the model data."""
+
+        data: ModelValue
+        label: str
+        type: str
+
 
 from pymap.configuration import ConfigType
 
 from . import configuration, constants
 
-HeaderType = NamedTuple(
-    'HeaderType',
-    [('label', str | None), ('path', str | None), ('namespace', str | None)],
-)
+
+class HeaderType(NamedTuple):
+    """Representation of a map header."""
+
+    label: str | None
+    path: str | None
+    namespace: str | None
+
+
 HeadersType = dict[str, dict[str, HeaderType]]
-FooterType = NamedTuple('FooterType', [('idx', int), ('path', str)])
+
+
+class FooterType(NamedTuple):
+    """Representation of a map footer."""
+
+    idx: int
+    path: str
+
+
 FootersType = dict[str, FooterType]
 TilesetsType = dict[str, str]
 GfxsType = dict[str, str]
@@ -183,26 +199,24 @@ class Project:
             if bank in self.headers and map_idx in self.headers[bank]:
                 label, path, namespace = self.headers[bank][map_idx]
                 assert path is not None, (
-                    f'Path to header [{bank}, {map_idx.zfill(2)}]' ' is not initialized'
+                    f'Path to header [{bank}, {map_idx.zfill(2)}] is not initialized'
                 )
                 with open(Path(path), encoding=self.config['json']['encoding']) as f:
                     header: ModelDataType = json.load(f)
-                assert (
-                    header['label'] == label
-                ), 'Header label mismatches the label stored in the project file'
-                assert (
-                    header['type'] == self.config['pymap']['header']['datatype']
-                ), 'Header datatype mismatches the configuration'
+                assert header['label'] == label, (
+                    'Header label mismatches the label stored in the project file'
+                )
+                assert header['type'] == self.config['pymap']['header']['datatype'], (
+                    'Header datatype mismatches the configuration'
+                )
                 assert namespace is not None, (
-                    f'Namespace of header [{bank}, '
-                    f'{map_idx.zfill(2)}] is not defined'
+                    f'Namespace of header [{bank}, {map_idx.zfill(2)}] is not defined'
                 )
                 namespace_in_data = get_member_by_path(
                     header['data'], self.config['pymap']['header']['namespace_path']
                 )
                 assert isinstance(namespace_in_data, str), (
-                    f'Namespace of header '
-                    f'[{bank}, {map_idx.zfill(2)}] is not a string'
+                    f'Namespace of header [{bank}, {map_idx.zfill(2)}] is not a string'
                 )
                 assert _canonical_form(namespace) == _canonical_form(
                     namespace_in_data
@@ -239,7 +253,7 @@ class Project:
             if bank in self.headers and map_idx in self.headers[bank]:
                 path = self.headers[bank][map_idx][1]
                 assert path is not None, (
-                    f'Path to header [{bank}, {map_idx.zfill(2)}]' ' is not set'
+                    f'Path to header [{bank}, {map_idx.zfill(2)}] is not set'
                 )
                 header, _, _ = self.load_header(bank, map_idx)
                 set_member_by_path(
@@ -319,7 +333,7 @@ class Project:
                     self.autosave()
                 else:
                     raise RuntimeError(
-                        f'Header [{bank}, ' f'{map_idx.zfill(2)}] already exists.'
+                        f'Header [{bank}, {map_idx.zfill(2)}] already exists.'
                     )
             else:
                 raise RuntimeError(f'Bank {bank} not existent. ')
@@ -379,7 +393,7 @@ class Project:
             if bank in self.headers and map_idx in self.headers[bank]:
                 label, path, _ = self.headers[bank][map_idx]
                 assert path is not None, (
-                    f'Path to header [{bank}, {map_idx.zfill(2)}]' ' is not initialized'
+                    f'Path to header [{bank}, {map_idx.zfill(2)}] is not initialized'
                 )
                 with open(
                     Path(path), 'w+', encoding=self.config['json']['encoding']
@@ -429,7 +443,7 @@ class Project:
             if bank in self.headers:
                 if map_idx in self.headers[bank]:
                     raise RuntimeError(
-                        f'Index {map_idx} already present in ' f'bank {bank}'
+                        f'Index {map_idx} already present in bank {bank}'
                     )
                 else:
                     self.headers[bank][map_idx] = HeaderType(
@@ -466,7 +480,7 @@ class Project:
 
         assert label_old in self.footers, f'Footer {label_old} not existent.'
         assert label_new not in self.footers, (
-            f'Footer label {label_new} ' f'already existent.'
+            f'Footer label {label_new} already existent.'
         )
         for bank in self.headers:
             for map_idx in self.headers[bank]:
@@ -542,11 +556,11 @@ class Project:
                 with open(Path(path), encoding=self.config['json']['encoding']) as f:
                     footer = json.load(f)
                 assert footer['label'] == label, (
-                    'Footer label mismatches the label ' 'stored in the project.'
+                    'Footer label mismatches the label stored in the project.'
                 )
-                assert (
-                    footer['type'] == self.config['pymap']['footer']['datatype']
-                ), 'Footer datatype mismatches the configuration'
+                assert footer['type'] == self.config['pymap']['footer']['datatype'], (
+                    'Footer datatype mismatches the configuration'
+                )
                 smart_shapes: dict[str, SerializedSmartShape] = footer.get(
                     'smart_shapes', {}
                 )
@@ -696,9 +710,9 @@ class Project:
                 raise RuntimeError(f'Footer index {footer_idx} already in use.')
             with open(Path(path), encoding=self.config['json']['encoding']) as f:
                 footer = json.load(f)
-            assert (
-                footer['type'] == self.config['pymap']['footer']['datatype']
-            ), 'Footer datatype mismatches the configuration'
+            assert footer['type'] == self.config['pymap']['footer']['datatype'], (
+                'Footer datatype mismatches the configuration'
+            )
             self.footers[label] = FooterType(footer_idx, os.path.relpath(path))
             self.save_footer(footer['data'], label, footer.get('smart_shapes', []))
             self.autosave()
@@ -746,9 +760,9 @@ class Project:
                 assert path is not None
                 with open(Path(path), encoding=self.config['json']['encoding']) as f:
                     tileset = json.load(f)
-                assert (
-                    tileset['label'] == label
-                ), 'Tileset label mismatches the label stored in the project'
+                assert tileset['label'] == label, (
+                    'Tileset label mismatches the label stored in the project'
+                )
                 assert (
                     tileset['type']
                     == self.config['pymap'][
