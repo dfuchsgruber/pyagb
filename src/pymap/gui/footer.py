@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from agb.model.type import ModelContext
 from PySide6.QtGui import QUndoStack
 from PySide6.QtWidgets import QWidget
 from typing_extensions import ParamSpec
 
+from agb.model.type import ModelContext
 from pymap.gui.history.statement import (
     UndoRedoStatements,
 )

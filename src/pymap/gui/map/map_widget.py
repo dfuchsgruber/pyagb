@@ -82,7 +82,7 @@ class MapWidget(QWidget):
         super().__init__(parent=parent)
         self.main_gui = main_gui
         # Store blocks in an seperate numpy array that contains the border as well
-        self.blocks = None
+        self.blocks = None  # Array of map blocks *with* padding
         self.layers = np.array(0)
         self.undo_stack = QtGui.QUndoStack()
 
@@ -126,7 +126,7 @@ class MapWidget(QWidget):
 
         splitter.restoreState(
             self.main_gui.settings.value(
-                'map_widget/horizontal_splitter_state', bytes(), type=bytes
+                'map_widget/horizontal_splitter_state', b'', type=bytes
             )  # type: ignore
         )
         splitter.splitterMoved.connect(
@@ -268,7 +268,7 @@ class MapWidget(QWidget):
                 padded_height, padded_height + map_height
             ):
                 block_idx: int = self.smart_shapes_tab.smart_shape_blocks[
-                    y - padded_height, x - padded_width
+                    y - padded_height, x - padded_width, 0
                 ]
                 item = QGraphicsPixmapItem(pixmaps[block_idx])
                 item.setAcceptHoverEvents(True)

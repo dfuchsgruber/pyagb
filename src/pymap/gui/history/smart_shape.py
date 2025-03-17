@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import numpy as np
 from PySide6.QtGui import QUndoCommand
 
 from agb.model.type import IntArray
@@ -117,6 +118,7 @@ class SetSmartShapeTemplateBlocks(QUndoCommand):
             self.y : self.y + blocks.shape[0], self.x : self.x + blocks.shape[1]
         ] = blocks.copy()
         self.edit_dialog.update_shape_with_blocks(self.x, self.y, blocks)
+        self.edit_dialog.smart_shapes_tab.update_smart_shapes_scene()
 
     def redo(self):
         """Performs the setting of blocks."""
@@ -159,8 +161,8 @@ class SetSmartShapeBlocks(QUndoCommand):
 
     def _set_blocks(self, blocks: IntArray):
         # Helper method for setting a set of blocks
-        blocks = self.main_gui.smart_shapes[self.smart_shape_name].blocks
-        blocks[
+        footer_blocks = self.main_gui.smart_shapes[self.smart_shape_name].buffer
+        footer_blocks[
             self.y : self.y + blocks.shape[0], self.x : self.x + blocks.shape[1], ...
         ] = blocks[:, :, ...]
         if (
@@ -178,3 +180,49 @@ class SetSmartShapeBlocks(QUndoCommand):
     def undo(self):
         """Undos setting of blocks."""
         self._set_blocks(self.blocks_old)
+
+
+class SmartShapeReplaceBlocks(QUndoCommand):
+    """Action for replacing a set of blocks with another."""
+
+    def __init__(
+        self,
+        main_gui: PymapGui,
+        smart_shape_name: str,
+        idx: Any,
+        layer: int,
+        value_new: IntArray,
+        value_old: IntArray,
+    ):
+        """Initializes the replace blocks action.
+
+        Args:
+            main_gui (PymapGui): reference to the main gui
+            smart_shape_name (str): The name of the smart shape
+            idx (tuple[int, int]): which coordinates
+            layer (int): which layer to replace
+            value_new (IntArray): new value
+            value_old (IntArray): old value
+        """
+        super().__init__()
+        self.main_gui = main_gui
+        self.smart_shape_name = smart_shape_name
+        self.idx = idx
+        self.layer = layer
+        self.value_new = value_new
+        self.value_old = value_old
+
+    def _fill(self, value: IntArray):
+        """Helper for filling the blocks."""
+        map_blocks = self.main_gui.smart_shapes[self.smart_shape_name].buffer
+        assert isinstance(map_blocks, np.ndarray)
+        map_blocks[:, :, self.layer][self.idx] = value
+        self.main_gui.map_widget.load_map()
+
+    def redo(self):
+        """Performs the flood fill."""
+        self._fill(self.value_new)
+
+    def undo(self):
+        """Performs the flood fill."""
+        self._fill(self.value_old)

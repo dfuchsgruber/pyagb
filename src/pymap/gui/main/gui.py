@@ -40,6 +40,7 @@ from pymap.gui.history import (
     SetBlocks,
     SetBorder,
 )
+from pymap.gui.history.smart_shape import SetSmartShapeBlocks, SmartShapeReplaceBlocks
 from pymap.gui.main.open_history import OpenHistory, OpenHistoryItem
 from pymap.gui.map import MapWidget
 from pymap.gui.resource_tree import HeaderSorting, ResourceParameterTree
@@ -62,7 +63,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """
         super().__init__(parent)
         PymapGuiModel.__init__(self)
-        self.smart_shapes: dict[str, SmartShape] = {}
         self.settings = QSettings('dfuchsgruber', 'pymap')
         self.open_history = OpenHistory(self)
 
@@ -561,7 +561,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.set_footer(self.footer_label, footer_idx)
         self.smart_shapes = {
             name: SmartShape.from_serialized(
-                serialized_smart_shapes, *self.get_map_dimensions()
+                serialized_smart_shapes, *self.get_map_dimensions(), 2
             )
             for name, serialized_smart_shapes in serialized_smart_shapes.items()
         }
@@ -821,6 +821,76 @@ class PymapGui(QMainWindow, PymapGuiModel):
         assert value_old.shape == value.shape
         self.map_widget.undo_stack.push(
             ReplaceBlocks(self, idx, layer, value, value_old)
+        )
+
+    def smart_shape_set_blocks_at(
+        self,
+        smart_shape_name: str,
+        x: int,
+        y: int,
+        blocks: npt.NDArray[np.int_],
+    ):
+        """Sets the blocks of a smart shape and adds an action to the history.
+
+        Args:
+            smart_shape_name (str): For which smart shape to set.
+            x (int): The x coordinate.
+            y (int): The y coordinate.
+            layers (MapLayers): Which layers to set.
+            blocks (npt.NDArray[np.int_]): The blocks to set.
+        """
+        if not self.footer_loaded:
+            return
+        map_blocks = self.smart_shapes[smart_shape_name].buffer
+        # Truncate the blocks to fit the map
+        window = map_blocks[y : y + blocks.shape[0], x : x + blocks.shape[1]].copy()
+        blocks = blocks[: window.shape[0], : window.shape[1]].copy()
+        self.map_widget.undo_stack.push(
+            SetSmartShapeBlocks(self, smart_shape_name, x, y, blocks, window)
+        )
+
+    def smart_shape_flood_fill(
+        self,
+        smart_shape_name: str,
+        x: int,
+        y: int,
+        value: npt.NDArray[np.int_],
+        layer: int = 0,
+    ):
+        """Flood fills with origin (x, y) and a certain layer with a new value."""
+        if not self.footer_loaded:
+            return
+        smart_shape_map_blocks = self.smart_shapes[smart_shape_name].buffer[..., layer]
+        # Value 0 is not recognized by the connected component algorithm
+        labeled: NDArray[np.int_] = label_image(
+            smart_shape_map_blocks + 1, connectivity=1
+        )  # type: ignore
+        idx = np.where(labeled == labeled[y, x])
+        self.map_widget.undo_stack.push(
+            SmartShapeReplaceBlocks(
+                self, smart_shape_name, idx, layer, value, smart_shape_map_blocks[y, x]
+            )
+        )
+
+    def smart_shape_replace_blocks(
+        self,
+        smart_shape_name: str,
+        x: int,
+        y: int,
+        layer: int,
+        value: npt.NDArray[np.int_],
+    ):
+        """Replaces all blocks that are like (x, y) in the layer by the new value."""
+        if not self.footer_loaded:
+            return
+        smart_shape_map_blocks = self.smart_shapes[smart_shape_name].buffer[..., layer]
+        value_old = smart_shape_map_blocks[y, x].copy()
+        idx = np.where(smart_shape_map_blocks == value_old)
+        assert value_old.shape == value.shape
+        self.map_widget.undo_stack.push(
+            SmartShapeReplaceBlocks(
+                self, smart_shape_name, idx, layer, value, value_old
+            )
         )
 
     def resize_map(self, height_new: int, width_new: int):

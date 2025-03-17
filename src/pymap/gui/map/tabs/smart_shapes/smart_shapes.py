@@ -28,6 +28,7 @@ from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
 from pymap.gui.smart_shape.smart_shape import SmartShape
 
 from .add_dialog import AddSmartShapeDialog
+from .blocks import SmartShapesBlocksScene
 from .edit_dialog import EditSmartShapeDialog
 
 if TYPE_CHECKING:
@@ -96,7 +97,7 @@ class SmartShapesTab(BlocksLikeTab):
         buttons_layout.addWidget(self.button_reload_auto_shape)
 
         self.button_clear_auto_shape = QtWidgets.QPushButton('')
-        self.button_clear_auto_shape.setIcon(QIcon(icon_paths[Icon.RELOAD]))
+        self.button_clear_auto_shape.setIcon(QIcon(icon_paths[Icon.CLEAR]))
         self.button_clear_auto_shape.clicked.connect(self.clear_auto_shape)
         self.button_clear_auto_shape.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
@@ -129,14 +130,14 @@ class SmartShapesTab(BlocksLikeTab):
         group_selection.setLayout(selection_scene_layout)
         selection_scene_layout.addWidget(self.selection_scene_view)
 
-        self.tiles_scene = QGraphicsScene()
-        self.tiles_scene_view = QtWidgets.QGraphicsView()
-        self.tiles_scene_view.setScene(self.tiles_scene)
-        self.tiles_scene_view.setSizePolicy(
+        self.blocks_scene = SmartShapesBlocksScene(self)
+        self.blocks_scene_view = QtWidgets.QGraphicsView()
+        self.blocks_scene_view.setScene(self.blocks_scene)
+        self.blocks_scene_view.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
         )
-        self.tiles_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        tiles_layout.addWidget(self.tiles_scene_view, 2, 1, 1, 1)
+        self.blocks_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        tiles_layout.addWidget(self.blocks_scene_view, 2, 1, 1, 1)
 
         group_properties = QtWidgets.QGroupBox('Properties')
         group_properties.setSizePolicy(
@@ -243,6 +244,31 @@ class SmartShapesTab(BlocksLikeTab):
         self.load_smart_shape()
         self.load_map()
 
+    @property
+    def blocks(self) -> NDArray[np.int_] | None:
+        """The blocks."""
+        smart_shape = self.current_smart_shape
+        if smart_shape is None:
+            return None
+        else:
+            # Add padding to the blocks by creating a copy
+            # This is inefficient...
+            padded_width, padded_height = self.map_widget.main_gui.get_border_padding()
+            map_width, map_height = self.map_widget.main_gui.get_map_dimensions()
+            blocks = np.zeros(
+                (
+                    map_height + 2 * padded_height,
+                    map_width + 2 * padded_width,
+                    *smart_shape.buffer.shape[2:],
+                ),
+                dtype=int,
+            )
+            blocks[
+                padded_height : padded_height + map_height,
+                padded_width : padded_width + map_width,
+            ] = smart_shape.buffer
+            return blocks
+
     def set_selection(self, selection: NDArray[np.int_]) -> None:
         """Sets the selection.
 
@@ -252,8 +278,27 @@ class SmartShapesTab(BlocksLikeTab):
         selection = selection.copy()
         self.selection = selection
         self.selection_scene.clear()
-        if not self.map_widget.header_loaded:
+        if (
+            not self.map_widget.main_gui.footer_loaded
+            or self.current_smart_shape is None
+        ):
             return
+        assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
+        template = self.map_widget.main_gui.project.smart_shape_templates[
+            self.current_smart_shape.template
+        ]
+
+        for (y, x), block in np.ndenumerate(selection[:, :, 0]):
+            item = QGraphicsPixmapItem(template.block_pixmaps[block])
+            self.selection_scene.addItem(item)
+            item.setPos(16 * x, 16 * y)  # 16 pixels per block
+
+        self.selection_scene.setSceneRect(
+            0,
+            0,
+            selection.shape[1] * 16,
+            selection.shape[0] * 16,  # 16 pixels per block
+        )
 
     def set_blocks_at(
         self, x: int, y: int, layers: NDArray[np.int_], blocks: NDArray[np.int_]
@@ -266,8 +311,9 @@ class SmartShapesTab(BlocksLikeTab):
             layers (NDArray[np.int_]): The layers.
             blocks (NDArray[np.int_]): The blocks.
         """
-        # TODO
-        self.map_widget.main_gui.set_blocks_at
+        self.map_widget.main_gui.smart_shape_set_blocks_at(
+            self.current_smart_shape_name, x, y, blocks
+        )
 
     def replace_blocks(self, x: int, y: int, layer: int, block: NDArray[np.int_]):
         """Replaces the blocks.
@@ -278,7 +324,9 @@ class SmartShapesTab(BlocksLikeTab):
             layer (int): The layer.
             block (NDArray[np.int_]): The block.
         """
-        # TODO
+        self.map_widget.main_gui.smart_shape_replace_blocks(
+            self.current_smart_shape_name, x, y, layer, block
+        )
 
     def flood_fill(self, x: int, y: int, layer: int, block: NDArray[np.int_]):
         """Flood fills the blocks.
@@ -289,7 +337,13 @@ class SmartShapesTab(BlocksLikeTab):
             layer (int): The layer.
             block (NDArray[np.int_]): The block.
         """
-        # TODO
+        self.map_widget.main_gui.smart_shape_flood_fill(
+            self.current_smart_shape_name,
+            x,
+            y,
+            block,
+            layer=self.connectivity_layer,
+        )
 
     @property
     def smart_shape_loaded(self) -> bool:
@@ -337,6 +391,7 @@ class SmartShapesTab(BlocksLikeTab):
         self._clear_properties_layout()
         self._update_smart_shape_enabled()
         self.update_smart_shapes_scene()
+        self.blocks_scene.load_smart_shape()
 
     def update_smart_shapes_scene(self):
         """Updates the smart shapes scene."""
@@ -347,6 +402,8 @@ class SmartShapesTab(BlocksLikeTab):
             template = self.map_widget.main_gui.project.smart_shape_templates[
                 self.current_smart_shape.template
             ]
+
+            self.smart_shapes_scene.addPixmap(template.template_pixmap)
             for _, pixmap_item in np.ndenumerate(
                 smart_shape_get_block_image(
                     self.current_smart_shape,
@@ -355,28 +412,6 @@ class SmartShapesTab(BlocksLikeTab):
             ):
                 pixmap_item.setAcceptHoverEvents(True)
                 self.smart_shapes_scene.addItem(pixmap_item)
-                self.smart_shapes_scene.addPixmap(template.template_pixmap)
-
-    def update_tiles_scene(self):
-        """Updates the tiles scene with the current smart shape."""
-        self.tiles_scene.clear()
-        if self.current_smart_shape is not None:
-            assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
-            template = self.map_widget.main_gui.project.smart_shape_templates[
-                self.current_smart_shape.template
-            ]
-            cols = self.map_widget.main_gui.project.config['pymap']['display'][
-                'smart_shape_blocks_per_row'
-            ]
-            for idx, (pixmap, tooltip) in enumerate(
-                zip(template.block_pixmaps, template.block_tooltips)
-            ):
-                item = QGraphicsPixmapItem(pixmap)
-                x, y = idx % cols, idx // cols
-                item.setPos(16 * x, 16 * y)
-                item.setAcceptHoverEvents(True)
-                item.setToolTip(tooltip)
-                self.tiles_scene.addItem(item)
 
     def _clear_properties_layout(self):
         """Clear the properties layout."""
