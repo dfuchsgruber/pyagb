@@ -33,17 +33,6 @@ if TYPE_CHECKING:
 class TilesetWidget(QtWidgets.QWidget):
     """Widget for editing tilesets."""
 
-    @property
-    def tileset_loaded(self) -> bool:
-        """If a tileset is currently loaded."""
-        return (
-            self.main_gui.project is not None
-            and self.main_gui.header is not None
-            and self.main_gui.footer is not None
-            and self.main_gui.tileset_primary is not None
-            and self.main_gui.tileset_secondary is not None
-        )
-
     def __init__(self, main_gui: PymapGui, parent: QtWidgets.QWidget | None = None):
         """Widget for editing tilesets.
 
@@ -54,6 +43,10 @@ class TilesetWidget(QtWidgets.QWidget):
         super().__init__(parent=parent)
         self.main_gui = main_gui
         self.undo_stack = QtGui.QUndoStack()
+        self.undo_stack.canRedoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.canUndoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.indexChanged.connect(self._update_undo_redo_tooltips)
+
         self.behaviour_clipboard = None
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
@@ -259,6 +252,26 @@ class TilesetWidget(QtWidgets.QWidget):
         if self.tiles_mirror_vertical_checkbox.isChecked():
             flip |= TileFlip.VERTICAL
         return TileFlip(flip)
+
+    @property
+    def tileset_loaded(self) -> bool:
+        """If a tileset is currently loaded."""
+        return (
+            self.main_gui.project is not None
+            and self.main_gui.header is not None
+            and self.main_gui.footer is not None
+            and self.main_gui.tileset_primary is not None
+            and self.main_gui.tileset_secondary is not None
+        )
+
+    def _update_undo_redo_tooltips(
+        self,
+    ):
+        """Updates the undo and redo tooltips."""
+        self.main_gui.update_redo_undo_tooltips(
+            self,
+            self.undo_stack,
+        )
 
     def load_project(self):
         """Loads a new project."""

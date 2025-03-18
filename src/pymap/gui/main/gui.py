@@ -11,7 +11,7 @@ import numpy as np
 import numpy.typing as npt
 from numpy.typing import NDArray
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtGui import QCloseEvent, QImage, QKeySequence, QPainter
+from PySide6.QtGui import QCloseEvent, QImage, QKeySequence, QPainter, QUndoStack
 from PySide6.QtWidgets import (
     QApplication,
     QDockWidget,
@@ -86,8 +86,8 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.connection_widget = ConnectionWidget(self)
         self.header_widget = HeaderWidget(self)
         self.footer_widget = FooterWidget(self)
-
         self.tileset_widget = TilesetWidget(self)
+
         self.central_widget.addTab(self.map_widget, 'Map')
         self.central_widget.addTab(self.event_widget, 'Events')
         self.central_widget.addTab(self.tileset_widget, 'Tileset')
@@ -139,10 +139,14 @@ class PymapGui(QMainWindow, PymapGuiModel):
         edit_menu_undo_action = edit_menu.addAction('Undo')  # type: ignore
         edit_menu_undo_action.triggered.connect(self.undo)
         edit_menu_undo_action.setShortcut(QKeySequence.StandardKey.Undo)
+        edit_menu_undo_action.setEnabled(False)
+        self.edit_menu_undo_action = edit_menu_undo_action
 
         edit_menu_redo_action = edit_menu.addAction('Redo')  # type: ignore
         edit_menu_redo_action.triggered.connect(self.redo)
         edit_menu_redo_action.setShortcut(QKeySequence.StandardKey.Redo)
+        edit_menu_redo_action.setEnabled(False)
+        self.edit_menu_redo_action = edit_menu_redo_action
         edit_menu.addSeparator()
 
         edit_menu_resize_map_action = edit_menu.addAction('Resize Map')  # type: ignore
@@ -188,6 +192,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
                 shift_blocks=False, shift_events=True
             )
         )
+        edit_menu.setToolTipsVisible(True)
 
         # 'View' menu
         view_menu = self.menuBar().addMenu('&View')
@@ -240,6 +245,22 @@ class PymapGui(QMainWindow, PymapGuiModel):
     def redo(self):
         """Redo the last action."""
         self.central_widget.currentWidget().undo_stack.redo()  # type: ignore
+
+    def update_redo_undo_tooltips(self, widget: QWidget, undo_stack: QUndoStack):
+        """Updates the redo and undo tooltips."""
+        if self.central_widget.currentWidget() is widget:
+            if undo_stack.canUndo():
+                self.edit_menu_undo_action.setEnabled(True)
+                self.edit_menu_undo_action.setToolTip(undo_stack.undoText())
+            else:
+                self.edit_menu_undo_action.setEnabled(False)
+                self.edit_menu_undo_action.setToolTip('')
+            if undo_stack.canRedo():
+                self.edit_menu_redo_action.setEnabled(True)
+                self.edit_menu_redo_action.setToolTip(undo_stack.redoText())
+            else:
+                self.edit_menu_redo_action.setEnabled(False)
+                self.edit_menu_redo_action.setToolTip('')
 
     @property
     def show_borders(self) -> bool:

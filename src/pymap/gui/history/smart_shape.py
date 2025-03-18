@@ -37,7 +37,9 @@ class AddOrRemoveSmartShape(QUndoCommand):
             smart_shape (SerializedSmartShape): The smart shape to add
             add (bool): Whether to add or remove the smart shape
         """
-        super().__init__()
+        super().__init__(
+            f'Add Smart Shape {name}' if add else f'Remove Smart Shape {name}'
+        )
         self.smart_shapes_tab = smart_shapes_tab
         self.name = name
         self.smart_shape = smart_shape
@@ -100,7 +102,9 @@ class SetSmartShapeTemplateBlocks(QUndoCommand):
             blocks_new (IntArray): The new blocks
             blocks_old (IntArray): The old blocks
         """
-        super().__init__()
+        super().__init__(
+            f'Set smart shape template blocks at {x}, {y}',
+        )
         self.edit_dialog = edit_dialog
         self.name = name
         self.blocks_new = blocks_new
@@ -153,7 +157,9 @@ class SetSmartShapeBlocks(QUndoCommand):
             blocks_new (IntArray): Which blocks to set
             blocks_old (IntArray): The old blocks
         """
-        super().__init__()
+        super().__init__(
+            f'Set smart shape blocks at {x}, {y}',
+        )
         self.main_gui = main_gui
         self.x = x
         self.y = y
@@ -206,7 +212,9 @@ class SmartShapeReplaceBlocks(QUndoCommand):
             value_new (IntArray): new value
             value_old (IntArray): old value
         """
-        super().__init__()
+        super().__init__(
+            'Replace smart shape blocks',
+        )
         self.main_gui = main_gui
         self.smart_shape_name = smart_shape_name
         self.idx = idx

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtGui import QUndoCommand
 
 from agb.model.type import ModelValue
-from pymap.gui.history.statement import UndoRedoStatements, ChangeProperty
+from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
 
 if TYPE_CHECKING:
     from pymap.gui.footer import FooterWidget
@@ -28,7 +28,9 @@ class AssignTileset(QUndoCommand):
             label_new (str): Label of the new tileset
             label_old (str): Label of the old tileset
         """
-        super().__init__()
+        super().__init__(
+            'Assign Tileset',
+        )
         self.main_gui = main_gui
         self.label_new = label_new
         self.label_old = label_old
@@ -68,7 +70,9 @@ class ChangeFooterProperty(ChangeProperty):
             statements_redo (list[str]): Statements to be executed for redo
             statements_undo (list[str]): Statements to be executed for undo
         """
-        super().__init__(statements_redo, statements_undo)
+        super().__init__(
+            statements_redo, statements_undo, text='Change Footer Property'
+        )
         self.footer_widget = footer_widget
 
     def get_root(self) -> ModelValue:

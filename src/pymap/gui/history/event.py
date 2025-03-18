@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from agb.model.type import ModelValue
 from PySide6.QtGui import QUndoCommand
 
+from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
 from pymap.gui import properties
 from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
@@ -35,7 +35,7 @@ class ChangeEventProperty(ChangeProperty):
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__(statements_redo, statements_undo)
+        super().__init__(statements_redo, statements_undo, text='Change Event Property')
         self.event_widget = event_widget
         self.event_type = event_type
         self.event_idx = event_idx
@@ -71,7 +71,7 @@ class RemoveEvent(QUndoCommand):
             event_type (PymapEventConfigType): the event type
             event_idx (int): index of the event
         """
-        super().__init__()
+        super().__init__('Remove Event')
         self.event_widget = event_widget
         self.event_type = event_type
         self.event_idx = event_idx
@@ -108,7 +108,9 @@ class AppendEvent(QUndoCommand):
             event_widget (EventWidget): reference to the event widget
             event_type (PymapEventConfigType): the event type
         """
-        super().__init__()
+        super().__init__(
+            'Append Event',
+        )
         self.event_widget = event_widget
         self.event_type = event_type
 

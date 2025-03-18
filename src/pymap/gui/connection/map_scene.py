@@ -77,7 +77,7 @@ class MapScene(BaseMapScene):
                 if not self.drag_started:
                     self.drag_started = True
 
-                    self.connection_widget.undo_stack.beginMacro('Drag event')
+                    self.connection_widget.undo_stack.beginMacro('Drag connection')
 
                 # Drag the connection to this position
 
@@ -93,14 +93,14 @@ class MapScene(BaseMapScene):
                         f'Invalid connection type {connection.type} for dragging.'
                     )
 
-                self.connection_widget.connections[
-                    self.dragged_idx
-                ] = UnpackedConnection(
-                    connection.type,
-                    offset_new,
-                    connection.bank,
-                    connection.map_idx,
-                    connection.blocks,
+                self.connection_widget.connections[self.dragged_idx] = (
+                    UnpackedConnection(
+                        connection.type,
+                        offset_new,
+                        connection.bank,
+                        connection.map_idx,
+                        connection.blocks,
+                    )
                 )
 
                 statement_redo, statement_undo = history.path_to_statement(

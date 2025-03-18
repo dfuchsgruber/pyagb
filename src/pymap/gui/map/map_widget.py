@@ -85,6 +85,9 @@ class MapWidget(QWidget):
         self.blocks = None  # Array of map blocks *with* padding
         self.layers = np.array(0)
         self.undo_stack = QtGui.QUndoStack()
+        self.undo_stack.canRedoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.canUndoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.indexChanged.connect(self._update_undo_redo_tooltips)
 
         # (Re-)Build the ui
         layout = QtWidgets.QGridLayout()
@@ -144,6 +147,15 @@ class MapWidget(QWidget):
             bool: Whether the header is loaded.
         """
         return self.main_gui.header_loaded
+
+    def _update_undo_redo_tooltips(
+        self,
+    ):
+        """Updates the undo and redo tooltips."""
+        self.main_gui.update_redo_undo_tooltips(
+            self,
+            self.undo_stack,
+        )
 
     def tab_changed(self):
         """Triggered when the user switches from the blocks to levels tab."""

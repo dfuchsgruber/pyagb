@@ -36,6 +36,9 @@ class ConnectionWidget(QtWidgets.QWidget):
         self.main_gui = main_gui
         self.connections: list[UnpackedConnection | None] = []
         self.undo_stack = QtGui.QUndoStack()
+        self.undo_stack.canRedoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.canUndoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.indexChanged.connect(self._update_undo_redo_tooltips)
 
         # Layout is similar to the map widget
 
@@ -45,7 +48,7 @@ class ConnectionWidget(QtWidgets.QWidget):
 
         splitter = QtWidgets.QSplitter()
         splitter.restoreState(
-            self.main_gui.settings.value('connections/splitter', bytes(), bytes)  # type: ignore
+            self.main_gui.settings.value('connections/splitter', b'', bytes)  # type: ignore
         )
         splitter.splitterMoved.connect(
             lambda: self.main_gui.settings.setValue(
@@ -102,6 +105,15 @@ class ConnectionWidget(QtWidgets.QWidget):
     def connection_loaded(self) -> bool:
         """Returns whether a connection is loaded."""
         return self.main_gui.project is not None and self.main_gui.header is not None
+
+    def _update_undo_redo_tooltips(
+        self,
+    ):
+        """Updates the undo and redo tooltips."""
+        self.main_gui.update_redo_undo_tooltips(
+            self,
+            self.undo_stack,
+        )
 
     def update_grid(self):
         """Updates the grid."""
@@ -289,9 +301,9 @@ class ConnectionWidget(QtWidgets.QWidget):
             return
 
         connections_model = self.main_gui.get_connections()
-        assert isinstance(
-            connections_model, list
-        ), f'Expected list, got {type(connections_model)}'
+        assert isinstance(connections_model, list), (
+            f'Expected list, got {type(connections_model)}'
+        )
         packed = connections_model[self.idx_combobox.currentIndex()]
 
         # Update the unpacked version
@@ -307,7 +319,8 @@ class ConnectionWidget(QtWidgets.QWidget):
             return QMessageBox.critical(
                 self,
                 'Header can not be opened',
-                f'The header {connection.bank}.{connection.map_idx} could not be opened.'
+                f'The header {connection.bank}.{connection.map_idx}'
+                ' could not be opened.'
                 f' Key {e.args[0]} was not found.',
             )
 
@@ -366,9 +379,9 @@ class ConnectionWidget(QtWidgets.QWidget):
                         and adjacent_map_idx == self.main_gui.header_map_idx
                     ):
                         # Match, mirror the change
-                        assert isinstance(
-                            adjacent_packed, list
-                        ), f'Expected list, got {type(adjacent_packed)}'
+                        assert isinstance(adjacent_packed, list), (
+                            f'Expected list, got {type(adjacent_packed)}'
+                        )
                         properties.set_member_by_path(
                             adjacent_packed[idx],
                             str(-connection.offset),

@@ -40,15 +40,16 @@ class EventWidget(QWidget):
         super().__init__(parent=parent)
         self.main_gui = main_gui
         self.undo_stack = QtGui.QUndoStack()
+        self.undo_stack.canUndoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.canRedoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.indexChanged.connect(self._update_undo_redo_tooltips)
 
         # Layout is similar to the map widget
         layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
         splitter = QSplitter()
         splitter.restoreState(
-            self.main_gui.settings.value(
-                'EventWidget/splitterState', bytes(), type=bytes
-            )  # type: ignore
+            self.main_gui.settings.value('EventWidget/splitterState', b'', type=bytes)  # type: ignore
         )
         splitter.splitterMoved.connect(
             lambda: self.main_gui.settings.setValue(
@@ -79,6 +80,15 @@ class EventWidget(QWidget):
             bool: Whether the header is loaded.
         """
         return self.main_gui.header is not None and self.main_gui.project is not None
+
+    def _update_undo_redo_tooltips(
+        self,
+    ):
+        """Updates the undo and redo tooltips."""
+        self.main_gui.update_redo_undo_tooltips(
+            self,
+            self.undo_stack,
+        )
 
     def update_grid(self):
         """Updates the grid of the map scene."""

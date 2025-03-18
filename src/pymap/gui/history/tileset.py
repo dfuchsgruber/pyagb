@@ -1,18 +1,17 @@
 """History actions for tilesets."""
 
 from __future__ import annotations
-from copy import deepcopy
 
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
-from PySide6.QtGui import QUndoCommand
-from agb.model.type import ModelValue
-
-from pymap.gui import properties, render
 import numpy as np
 import numpy.typing as npt
+from PySide6.QtGui import QUndoCommand
 
-from pymap.gui.history.statement import UndoRedoStatements, ChangeProperty
+from agb.model.type import ModelValue
+from pymap.gui import properties, render
+from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
@@ -33,7 +32,9 @@ class AssignGfx(QUndoCommand):
             label_new (str): Label of the new gfx
             label_old (str): Label of the old gfx
         """
-        super().__init__()
+        super().__init__(
+            'Assign Gfx',
+        )
         self.main_gui = main_gui
         self.primary = primary
         self.label_new = label_new
@@ -81,13 +82,13 @@ class ChangeBlockProperty(ChangeProperty):
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__(statements_redo, statements_undo)
+        super().__init__(statements_redo, statements_undo, text='Change Block Property')
         self.tileset_widget = tileset_widget
         self.block_idx = block_idx
 
     def get_root(self) -> ModelValue:
         """Returns the root object of the property to change with this command."""
-        return self.tileset_widget.main_gui.get_block(self.block_idx).tolist()
+        return self.tileset_widget.main_gui.get_tileset_behaviour(self.block_idx)
 
     def redo(self):
         """Executes the redo statements."""
@@ -114,11 +115,14 @@ class ChangeTilesetProperty(ChangeProperty):
 
         Args:
             tileset_widget (TilesetWidget): reference to the tileset widget
-            is_primary (bool): Whether the primary or secondary tileset is being assigned
+            is_primary (bool): Whether the primary or secondary tileset is
+                being assigned
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__(statements_redo, statements_undo)
+        super().__init__(
+            statements_redo, statements_undo, text='Change Tileset Property'
+        )
         self.tileset_widget = tileset_widget
         self.is_primary = is_primary
 
@@ -175,7 +179,9 @@ class SetTiles(QUndoCommand):
             tiles_new (npt.NDArray[np.object_]): new tiles
             tiles_old (npt.NDArray[np.object_]): old tiles
         """
-        super().__init__()
+        super().__init__(
+            'Change Block Tiles',
+        )
         self.tileset_widget = tileset_widget
         self.block_idx = block_idx
         self.layer = layer
@@ -203,7 +209,7 @@ class SetTiles(QUndoCommand):
             self.y : self.y + tiles.shape[0],
             self.x : self.x + tiles.shape[1],
         ] = tiles
-        blocks[self.block_idx % 0x280] = block.flatten().tolist()
+        blocks[self.block_idx % 0x280] = block.flatten().tolist()  # type: ignore
         # Update the block
         assert self.tileset_widget.main_gui.tiles is not None
         assert self.tileset_widget.main_gui.block_images is not None
@@ -246,7 +252,9 @@ class SetPalette(QUndoCommand):
             palette_new (ModelValue): the new palette
             palette_old (ModelValue): the old palette
         """
-        super().__init__()
+        super().__init__(
+            'Change Palette',
+        )
         self.tileset_widget = tileset_widget
         self.pal_idx = pal_idx
         self.palette_new = palette_new

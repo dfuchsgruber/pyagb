@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from agb.model.type import ModelValue
 from PySide6.QtGui import QUndoCommand
 
+from agb.model.type import ModelValue
 from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
 
 if TYPE_CHECKING:
@@ -25,7 +25,9 @@ class AssignFooter(QUndoCommand):
             label_new (str): Label of the new footer
             label_old (str): Label of the old footer
         """
-        super().__init__()
+        super().__init__(
+            'Assign Footer',
+        )
         self.main_gui = main_gui
         self.label_new = label_new
         self.label_old = label_old
@@ -61,7 +63,9 @@ class ChangeHeaderProperty(ChangeProperty):
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__(statements_redo, statements_undo)
+        super().__init__(
+            statements_redo, statements_undo, text='Change Header Property'
+        )
         self.header_widget = header_widget
 
     def get_root(self) -> ModelValue:

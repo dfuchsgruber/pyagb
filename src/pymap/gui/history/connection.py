@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from agb.model.type import ModelValue
 from PySide6.QtGui import QUndoCommand
 
+from agb.model.type import ModelValue
 from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
 from pymap.gui.properties import get_parents_by_path
 
@@ -34,7 +34,9 @@ class ChangeConnectionProperty(ChangeProperty):
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
         """
-        super().__init__(statements_redo, statements_undo)
+        super().__init__(
+            statements_redo, statements_undo, text='Change Connection Property'
+        )
         self.connection_widget = connection_widget
         self.connection_idx = connection_idx
         self.mirror_offset = mirror_offset
@@ -68,7 +70,7 @@ class AppendConnection(QUndoCommand):
         Args:
             connection_widget (ConnectionWidget): reference to the connection widget
         """
-        super().__init__()
+        super().__init__('Append Connection')
         self.connection_widget = connection_widget
 
     def redo(self):
@@ -113,7 +115,7 @@ class RemoveConnection(QUndoCommand):
             connection_widget (ConnectionWidget): reference to the connection widget
             connection_idx (int): index of the connection
         """
-        super().__init__()
+        super().__init__('Remove Connection')
         self.connection_widget = connection_widget
         self.connection_idx = connection_idx
         self.connection = self.connection_widget.main_gui.get_connections()[

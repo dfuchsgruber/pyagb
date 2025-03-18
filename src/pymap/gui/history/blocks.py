@@ -80,7 +80,9 @@ class ResizeMap(QUndoCommand):
             width_new (int): new width
             values_old (IntArray): old values
         """
-        super().__init__()
+        super().__init__(
+            f'Resize map to {width_new}x{height_new}',
+        )
         self.main_gui = main_gui
         self.buffer = ResizeBuffer(width_new, height_new, values_old)
         self.smart_shape_buffers = {
@@ -134,7 +136,9 @@ class ResizeBorder(QUndoCommand):
             width_new (int): new width
             values_old (IntArray): old values
         """
-        super().__init__()
+        super().__init__(
+            f'Resize border to {width_new}x{height_new}',
+        )
         self.main_gui = main_gui
         self.buffer = ResizeBuffer(width_new, height_new, values_old)
 
@@ -177,7 +181,9 @@ class SetBorder(QUndoCommand):
             blocks_new (IntArray): Which blocks to set
             blocks_old (IntArray): The old blocks
         """
-        super().__init__()
+        super().__init__(
+            f'Set border at {x}, {y}',
+        )
         self.main_gui = main_gui
         self.x = x
         self.y = y
@@ -224,7 +230,9 @@ class SetBlocks(QUndoCommand):
             blocks_new (IntArray): Which blocks to set
             blocks_old (IntArray): The old blocks
         """
-        super().__init__()
+        super().__init__(
+            f'Set blocks at {x}, {y}',
+        )
         self.main_gui = main_gui
         self.x = x
         self.y = y
@@ -271,7 +279,7 @@ class ReplaceBlocks(QUndoCommand):
             value_new (IntArray): new value
             value_old (IntArray): old value
         """
-        super().__init__()
+        super().__init__('Replace blocks')
         self.main_gui = main_gui
         self.idx = idx
         self.layer = layer

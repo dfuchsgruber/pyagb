@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from agb.model.type import ModelContext
 from PySide6.QtGui import QUndoStack
 from PySide6.QtWidgets import QWidget
 
+from agb.model.type import ModelContext
 from pymap.gui.history.statement import (
     UndoRedoStatements,
 )
@@ -35,6 +35,18 @@ class HeaderWidget(PropertiesTree):
             parent=parent,
         )
         self.undo_stack = QUndoStack()
+        self.undo_stack.canRedoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.canUndoChanged.connect(self._update_undo_redo_tooltips)
+        self.undo_stack.indexChanged.connect(self._update_undo_redo_tooltips)
+
+    def _update_undo_redo_tooltips(
+        self,
+    ):
+        """Updates the undo and redo tooltips."""
+        self.main_gui.update_redo_undo_tooltips(
+            self,
+            self.undo_stack,
+        )
 
     @property
     def datatype(self) -> str:

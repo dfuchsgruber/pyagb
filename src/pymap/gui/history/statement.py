@@ -3,9 +3,9 @@
 from typing import Sequence, TypedDict
 
 import numpy as np
-from agb.model.type import ModelContext, ModelValue, ScalarModelValue
 from PySide6.QtGui import QUndoCommand
 
+from agb.model.type import ModelContext, ModelValue, ScalarModelValue
 from pymap.configuration import AttributePathType
 
 UndoRedoStatements = Sequence[str]
@@ -22,15 +22,19 @@ class ChangeProperty(QUndoCommand):
     """Class to change the property of some model value."""
 
     def __init__(
-        self, statements_redo: UndoRedoStatements, statements_undo: UndoRedoStatements
+        self,
+        statements_redo: UndoRedoStatements,
+        statements_undo: UndoRedoStatements,
+        text: str = 'Change Property',
     ):
         """Initializes the property change.
 
         Args:
             statements_redo (list[str]): statements to be executed for redo
             statements_undo (list[str]): statements to be executed for undo
+            text (str): The text for the action
         """
-        super().__init__()
+        super().__init__(text)
         self.statements_redo = statements_redo
         self.statements_undo = statements_undo
 
