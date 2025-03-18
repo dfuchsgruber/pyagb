@@ -282,12 +282,18 @@ class ReplaceBlocks(QUndoCommand):
         """Performs the flood fill."""
         map_blocks = self.main_gui.get_map_blocks()
         assert isinstance(map_blocks, np.ndarray)
-        map_blocks[:, :, self.layer][self.idx] = self.value_new
-        self.main_gui.map_widget.load_map()
+        y, x = self.idx
+        map_blocks[y, x, self.layer] = self.value_new
+        self.main_gui.map_widget.update_map_at_indices(
+            self.idx, self.value_new, layer=self.layer
+        )
 
     def undo(self):
         """Performs the flood fill."""
         map_blocks = self.main_gui.get_map_blocks()
         assert isinstance(map_blocks, np.ndarray)
-        map_blocks[:, :, self.layer][self.idx] = self.value_old
-        self.main_gui.map_widget.load_map()
+        y, x = self.idx
+        map_blocks[y, x, self.layer] = self.value_old
+        self.main_gui.map_widget.update_map_at_indices(
+            self.idx, self.value_old, layer=self.layer
+        )

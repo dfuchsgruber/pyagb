@@ -237,7 +237,7 @@ class SmartShapesTab(BlocksLikeTab):
     @property
     def selected_layers(self) -> NDArray[np.int_]:
         """The selected layers."""
-        return np.array([0, 1])
+        return np.array([0])
 
     def load_project(self) -> None:
         """Loads the project."""

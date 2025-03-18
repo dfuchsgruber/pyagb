@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -327,6 +327,97 @@ class MapWidget(QWidget):
             16 * (2 * padded_height + map_height),
         )
 
+    def update_blocks_at_padded_indices(
+        self, indices_padded: tuple[NDArray[np.int_], ...] | NDArray[np.int_]
+    ):
+        """Updates map blocks at certain indices.
+
+        Args:
+            indices_padded (tuple[NDArray[np.int_], ...] | NDArray[np.int_]):
+                The indices.
+        """
+        assert self.blocks is not None, 'Blocks are not loaded'
+        assert self.main_gui.block_images is not None, 'Blocks are not loaded'
+        idx_y, idx_x = indices_padded
+        for y, x, block_idx in zip(idx_y, idx_x, self.blocks[idx_y, idx_x, 0]):
+            y, x, block_idx = cast(int, y), cast(int, x), cast(int, block_idx)
+            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.block_images[block_idx]))
+            self.block_images[y, x].setPixmap(pixmap)
+
+    def update_layer_at_indices(
+        self,
+        indices: tuple[NDArray[np.int_], ...] | NDArray[np.int_],
+        layer: int,
+        indices_padded: bool = False,
+    ):
+        """Updates the map image at certain indices.
+
+        Args:
+            indices (tuple[NDArray[np.int_], ...] | NDArray[np.int_]):
+                The indices.
+            layer (int): The layer.
+            indices_padded (bool, optional): Whether the indices are padded.
+                Defaults to False.
+        """
+        indices = np.array(indices).copy()
+        if not indices_padded:
+            padded_width, padded_height = self.main_gui.get_border_padding()
+            indices[0] += padded_height
+            indices[1] += padded_width
+        if layer == 0:
+            self.update_blocks_at_padded_indices(indices)
+        elif layer == 1:
+            self.update_levels_at_padded_indices(indices)
+        else:
+            raise ValueError('Invalid layer')
+
+    def update_levels_at_padded_indices(
+        self, indices_padded: tuple[NDArray[np.int_], ...] | NDArray[np.int_]
+    ):
+        """Updates the level images at certain indices.
+
+        Args:
+            indices_padded (tuple[NDArray[np.int_], ...] | NDArray[np.int_]):
+                The indices.
+
+        """
+        assert self.blocks is not None, 'Blocks are not loaded'
+        idx_y, idx_x = indices_padded
+        for y, x, level in zip(idx_y, idx_x, self.blocks[idx_y, idx_x, 1]):
+            y, x, level = cast(int, y), cast(int, x), cast(int, level)
+            self.level_images[y, x].setPixmap(
+                self.levels_tab.level_blocks_pixmaps[level]
+            )
+
+    def update_map_at_indices(
+        self,
+        indices: tuple[NDArray[np.int_], ...],
+        blocks: NDArray[np.int_],
+        layer: int,
+    ):
+        """Updates the map image at certain indices.
+
+        Args:
+            indices (tuple[NDArray[np.int_], ...]): The indices.
+            blocks (NDArray[np.int_]): The blocks.
+            layer (int): The layer.
+        """
+        if not self.main_gui.footer_loaded:
+            return
+        assert self.blocks is not None, 'Blocks are not loaded'
+        assert self.main_gui.block_images is not None, 'Blocks are not loaded'
+        padded_width, padded_height = self.main_gui.get_border_padding()
+        self.blocks[indices[0] + padded_height, indices[1] + padded_width, layer] = (
+            blocks[...]
+        )
+        indices = np.array(indices).copy()  # type: ignore
+        indices[0] += padded_height  # type: ignore
+        indices[1] += padded_width  # type: ignore
+        if 0 in self.layers:
+            self.update_blocks_at_padded_indices(indices)
+        if 1 in self.layers:
+            self.update_levels_at_padded_indices(indices)
+
     def update_map_at(
         self, x: int, y: int, layers: MapLayers, blocks: NDArray[np.int_]
     ):
@@ -336,7 +427,6 @@ class MapWidget(QWidget):
         assert self.blocks is not None, 'Blocks are not loaded'
         assert self.main_gui.block_images is not None, 'Blocks are not loaded'
         padded_width, padded_height = self.main_gui.get_border_padding()
-        map_width, map_height = self.main_gui.get_map_dimensions()
         self.blocks[
             padded_height + y : padded_height + y + blocks.shape[0],
             padded_width + x : padded_width + x + blocks.shape[1],
@@ -344,20 +434,17 @@ class MapWidget(QWidget):
         ] = blocks[:, :, layers]
         assert isinstance(layers, Iterable), 'Layers is not an iterable'
         # Redraw relevant pixel maps
+        indices = np.indices((blocks.shape[0], blocks.shape[1])).reshape(2, -1)
+        indices[0] += y + padded_height
+        indices[1] += x + padded_width
         if 0 in layers:
-            for (yy, xx), block_idx in np.ndenumerate(blocks[:, :, 0]):
-                pixmap = QPixmap.fromImage(
-                    ImageQt(self.main_gui.block_images[block_idx])
-                )
-                self.block_images[
-                    padded_height + y + yy, padded_width + x + xx
-                ].setPixmap(pixmap)
+            self.update_blocks_at_padded_indices(
+                indices,
+            )
         if 1 in layers:
-            for (yy, xx), level in np.ndenumerate(blocks[:, :, 1]):
-                if x + xx in range(map_width) and y + yy in range(map_height):
-                    self.level_images[
-                        padded_height + y + yy, padded_width + x + xx
-                    ].setPixmap(self.levels_tab.level_blocks_pixmaps[level])
+            self.update_levels_at_padded_indices(
+                indices,
+            )
 
     def update_map_with_smart_shape_blocks_at(
         self, x: int, y: int, blocks: NDArray[np.int_]
