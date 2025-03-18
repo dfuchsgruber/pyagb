@@ -76,7 +76,9 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
                 cval=0,  # type: ignore
             )
             converted = adjacency_flags_to_block(adjacency)
-            blocks[converted >= 0] = converted[converted >= 0]
+            blocks[(converted >= 0) & mask_label] = converted[
+                (converted >= 0) & mask_label
+            ]
             # converted = np.zeros_like(adjacency)
             mask |= (converted >= 0) & mask_label
 
@@ -100,19 +102,19 @@ def adjacency_flags_to_block(adjacency: NDArray[np.int_]) -> NDArray[np.int_]:
 
     # All sides are connected
     mask = adjacency_cross == Adjacent.ALL_CROSS
-    blocks[mask & ~(adjacency & Adjacent.NORTH_EAST)] = (
+    blocks[mask] = SmartShapeTemplatePolygon.Blocks.INNER
+    blocks[mask & (~((adjacency & Adjacent.NORTH_EAST) > 0))] = (
         SmartShapeTemplatePolygon.Blocks.INNER_SOUTH_WEST
     )
-    blocks[mask & ~(adjacency & Adjacent.SOUTH_EAST)] = (
+    blocks[mask & (~((adjacency & Adjacent.SOUTH_EAST) > 0))] = (
         SmartShapeTemplatePolygon.Blocks.INNER_NORTH_WEST
     )
-    blocks[mask & ~(adjacency & Adjacent.SOUTH_WEST)] = (
+    blocks[mask & (~((adjacency & Adjacent.SOUTH_WEST) > 0))] = (
         SmartShapeTemplatePolygon.Blocks.INNER_NORTH_EAST
     )
-    blocks[mask & ~(adjacency & Adjacent.NORTH_WEST)] = (
+    blocks[mask & (~((adjacency & Adjacent.NORTH_WEST) > 0))] = (
         SmartShapeTemplatePolygon.Blocks.INNER_SOUTH_EAST
     )
-    blocks[mask] = SmartShapeTemplatePolygon.Blocks.INNER
 
     # Three adjacent in the cross neighborhood
     blocks[adjacency_cross == (Adjacent.SOUTH | Adjacent.EAST | Adjacent.WEST)] = (
