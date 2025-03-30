@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, SupportsInt
 
-from agb.model.type import ModelValue
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QComboBox,
@@ -15,6 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
 from pymap.gui import properties
 from pymap.gui.icon import Icon, icon_paths
@@ -108,9 +108,10 @@ class EventTab(QWidget):
             assert isinstance(number_events, SupportsInt)
             number_events = int(number_events)
 
+            # If -1 is selcted, select first, but never select a no more present event
             current_idx = min(
                 number_events - 1, max(0, self.idx_combobox.currentIndex())
-            )  # If -1 is selcted, select first, but never select a no more present event
+            )
 
             self.idx_combobox.blockSignals(True)
             self.idx_combobox.clear()
@@ -165,12 +166,12 @@ class EventTab(QWidget):
             return
 
         event = self.event_widget.main_gui.get_event(self.event_type, event_idx)
-        assert (
-            'target_bank_path' in self.event_type
-        ), 'target_bank_path not found in event_type'
-        assert (
-            'target_map_idx_path' in self.event_type
-        ), 'target_map_idx_path not found in event_type'
+        assert 'target_bank_path' in self.event_type, (
+            'target_bank_path not found in event_type'
+        )
+        assert 'target_map_idx_path' in self.event_type, (
+            'target_map_idx_path not found in event_type'
+        )
 
         target_bank = properties.get_member_by_path(
             event, self.event_type['target_bank_path']

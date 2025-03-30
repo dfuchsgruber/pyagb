@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from PIL.ImageQt import ImageQt
 from PySide6.QtGui import QKeyEvent, QKeySequence, QPixmap
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import (
@@ -116,7 +115,7 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         map_blocks = self.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
         selection_pixmap = QPixmap.fromImage(
-            ImageQt(render.draw_blocks(map_blocks, self.selection))
+            render.ndarray_to_QImage(render.draw_blocks(map_blocks, self.selection))
         )
         item = QGraphicsPixmapItem(selection_pixmap)
         self.selection_scene.addItem(item)
@@ -155,7 +154,9 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         """
         assert self.main_gui.block_images is not None, 'Blocks are not loaded'
         for (yy, xx), block_idx in np.ndenumerate(blocks):
-            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.block_images[block_idx]))
+            pixmap = QPixmap.fromImage(
+                render.ndarray_to_QImage(self.main_gui.block_images[block_idx])
+            )
             self.shape_block_images[yy + y, xx + x].setPixmap(pixmap)
 
     def set_shape_blocks(self, x: int, y: int, blocks: IntArray) -> None:

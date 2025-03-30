@@ -4,14 +4,13 @@ from typing import Any, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
-from PIL.ImageQt import ImageQt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QGraphicsPixmapItem,
 )
 
 from agb.model.type import ModelValue
-from pymap.gui.render import BlockImages
+from pymap.gui.render import BlockImages, ndarray_to_QImage
 from pymap.gui.types import Block, ConnectionType, UnpackedConnection
 from pymap.project import Project
 
@@ -310,7 +309,7 @@ def block_idxs_to_pixmaps(
     """
     result = np.empty_like(block_idxs, dtype=object)
     for (y, x), block_idx in np.ndenumerate(block_idxs):
-        pixmap = QPixmap.fromImage(ImageQt(block_images[block_idx]))
+        pixmap = QPixmap.fromImage(ndarray_to_QImage(block_images[block_idx]))
         item = QGraphicsPixmapItem(pixmap)
         item.setPos(x * 16, y * 16)
         result[y, x] = item

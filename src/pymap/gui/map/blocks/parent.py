@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
-from agb.model.type import IntArray
-from PIL.ImageQt import ImageQt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QGraphicsPixmapItem,
 )
 
 import pymap.gui.render as render
+from agb.model.type import IntArray
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
@@ -80,11 +79,14 @@ class BlocksSceneParentMixin:
             return
         map_blocks = main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
-        self.blocks_image = QPixmap.fromImage(ImageQt(render.draw_blocks(map_blocks)))
+        self.blocks_image = QPixmap.fromImage(
+            render.ndarray_to_QImage(render.draw_blocks(map_blocks))
+        )
         item = QGraphicsPixmapItem(self.blocks_image)
         self.blocks_scene.addItem(item)
         item.setAcceptHoverEvents(True)
-        # This triggers segfaults, because the pixmap item is deleted before the lambda is called
+        # This triggers segfaults, because the pixmap item is deleted before
+        # the lambda is called
         # item.hoverLeaveEvent = (
         #     lambda event: self.blocks_scene.blocks_scene_parent.set_info_text('')
         # )

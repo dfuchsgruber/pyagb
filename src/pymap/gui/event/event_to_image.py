@@ -2,9 +2,10 @@
 
 from typing import NamedTuple, Protocol
 
-from agb.model.type import ModelValue
-from PIL.Image import Image
+import numpy as np
+import numpy.typing as npt
 
+from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
 from pymap.project import Project
 
@@ -12,7 +13,7 @@ from pymap.project import Project
 class EventImage(NamedTuple):
     """An image for a map event."""
 
-    image: Image
+    image: npt.NDArray[np.int_]
     x_offset: int
     y_offset: int
 

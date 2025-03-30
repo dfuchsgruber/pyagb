@@ -4,14 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PIL.Image import Image
-from PIL.ImageQt import ImageQt
+import numpy as np
+import numpy.typing as npt
 from PySide6.QtGui import QBrush, QColor, QFont, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsItemGroup,
 )
 
 from pymap.configuration import PymapEventConfigType
+from pymap.gui.render import ndarray_to_QImage
 
 if TYPE_CHECKING:
     from .map_scene import MapScene
@@ -55,7 +56,7 @@ class EventGroupImage(QGraphicsItemGroup):
     def __init__(
         self,
         map_scene: MapScene,
-        image: Image,
+        image: npt.NDArray[np.int_],
         horizontal_displacement: int,
         vertical_displacement: int,
     ):
@@ -70,7 +71,7 @@ class EventGroupImage(QGraphicsItemGroup):
         super().__init__()
         self.horizontal_displacement = horizontal_displacement
         self.vertical_displacement = vertical_displacement
-        self.pixmap = map_scene.addPixmap(QPixmap.fromImage(ImageQt(image)))
+        self.pixmap = map_scene.addPixmap(QPixmap.fromImage(ndarray_to_QImage(image)))
         self.addToGroup(self.pixmap)
 
     def alignWithPosition(self, x: int, y: int):
