@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from PIL import Image
-from PIL.ImageQt import ImageQt
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
@@ -18,7 +16,7 @@ from PySide6.QtWidgets import (
 from typing_extensions import ParamSpec
 
 from .. import history
-from ..render import select_blocks
+from ..render import ndarray_to_QImage, select_blocks
 
 _P = ParamSpec('_P')
 
@@ -52,25 +50,23 @@ class BlockScene(QGraphicsScene):
         assert self.tileset_widget.main_gui.tiles is not None
         self.clear()
         block = self.tileset_widget.selected_block[self.layer]
-        image = Image.new('RGBA', (16, 16))
+        image = np.zeros((16, 16, 4), dtype=np.int_)
 
         for (y, x), tile in np.ndenumerate(block.reshape(2, 2)):
             assert isinstance(tile, dict)
             assert isinstance(tile['palette_idx'], int)
             assert isinstance(tile['tile_idx'], int)
-            tile_img: Image.Image = self.tileset_widget.main_gui.tiles[
-                tile['palette_idx']
-            ][tile['tile_idx']]
+            tile_img = self.tileset_widget.main_gui.tiles[tile['palette_idx']][
+                tile['tile_idx']
+            ]
             if tile['horizontal_flip']:
-                tile_img = tile_img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                tile_img = tile_img[:, ::-1]
             if tile['vertical_flip']:
-                tile_img = tile_img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-            image.paste(tile_img, box=(8 * x, 8 * y))  # type: ignore
+                tile_img = tile_img[::-1, :]
+            image[8 * y : 8 * (y + 1), 8 * x : 8 * (x + 1), :] = tile_img
         size = int(self.tileset_widget.zoom_slider.value() * 16 / 10)
         item = QGraphicsPixmapItem(
-            QPixmap.fromImage(
-                ImageQt(image.convert('RGB').convert('RGBA')).scaled(size, size)  # type: ignore
-            )
+            QPixmap.fromImage(ndarray_to_QImage(image).scaled(size, size))
         )
         self.addItem(item)
         item.setAcceptHoverEvents(True)
@@ -145,7 +141,7 @@ class BlockScene(QGraphicsScene):
                 self.last_draw = -1, -1  # This triggers the drawing routine
                 self.tileset_widget.undo_stack.beginMacro('Drawing Tiles')
                 self.mouseMoveEvent(event)
-            elif event.button() == Qt.MouseButton.LeftButton:
+            elif event.button() == Qt.MouseButton.RightButton:
                 self.selection_box = x, x + 1, y, y + 1
                 self.update_selection_box()
                 # Select the palette of this tile

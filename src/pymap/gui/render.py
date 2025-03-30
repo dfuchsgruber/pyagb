@@ -1,109 +1,64 @@
 """Module for rendering blocks and tiles to PIL Images."""
 
-from typing import Sequence, SupportsInt, TypeAlias
+from typing import TypeAlias
 from warnings import warn
 
 import numpy as np
 import numpy.typing as npt
-from agb.model.type import ModelValue
-from PIL import Image
+from PySide6.QtGui import QImage, qRgb
 
+from agb.image import Image, Palette
+from agb.model.type import ModelValue
 from pymap.project import Project
 
 from .properties import get_member_by_path
 
-TileImages: TypeAlias = list[list[Image.Image]]
-BlockImages: TypeAlias = list[Image.Image]
+TileImages: TypeAlias = npt.NDArray[
+    np.int_
+]  # Shape: num_palettes x num_tiles x 8 x 8 x 4
+BlockImages: TypeAlias = npt.NDArray[np.int_]  # Shape: num_blocks x 16 x 16 x 4
 PackedPalette: TypeAlias = list[int]
 
 
-def get_border(
-    footer: ModelValue, block_images: BlockImages, project: Project
-) -> Image.Image:
-    """Computes the image of the border.
-
-    Parameters:
-    -----------
-    footer : dict
-        The map footer.
-    block_images : list
-        A list of 16x16 block images.
-    project : pymap.project.Project
-        The pymap project.
-
-    Returns:
-    --------
-    border_img : PIL.Image
-        An image of the border.
-    """
-    width, height = (
-        get_member_by_path(footer, project.config['pymap']['footer'][dimension])
-        for dimension in ('border_width_path', 'border_width_path')
-    )
-    assert isinstance(width, SupportsInt)
-    assert isinstance(height, SupportsInt)
-    width, height = int(width), int(height)
-    border_blocks = get_member_by_path(
-        footer, project.config['pymap']['footer']['border_path']
-    )
-    assert isinstance(border_blocks, list)
-    border_img = Image.new('RGBA', (width * 16, height * 16))
-    for y, block_line in enumerate(border_blocks):
-        assert isinstance(block_line, list)
-        for x, block_data in enumerate(block_line):
-            assert isinstance(block_data, Sequence)
-            block_idx = block_data[0]
-            assert isinstance(block_idx, int)
-            border_img.paste(
-                block_images[block_idx], (16 * x, 16 * y), block_images[block_idx]
-            )
-    return border_img
-
-
 # height x width x level static array that enumerates all blocks
-blocks_pool = np.array([[idx, 0] for idx in range(0x400)]).reshape((-1, 8, 2))
+blocks_pool = np.array([[idx, 0] for idx in range(0x400)], dtype=np.int_).reshape(
+    (128, 8, 2)
+)
 
 
-def draw_blocks_pool(block_images: BlockImages) -> Image.Image:
+def draw_blocks_pool(block_images: BlockImages) -> npt.NDArray[np.int_]:
     """Draws a picture of all available blocks.
 
     Parameters:
     -----------
-    blocks : list
-        A lsit of 16x16 blocks
+    block_images : np.ndarray, shape [num_blocks, 16, 16, 4]
+        A list of 16x16 blocks.
 
     Returns:
     --------
-    block_img : PIL.Image
-        An image of all blocks.
+    block_img : np.ndarray, shape [128 * 16, 8 * 16, 4]
     """
-    return draw_blocks(block_images, blocks_pool)
+    return draw_blocks(block_images, blocks_pool[..., 0])
 
 
 def draw_blocks(
-    block_images: BlockImages, blocks_pool: npt.NDArray[np.int_] = blocks_pool
-) -> Image.Image:
+    block_images: BlockImages, block_map: npt.NDArray[np.int_] = blocks_pool[..., 0]
+) -> npt.NDArray[np.int_]:
     """Computes the image of an entire block map.
 
     Parameters:
     -----------
-    blocks : list
+    blocks : BlockImages, shape [num_blocks, 16, 16, 4]
         A list of 16x16 blocks.
-    blocks_pool : np.array, shape [H, W, >=1]
+    block_map : np.array, shape [H, W]
         The blocks in a 2d array.
 
     Returns:
     --------
-    map_img : PIL.Image
-        An image of the entire map, size (16*H, 16*W).
+    map_img : np.ndarray, shape [H * 16, W * 16, 4]
+        An image of the tilemap.
     """
-    height, width, _ = blocks_pool.shape
-    map_img = Image.new('RGBA', (width * 16, height * 16))
-    for (y, x), block_idx in np.ndenumerate(blocks_pool[:, :, 0]):
-        map_img.paste(
-            block_images[block_idx], (16 * x, 16 * y), block_images[block_idx]
-        )
-    return map_img
+    return tile(block_images, block_map)
 
 
 def get_blocks(
@@ -111,7 +66,7 @@ def get_blocks(
     tileset_secondary: ModelValue,
     tiles: TileImages,
     project: Project,
-) -> BlockImages:
+) -> npt.NDArray[np.int_]:
     """Computes the set of blocks for a combination of tilesets.
 
     Parameters:
@@ -138,25 +93,28 @@ def get_blocks(
     )
     assert isinstance(blocks_primary, list)
     assert isinstance(blocks_secondary, list)
-    return [get_block(block, tiles) for block in blocks_primary + blocks_secondary]
+    blocks = np.stack(
+        [get_block(block, tiles) for block in blocks_primary + blocks_secondary], axis=0
+    )
+    return blocks
 
 
-def get_block(block: ModelValue, tiles: TileImages) -> Image.Image:
+def get_block(block: ModelValue, tiles: TileImages) -> npt.NDArray[np.int_]:
     """Computes a block.
 
     Parameters:
     -----------
-    block : dict
+    block : ModelValue
         The block to build.
-    tiles : list
+    tiles : np.ndarray, shape [num_palettes, num_tiles, 8, 8, 4]
         All tiles in all palettes.
 
     Returns:
     --------
-    image : PIL.Image, size 16x16
-        The Pilow image of the block.
+    image : np.ndarray, shape [16, 16, 4]
+        The image of the block.
     """
-    block_img = Image.new('RGBA', (16, 16), 'black')
+    block_img = np.zeros((16, 16, 4), dtype=np.int_)
     assert isinstance(block, list)
     for idx, data in enumerate(block):
         x, y = idx & 1, (idx >> 1) & 1
@@ -171,12 +129,18 @@ def get_block(block: ModelValue, tiles: TileImages) -> Image.Image:
         if tile_idx >= 1024:
             warn(f'Tile index >= 1024: {tile_idx}')
             tile_idx = 0
-        tile = tiles[pal_idx][tile_idx]
+        tile = tiles[pal_idx, tile_idx]
         if data['horizontal_flip']:
-            tile = tile.transpose(Image.FLIP_LEFT_RIGHT)
+            tile = tile[:, ::-1]
         if data['vertical_flip']:
-            tile = tile.transpose(Image.FLIP_TOP_BOTTOM)
-        block_img.paste(tile, (8 * x, 8 * y), tile)
+            tile = tile[::-1]
+        # We do not properly realize the alpha channel
+        # and instead say 0 is transparent
+        mask = tile[..., 3] != 0
+        block_img[
+            8 * y : 8 * (y + 1),
+            8 * x : 8 * (x + 1),
+        ][mask] = tile[mask]
     return block_img
 
 
@@ -219,44 +183,74 @@ def get_tiles(
     palettes_secondary = get_member_by_path(
         tileset_secondary, project.config['pymap']['tileset_secondary']['palettes_path']
     )
-
-    palettes = pack_colors(palettes_primary) + pack_colors(palettes_secondary)
-    return [
+    palettes = np.concatenate(
+        [pack_colors(palettes_primary), pack_colors(palettes_secondary)], axis=0
+    )
+    return np.stack(
         [
-            img
-            for row in split_image_into_tiles(
-                gfx_primary.to_pil_image(palette, transparent=0)
+            np.concatenate(
+                [
+                    split_image_into_tiles(gfx.to_rgba(palette, transparent=0)).reshape(
+                        -1, 8, 8, 4
+                    )
+                    for gfx in (gfx_primary, gfx_secondary)
+                ],
+                axis=0,
             )
-            for img in row
+            for palette in palettes
         ]
-        + [
-            img
-            for row in split_image_into_tiles(
-                gfx_secondary.to_pil_image(palette, transparent=0)
-            )
-            for img in row
-        ]
-        for palette in palettes
-    ]
+    )
 
 
-def split_image_into_tiles(image: Image.Image) -> TileImages:
-    """Splits an image into 8x8 tiles.
+def split_image_into_tiles(image: npt.NDArray[np.int_]) -> npt.NDArray[np.int_]:
+    """Splits an image into 8x8 tiles that are cropped from the image.
 
     Args:
-        image (Image.Image): The image to split.
+        image (np.ndarray, shape [h, w, 4]): The image to split.
 
     Returns:
-        TileImages: A flat list of 8x8 tiles.
+        np.ndarray, shape [h // 8, w // 8, 8, 8, 4]: The tiles.
     """
-    width, height = image.size
-    return [
-        [image.crop((x, y, x + 8, y + 8)) for x in range(0, width, 8)]
-        for y in range(0, height, 8)
-    ]
+    assert isinstance(image, np.ndarray)
+    assert image.ndim == 3
+    assert image.shape[2] == 4
+    h, w, _ = image.shape
+    assert h % 8 == 0
+    assert w % 8 == 0
+    tiles = np.zeros((h // 8, w // 8, 8, 8, 4), dtype=np.int_)
+    # TODO: efficiency, can we improve the tiling runtime?
+    for i in range(h // 8):
+        for j in range(w // 8):
+            tiles[i, j] = image[i * 8 : (i + 1) * 8, j * 8 : (j + 1) * 8]
+    return tiles
 
 
-def pack_colors(palettes: ModelValue) -> list[PackedPalette]:
+def tile(
+    tiles: npt.NDArray[np.int_], tilemap: npt.NDArray[np.int_]
+) -> npt.NDArray[np.int_]:
+    """Tiles a list of tiles into a single image.
+
+    Args:
+        tiles (np.ndarray, shape [num_tiles, t1, ... tN, ...]): The tiles to tile.
+        tilemap (np.ndarray, shape [m1, ..., mN]): The tilemap to use.
+
+    Returns:
+        tiled: np.ndarray, shape [m1 * t1, ..., mN * tN, ...]: The tiled image.
+
+    """
+    output = np.zeros(
+        tuple(i * j for i, j in zip(tilemap.shape, tiles.shape[1:]))
+        + tuple(tiles.shape[1 + len(tilemap.shape) :]),
+        dtype=tiles.dtype,
+    )
+    for idxs in np.ndindex(tilemap.shape):
+        output[
+            tuple(slice(i * j, (i + 1) * j) for i, j in zip(idxs, tiles.shape[1:]))
+        ] = tiles[tilemap[idxs]]
+    return output
+
+
+def pack_colors(palettes: ModelValue) -> npt.NDArray[np.int_]:
     """Packs all members of a palette structure.
 
     Parameters:
@@ -266,26 +260,74 @@ def pack_colors(palettes: ModelValue) -> list[PackedPalette]:
 
     Returns:
     --------
-    packed : list
-        A list of length #palettes that holds packed rgb values (lists of size 48)
-        for the palette.
+    packed : np.ndarray, shape [num_palettes, 16, 3]
     """
-    packed: list[PackedPalette] = []
     assert isinstance(palettes, list)
-    for palette in palettes:
-        assert isinstance(palette, list)
-        # Retrieve rgb values separately
-        packed_palette: list[int] = []
-        assert len(palette) == 16  # Only allow 16 colors
-        for color in palette:
-            assert isinstance(color, dict)
-            for channel in ('red', 'blue', 'green'):
-                assert channel in color
-                rgb = color[channel]
-                assert isinstance(rgb, int)
-                packed_palette.append(rgb << 3)
-        packed.append(packed_palette)
-    return packed
+    return np.array(
+        [
+            [
+                [
+                    8 * color[channel]  # type: ignore
+                    for channel in ('red', 'blue', 'green')
+                ]
+                for color in palette
+                if isinstance(color, dict)
+            ]
+            for palette in palettes
+            if isinstance(palette, list)
+        ],
+        dtype=np.int_,
+    )
+
+
+def ndarray_to_QImage(
+    array: npt.NDArray[np.int_],
+) -> QImage:
+    """Generates a QImage from a numpy array.
+
+    Args:
+        array (npt.NDArray[np.int_]): The array to convert, shape [h, w, 4].
+
+    Returns:
+        QImage: The QImage.
+    """
+    H, W, C = array.shape
+    if C != 4:
+        raise ValueError('Array must have 4 channels!')
+
+    # Convert to uint8 if necessary
+    if array.dtype == np.uint8:
+        array_u8 = array
+    elif array.dtype == np.float32 or array.dtype == np.float64:
+        warn('Converting float array to uint8')
+        array_u8 = (array * 255).clip(0, 255).astype(np.uint8)
+    elif np.issubdtype(array.dtype, np.integer):
+        warn('Converting int array to uint8')
+        array_u8 = np.clip(array, 0, 255).astype(np.uint8)
+    else:
+        raise ValueError('Unsupported data type for image array')
+
+    # Create QImage
+    return QImage(array_u8.data, W, H, 4 * W, QImage.Format.Format_RGBA8888)
+
+
+def image_to_QImage(image: Image, palette: Palette) -> QImage:
+    """Creates a QImage from a GBA image."""
+    qimage = QImage(
+        image.width,
+        image.height,
+        QImage.Format.Format_Indexed8,
+    )
+    qimage.setColorCount(len(palette))
+    for i in range(len(palette)):
+        qimage.setColor(i, qRgb(*palette[i].rgbs))  # type: ignore
+
+    assert image.width % 8 == 0, 'Image width must be a multiple of 8!'
+    assert image.height % 8 == 0, 'Image height must be a multiple of 8!'
+    buffer = qimage.bits()
+    buffer[:] = bytes(image.data.flatten())  # type: ignore[assignment]
+
+    return qimage
 
 
 def select_blocks[E: np.generic](

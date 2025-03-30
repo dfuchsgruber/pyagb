@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from PIL.ImageQt import ImageQt
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtGui import QBrush, QColor, QPen, QPixmap
 from PySide6.QtWidgets import QGraphicsPixmapItem, QMessageBox
 
 from pymap.gui import blocks
 from pymap.gui.icon import Icon, icon_paths
+from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.types import ConnectionType, UnpackedConnection
 
 from .. import history, properties
@@ -161,7 +161,9 @@ class ConnectionWidget(QtWidgets.QWidget):
         self.block_pixmaps = np.empty_like(self.blocks[:, :, 0], dtype=object)
         for (y, x), block_idx in np.ndenumerate(self.blocks[:, :, 0]):
             # Draw the blocks
-            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.block_images[block_idx]))
+            pixmap = QPixmap.fromImage(
+                ndarray_to_QImage(self.main_gui.block_images[block_idx])
+            )
             item = QGraphicsPixmapItem(pixmap)
             item.setAcceptHoverEvents(True)
             self.map_scene.addItem(item)
@@ -410,7 +412,9 @@ class ConnectionWidget(QtWidgets.QWidget):
         for y, x in zip(*np.where(new_blocks[:, :, 0] != self.blocks[:, :, 0])):
             y, x = int(y), int(x)
             block_idx = int(new_blocks[y, x, 0])
-            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.block_images[block_idx]))
+            pixmap = QPixmap.fromImage(
+                ndarray_to_QImage(self.main_gui.block_images[block_idx])
+            )
             self.block_pixmaps[y, x].setPixmap(pixmap)
 
         self.blocks = new_blocks

@@ -8,15 +8,14 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
-from PIL.ImageQt import ImageQt
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPen, QPixmap
+from PySide6.QtGui import QColor, QImage, QPen, QPixmap
 from PySide6.QtWidgets import QFileDialog, QGraphicsPixmapItem, QMessageBox, QSizePolicy
 
 from agb import image as agbimage
 from agb.model.type import ModelValue
+from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.tileset.block_properties import BlockProperties
 from pymap.gui.tileset.tileset_properties import TilesetProperties
 
@@ -396,6 +395,7 @@ class TilesetWidget(QtWidgets.QWidget):
         self.set_current_block(self.selected_block_idx)
         self.set_selection(self.selection)
 
+    # @ProfileBlock('load_tiles')
     def load_tiles(self):
         """Reloads the tiles."""
         if (
@@ -408,23 +408,25 @@ class TilesetWidget(QtWidgets.QWidget):
         ):
             return
         self.tile_pixmaps: list[dict[int, QPixmap]] = []
+        # Convert masks to ints for efficiency
+        mask_horizontal = int(TileFlip.HORIZONTAL)
+        mask_vertical = int(TileFlip.VERTICAL)
+
         for palette_idx in range(13):
             pixmaps: dict[int, QPixmap] = {}
             for flip in range(4):
                 # Assemble the entire picture
-                image = Image.new('RGBA', (128, 512))
+                image = np.zeros((512, 128, 4), dtype=np.int_)
                 for idx, tile_img in enumerate(self.main_gui.tiles[palette_idx]):
                     x, y = idx % 16, idx // 16
-                    if flip & TileFlip.HORIZONTAL:
-                        tile_img = tile_img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                    if flip & mask_horizontal:
+                        tile_img = tile_img[:, ::-1]
                         x = 15 - x
-                    if flip & TileFlip.VERTICAL:
-                        tile_img = tile_img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+                    if flip & mask_vertical:
+                        tile_img = tile_img[::-1]
                         y = 63 - y
-                    image.paste(tile_img, box=(8 * x, 8 * y))  # type: ignore
-                pixmaps[flip] = QPixmap.fromImage(
-                    ImageQt(image.convert('RGB').convert('RGBA'))
-                )
+                    image[8 * y : 8 * (y + 1), 8 * x : 8 * (x + 1)] = tile_img
+                pixmaps[flip] = QPixmap.fromImage(ndarray_to_QImage(image))
             self.tile_pixmaps.append(pixmaps)
         self.update_tiles()
 
@@ -473,12 +475,14 @@ class TilesetWidget(QtWidgets.QWidget):
             or self.main_gui.tileset_secondary is None
         ):
             return
-        width, height = self.blocks_image.size
+        height, width = self.blocks_image.shape[:2]
         width, height = (
             int(width * self.zoom_slider.value() / 10),
             int(height * self.zoom_slider.value() / 10),
         )
-        pixmap = QPixmap.fromImage(ImageQt(self.blocks_image)).scaled(width, height)
+        pixmap = QPixmap.fromImage(ndarray_to_QImage(self.blocks_image)).scaled(
+            width, height
+        )
         item = QGraphicsPixmapItem(pixmap)
         self.blocks_scene.addItem(item)
         item.setAcceptHoverEvents(True)
@@ -552,26 +556,26 @@ class TilesetWidget(QtWidgets.QWidget):
         assert self.main_gui.tiles is not None
         self.selection = selection
         self.selection_scene.clear()
-        image = Image.new('RGBA', (8 * selection.shape[1], 8 * selection.shape[0]))
+        image = np.zeros(
+            (8 * selection.shape[0], 8 * selection.shape[1], 4), dtype=np.int_
+        )
         for (y, x), tile in np.ndenumerate(selection):
             assert isinstance(tile, dict)
             palette_idx, tile_idx = tile['palette_idx'], tile['tile_idx']  # type: ignore
             assert isinstance(palette_idx, int)
             assert isinstance(tile_idx, int)
-            tile_img = self.main_gui.tiles[palette_idx][tile_idx]
+            tile_img = self.main_gui.tiles[palette_idx, tile_idx]
             if tile['horizontal_flip']:
-                tile_img = tile_img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                tile_img = tile_img[:, ::-1]
             if tile['vertical_flip']:
-                tile_img = tile_img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-            image.paste(tile_img, box=(8 * x, 8 * y))  # type: ignore
+                tile_img = tile_img[::-1]
+            image[8 * y : 8 * (y + 1), 8 * x : 8 * (x + 1)] = tile_img
         width, height = (
             int(8 * selection.shape[1] * self.zoom_slider.value() / 10),
             int(8 * selection.shape[0] * self.zoom_slider.value() / 10),
         )
         item = QGraphicsPixmapItem(
-            QPixmap.fromImage(ImageQt(image.convert('RGB').convert('RGBA'))).scaled(
-                width, height
-            )
+            QPixmap.fromImage(QImage(ndarray_to_QImage(image))).scaled(width, height)
         )
         self.selection_scene.addItem(item)
         item.setAcceptHoverEvents(True)

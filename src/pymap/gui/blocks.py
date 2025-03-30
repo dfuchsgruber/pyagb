@@ -183,7 +183,9 @@ def insert_connection(
 
 
 def unpack_connection(
-    connection: ModelValue, project: Project, connection_blocks: NDArray[np.int_] | None
+    connection: ModelValue,
+    project: Project,
+    connection_blocks: NDArray[np.int_] | None,
 ) -> UnpackedConnection | None:
     """Loads a connections data if possible.
 
@@ -204,9 +206,9 @@ def unpack_connection(
         connection,
         project.config['pymap']['header']['connections']['connection_type_path'],
     )
-    assert isinstance(
-        connection_type, str
-    ), f'Expected str, got {type(connection_type)}'
+    assert isinstance(connection_type, str), (
+        f'Expected str, got {type(connection_type)}'
+    )
     offset = properties.get_member_by_path(
         connection,  # type: ignore
         project.config['pymap']['header']['connections']['connection_offset_path'],
@@ -246,16 +248,16 @@ def unpack_connection(
             footer_label = properties.get_member_by_path(
                 header, project.config['pymap']['header']['footer_path']
             )
-            assert isinstance(
-                footer_label, str
-            ), f'Expected str, got {type(footer_label)}'
+            assert isinstance(footer_label, str), (
+                f'Expected str, got {type(footer_label)}'
+            )
             footer, _, _ = project.load_footer(footer_label)
             connection_blocks_model = properties.get_member_by_path(
                 footer, project.config['pymap']['footer']['map_blocks_path']
             )
             connection_blocks = blocks_to_ndarray(connection_blocks_model)  # type: ignore
         return UnpackedConnection(
-            type=connection_type,
+            type=connection_type,  # type: ignore
             offset=offset,
             bank=bank,
             map_idx=map_idx,

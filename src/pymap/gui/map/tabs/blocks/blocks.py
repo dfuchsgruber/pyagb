@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
-from PIL.ImageQt import ImageQt
 from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
@@ -107,7 +106,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
 
         blocks_widget.restoreState(
             self.map_widget.main_gui.settings.value(
-                'map_widget/blocks_splitter_state', bytes(), type=bytes
+                'map_widget/blocks_splitter_state', b'', type=bytes
             )  # type: ignore
         )
         blocks_widget.splitterMoved.connect(
@@ -117,7 +116,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         )
         splitter_selection_and_border.restoreState(
             self.map_widget.main_gui.settings.value(
-                'map_widget/selection_and_border_splitter_state', bytes(), type=bytes
+                'map_widget/selection_and_border_splitter_state', b'', type=bytes
             )  # type: ignore
         )
         splitter_selection_and_border.splitterMoved.connect(
@@ -155,7 +154,10 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
             return
         map_blocks = self.map_widget.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
-        self.blocks_image = QPixmap.fromImage(ImageQt(render.draw_blocks(map_blocks)))
+
+        self.blocks_image = QPixmap.fromImage(
+            render.ndarray_to_QImage(render.draw_blocks(map_blocks))
+        )
         item = QGraphicsPixmapItem(self.blocks_image)
         self.blocks_scene.addItem(item)
         item.setAcceptHoverEvents(True)
@@ -170,7 +172,9 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         assert map_blocks is not None, 'Blocks are not loaded'
         border_blocks = self.map_widget.main_gui.get_borders()
         self.border_image = QPixmap.fromImage(
-            ImageQt(render.draw_blocks(map_blocks, border_blocks))
+            render.ndarray_to_QImage(
+                render.draw_blocks(map_blocks, border_blocks[..., 0])
+            )
         )
         self.border_scene.addPixmap(self.border_image)
         self.border_scene.setSceneRect(
@@ -192,7 +196,9 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         map_blocks = self.map_widget.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
         selection_pixmap = QPixmap.fromImage(
-            ImageQt(render.draw_blocks(map_blocks, self.selection))
+            render.ndarray_to_QImage(
+                render.draw_blocks(map_blocks, self.selection[..., 0])
+            )
         )
         item = QGraphicsPixmapItem(selection_pixmap)
         self.selection_scene.addItem(item)

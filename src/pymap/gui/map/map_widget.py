@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Iterable, cast
 
 import numpy as np
 from numpy.typing import NDArray
-from PIL.ImageQt import ImageQt
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QPen, QPixmap
@@ -22,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from pymap.gui import blocks
 from pymap.gui.blocks import compute_blocks
+from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.types import MapLayers
 
 from .map_scene import MapScene
@@ -231,7 +231,9 @@ class MapWidget(QWidget):
         for (y, x), block_idx in np.ndenumerate(self.blocks[:, :, 0]):
             # Draw the blocks
             assert self.main_gui.block_images is not None, 'Blocks are not loaded'
-            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.block_images[block_idx]))
+            pixmap = QPixmap.fromImage(
+                ndarray_to_QImage(self.main_gui.block_images[block_idx])
+            )
             item = QGraphicsPixmapItem(pixmap)
             item.setAcceptHoverEvents(True)
             item.setPos(16 * x, 16 * y)
@@ -353,7 +355,9 @@ class MapWidget(QWidget):
         idx_y, idx_x = indices_padded
         for y, x, block_idx in zip(idx_y, idx_x, self.blocks[idx_y, idx_x, 0]):
             y, x, block_idx = cast(int, y), cast(int, x), cast(int, block_idx)
-            pixmap = QPixmap.fromImage(ImageQt(self.main_gui.block_images[block_idx]))
+            pixmap = QPixmap.fromImage(
+                ndarray_to_QImage(self.main_gui.block_images[block_idx])
+            )
             self.block_images[y, x].setPixmap(pixmap)
 
     def update_layer_at_indices(

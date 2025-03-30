@@ -1,4 +1,5 @@
 """Abstract Type class."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -211,7 +212,8 @@ def associate_with_constant(
     Returns:
     --------
     associated : int or str
-        The association of the value or the original value if no association was possible.
+        The association of the value or the original value if no association
+        was possible.
     """
     if constant is not None:
         if constant in proj.constants:

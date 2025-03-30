@@ -2,7 +2,7 @@
 
 import struct
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, cast
 
 import numpy as np
 import PIL.Image
@@ -11,7 +11,7 @@ import PIL.Image
 class Palette:
     """Class that represents a GBA palette."""
 
-    def __init__(self, rgbs: Sequence[Sequence[int]], size: int | None=16):
+    def __init__(self, rgbs: Sequence[Sequence[int]], size: int | None = 16):
         """Initalizes the palette structure.
 
         Parameters:
@@ -45,7 +45,7 @@ class Palette:
             item (Sequence[int] | &#39;Palette): The color to set.
         """
         if isinstance(item, Palette):
-            item = item.rgbs.tolist()
+            item = cast(Sequence[int], item.rgbs.tolist())
         self.rgbs[key] = item
 
     def __len__(self) -> int:
@@ -75,16 +75,23 @@ class Palette:
         data : list
             List of 16-bit values representing the colors of this palette.
         """
+
         def color_pack(color: Sequence[int]) -> dict[str, int]:
             return {
-                'red' : color[0] >> 3,
+                'red': color[0] >> 3,
                 'blue': color[1] >> 3,
-                'green' : color[2] >> 3,
+                'green': color[2] >> 3,
             }
-        return list(map(color_pack, self.rgbs.astype(int).tolist()))
+
+        return list(
+            map(
+                color_pack,
+                cast(Sequence[Sequence[int]], self.rgbs.astype(int).tolist()),
+            )
+        )
 
 
-def from_data(data: Sequence[int], num_colors: int=16) -> Palette:
+def from_data(data: Sequence[int], num_colors: int = 16) -> Palette:
     """Creates a Palette instance based on raw binary data.
 
     Parameters:
@@ -100,11 +107,20 @@ def from_data(data: Sequence[int], num_colors: int=16) -> Palette:
         A new Palette instance.
     """
     data = bytes(data)
-    values = [struct.unpack_from('<H', data, i)[0]
-              for i in range(0, min(num_colors * 2, len(data)), 2)]
-    values = map(lambda value: ((value & 31) * 8, ((value >> 5) & 31) * 8,
-                                ((value >> 10) & 31) * 8), values)
+    values = [
+        struct.unpack_from('<H', data, i)[0]
+        for i in range(0, min(num_colors * 2, len(data)), 2)
+    ]
+    values = map(
+        lambda value: (
+            (value & 31) * 8,
+            ((value >> 5) & 31) * 8,
+            ((value >> 10) & 31) * 8,
+        ),
+        values,
+    )
     return Palette(list(values))
+
 
 def from_file(file_path: str) -> Palette:
     """Creates a Palette instance from an image file.
@@ -120,6 +136,6 @@ def from_file(file_path: str) -> Palette:
         The palette of the image.
     """
     with open(Path(file_path), 'rb') as f:
-        img = PIL.Image.open(f)
-        colors = list(bytes(img.palette.palette))
+        img = PIL.Image.open(f)  # type: ignore
+        colors = list(bytes(img.palette.palette))  # type: ignore
         return Palette(list(zip(colors[0::3], colors[1::3], colors[2::3])))

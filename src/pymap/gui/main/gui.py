@@ -837,7 +837,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         map_blocks = self.get_map_blocks()[:, :, layer]
         idx = np.where(map_blocks == map_blocks[y, x])  # type: ignore
         self.replace_blocks_at(
-            idx=idx,
+            idx=idx,  # type: ignore
             layer=layer,
             value=value,
         )

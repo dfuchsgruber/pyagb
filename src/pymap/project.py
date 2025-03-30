@@ -929,7 +929,7 @@ class Project:
             self.save_tileset(primary, tileset['data'], label)
             self.autosave()
 
-    def load_gfx(self, primary: bool, label: str):
+    def load_gfx(self, primary: bool, label: str) -> image.Image:
         """Loads a gfx and instanciates an agb image.
 
         Parameters:

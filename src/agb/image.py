@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Sequence
 
 import numpy as np
+import numpy.typing as npt
 import PIL.Image
 import PIL.ImagePalette
 import png  # type: ignore
@@ -40,15 +41,15 @@ class Image:
         bpp : 4 or 8
             Bits per pixel (depth).
         """
-        assert (
-            depth in self.SUPPORTED_DEPTHS
-        ), f'Invalid depth {depth}, must be in {self.SUPPORTED_DEPTHS}'
+        assert depth in self.SUPPORTED_DEPTHS, (
+            f'Invalid depth {depth}, must be in {self.SUPPORTED_DEPTHS}'
+        )
         assert width % 8 == 0, 'Width is not a multiple of 8'
         assert height % 8 == 0, 'Height is not a multiple of 8'
         self.depth = depth
         self.width = width
         self.height = height
-        self.data = np.zeros((width, height), dtype=int)
+        self.data = np.zeros((width, height), dtype=np.int_)
         if data is not None:
             for x, y in product(range(width), range(height)):
                 byte_index, bit_index = self._position_to_data_idx(x, y)
@@ -111,12 +112,12 @@ class Image:
         palette_target: agb.palette.Palette
             The target palette.
         """
-        assert (
-            len(palette_src) <= 2**self.depth
-        ), 'Source palette is too large for image depth!'
-        assert (
-            len(palette_target) <= 2**self.depth
-        ), 'Target palette is too large for image depth!'
+        assert len(palette_src) <= 2**self.depth, (
+            'Source palette is too large for image depth!'
+        )
+        assert len(palette_target) <= 2**self.depth, (
+            'Target palette is too large for image depth!'
+        )
 
         # remap palette
         palette_map = np.zeros(2**self.depth, dtype=int)
@@ -153,18 +154,44 @@ class Image:
             The Pilow image.
         """
         img = PIL.Image.new('P', (self.width, self.height))
-        img.putdata(self.data.T.flatten().tolist())
-        img.putpalette(palette)
+        img.putdata(self.data.T.flatten().tolist())  # type: ignore
+        img.putpalette(palette)  # type: ignore
         img = img.convert('RGBA')
         if transparent is not None:
             alpha_color = list(palette[transparent * 3 : (transparent + 1) * 3])
-            img.putdata(
+            img.putdata(  # type: ignore
                 [
                     (c[0], c[1], c[2], 0) if list(c)[:3] == alpha_color[:3] else c  # type: ignore
                     for c in img.getdata()  # type: ignore
                 ]
             )
         return img
+
+    def to_rgba(
+        self, palette: Sequence[int], transparent: int | None = 0
+    ) -> npt.NDArray[np.int_]:
+        """Creates a RGBA image based on the image resource.
+
+        Parameters:
+        -----------
+        palette : list or byte-like
+            Sequence where each groups of 3 represent the R,G,B values
+        transparent : int or None
+            The color index of the palette which resembles transparency, i.e. alpha
+            value of zero. If None, no alpha is applied to the image.
+
+        Returns:
+        --------
+        image : np.ndarray, shape [h, w, 4]
+            The RGBA image.
+        """
+        palette_ndarray = np.array(palette, dtype=np.int_).reshape(-1, 3)
+        palette_rgba = np.zeros((len(palette_ndarray), 4), dtype=np.int_)
+        palette_rgba[:, :3] = palette_ndarray
+        palette_rgba[:, 3] = 255
+        if transparent is not None:
+            palette_rgba[transparent, 3] = 0
+        return palette_rgba[self.data.T]
 
     def save(
         self, path: str, palette: bytes | Sequence[int] | PIL.ImagePalette.ImagePalette
@@ -179,9 +206,9 @@ class Image:
             Sequence where each groups of 3 represent the R,G,B values
         """
         img = PIL.Image.new('P', (self.width, self.height))
-        img.putdata(self.data.T.flatten().tolist())
-        img.putpalette(palette)
-        img.save(str(Path(path)))
+        img.putdata(self.data.T.flatten().tolist())  # type: ignore
+        img.putpalette(palette)  # type: ignore
+        img.save(str(Path(path)))  # type: ignore
 
 
 def from_file(file_path: str) -> tuple[Image, Palette]:
@@ -205,9 +232,9 @@ def from_file(file_path: str) -> tuple[Image, Palette]:
         attributes: dict[str, int | str] = attributes
         bitdepth = attributes['bitdepth']
         assert isinstance(bitdepth, int), f'Bitdepth {bitdepth} is not an integer'
-        assert (
-            bitdepth & (bitdepth - 1) == 0
-        ), f'Bitdepth {bitdepth} is not a power of 2'
+        assert bitdepth & (bitdepth - 1) == 0, (
+            f'Bitdepth {bitdepth} is not a power of 2'
+        )
         image = Image(None, width, height, depth=bitdepth)
         image.data = np.array([*data]).T
         colors = attributes['palette']

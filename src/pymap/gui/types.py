@@ -31,12 +31,10 @@ class BlockProtocol(Protocol):
     """A block in a map."""
 
     @overload
-    def __getitem__(self, key: Literal['block_idx']) -> int:
-        ...
+    def __getitem__(self, key: Literal['block_idx']) -> int: ...
 
     @overload
-    def __getitem__(self, key: Literal['level']) -> int:
-        ...
+    def __getitem__(self, key: Literal['level']) -> int: ...
 
 
 class Block(dict[str, Any], BlockProtocol):
