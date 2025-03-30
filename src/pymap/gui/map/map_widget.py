@@ -157,7 +157,7 @@ class MapWidget(QWidget):
             self.undo_stack,
         )
 
-    # @ProfileBlock('MapWidget:tab_changed')
+    # @Profile('MapWidget:tab_changed')
     def tab_changed(self, *args: Any, **kwargs: Any):
         """Triggered when the user switches from the blocks to levels tab."""
         self.update_layers()

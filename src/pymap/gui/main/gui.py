@@ -267,7 +267,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """Returns whether the borders are shown."""
         return self.map_widget.blocks_tab.show_border.isChecked()
 
-    # @ProfileBlock('main_gui:tab_changed')
     def tab_changed(self, *args: Any, **kwargs: Any):
         """Callback method for when a tab is changed."""
         # Update map data and blocks lazily in order to prevent lag
@@ -534,7 +533,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             return pressed == QMessageBox.StandardButton.Cancel
         return False
 
-    # @ProfileBlock('open_header')
+    # @Profile('open_header')
     def open_header(self, bank: str, map_idx: str, prompt_saving: bool = True):
         """Opens a new map header and displays it."""
         if self.project is None:

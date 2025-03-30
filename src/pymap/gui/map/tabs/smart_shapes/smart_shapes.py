@@ -25,7 +25,7 @@ from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
     smart_shape_get_block_image,
 )
 from pymap.gui.smart_shape.smart_shape import SmartShape
-from pymap.gui.types import MapLayers, RGBAImage, Tilemap
+from pymap.gui.types import MapLayers, Tilemap
 
 from .add_dialog import AddSmartShapeDialog
 from .blocks import SmartShapesBlocksScene
@@ -235,7 +235,7 @@ class SmartShapesTab(BlocksLikeTab):
         return 0
 
     @property
-    def selected_layers(self) -> RGBAImage:
+    def selected_layers(self) -> MapLayers:
         """The selected layers."""
         return np.array([0])
 

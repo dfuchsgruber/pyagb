@@ -86,7 +86,7 @@ class MapScene(BaseMapScene):
             event, *map_coordinates
         )
 
-    # @ProfileBlock('MapScene:mouseMoveEvent')
+    # @Profile('MapScene:mouseMoveEvent')
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
         pos = event.scenePos()

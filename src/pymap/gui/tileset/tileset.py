@@ -395,7 +395,7 @@ class TilesetWidget(QtWidgets.QWidget):
         self.set_current_block(self.selected_block_idx)
         self.set_selection(self.selection)
 
-    # @ProfileBlock('load_tiles')
+    # @Profile('load_tiles')
     def load_tiles(self):
         """Reloads the tiles."""
         if (

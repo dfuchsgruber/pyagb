@@ -9,7 +9,7 @@ import pstats
 from typing import Any, Callable, Optional, Type
 
 
-class ProfileBlock(contextlib.ContextDecorator):
+class Profile(contextlib.ContextDecorator):
     """Context manager for profiling a block of code."""
 
     def __init__(

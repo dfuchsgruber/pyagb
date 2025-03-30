@@ -6,9 +6,12 @@ from typing import Any, Literal, NamedTuple, Protocol, Sequence, TypeAlias, over
 import numpy as np
 from numpy.typing import NDArray
 
+# Images are represented as 8-bit RGBA values (4 channels)
 RGBAImage: TypeAlias = NDArray[np.uint8]  # Shape ..., 4
+# Tilemaps are represented as integer maps
 Tilemap: TypeAlias = NDArray[np.int_]
-MapLayers: TypeAlias = Sequence[int] | int | RGBAImage
+# MapLayers are represented as a sequence of integers or a single integer
+MapLayers: TypeAlias = Sequence[int] | int | Tilemap
 
 
 @unique
