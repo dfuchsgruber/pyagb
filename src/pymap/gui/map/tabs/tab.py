@@ -5,12 +5,12 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-import numpy as np
-from numpy.typing import NDArray
 from PySide6.QtWidgets import (
     QGraphicsSceneMouseEvent,
     QWidget,
 )
+
+from pymap.gui.types import Tilemap
 
 from ..level import level_to_info
 
@@ -28,7 +28,7 @@ class MapWidgetTab(QWidget):
 
     @property
     @abstractmethod
-    def selected_layers(self) -> NDArray[np.uint8]:
+    def selected_layers(self) -> Tilemap:
         """Get the selected levels."""
         raise NotImplementedError
 
@@ -51,7 +51,7 @@ class MapWidgetTab(QWidget):
         raise NotImplementedError
 
     @abstractmethod
-    def set_selection(self, selection: NDArray[np.uint8]) -> None:
+    def set_selection(self, selection: Tilemap) -> None:
         """Set the selection."""
         raise NotImplementedError
 

@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 import pymap.gui.render as render
-from agb.model.type import IntArray
+from pymap.gui.types import Tilemap
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
@@ -21,11 +21,11 @@ if TYPE_CHECKING:
 class BlocksSceneParent(Protocol):
     """Parent of a blocks scene, in which the blocks of this scene are used."""
 
-    def set_selection(self, selection: IntArray) -> None:
+    def set_selection(self, selection: Tilemap) -> None:
         """Sets the selection according to what is selected in this scene.
 
         Args:
-            selection (IntArray): The selection array.
+            selection (Tilemap): The selection array.
         """
         ...
 

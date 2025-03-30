@@ -5,11 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Sequence
 
 import numpy as np
-import numpy.typing as npt
 from PySide6.QtGui import QUndoCommand
 
-from agb.model.type import IntArray
 from pymap.gui.properties.utils import set_member_by_path
+from pymap.gui.types import Tilemap
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
@@ -22,14 +21,14 @@ class ResizeBuffer:
     """
 
     def __init__(
-        self, width_new: int, height_new: int, values_old: IntArray, fill_value: int = 0
+        self, width_new: int, height_new: int, values_old: Tilemap, fill_value: int = 0
     ):
         """Initializes the buffer.
 
         Args:
             width_new (int): The new width of the buffer
             height_new (int): The new height of the buffer
-            values_old (IntArray): The old values, of shape [height, width, ...]
+            values_old (Tilemap): The old values, of shape [height, width, ...]
             fill_value (int, optional): The value to fill the buffer with.
                 Defaults to 0.
         """
@@ -44,20 +43,20 @@ class ResizeBuffer:
         self.buffer[: self.height_old, : self.width_old, ...] = values_old.copy()
 
     @property
-    def old(self) -> IntArray:
+    def old(self) -> Tilemap:
         """Returns the old blocks.
 
         Returns:
-            IntArray: The old blocks
+            Tilemap: The old blocks
         """
         return self.buffer[: self.height_old, : self.width_old, ...].copy()
 
     @property
-    def new(self) -> IntArray:
+    def new(self) -> Tilemap:
         """Returns the new blocks.
 
         Returns:
-            IntArray: The new blocks
+            Tilemap: The new blocks
         """
         return self.buffer[: self.height_new, : self.width_new, ...].copy()
 
@@ -70,7 +69,7 @@ class ResizeMap(QUndoCommand):
         main_gui: PymapGui,
         height_new: int,
         width_new: int,
-        values_old: IntArray,
+        values_old: Tilemap,
     ):
         """Initializes the resize map action.
 
@@ -78,7 +77,7 @@ class ResizeMap(QUndoCommand):
             main_gui (PymapGui): reference to the main gui
             height_new (int): new height
             width_new (int): new width
-            values_old (IntArray): old values
+            values_old (Tilemap): old values
         """
         super().__init__(
             f'Resize map to {width_new}x{height_new}',
@@ -90,7 +89,7 @@ class ResizeMap(QUndoCommand):
             for name, smart_shape in main_gui.smart_shapes.items()
         }
 
-    def _change_size(self, blocks: IntArray, smart_shape_buffers: dict[str, IntArray]):
+    def _change_size(self, blocks: Tilemap, smart_shape_buffers: dict[str, Tilemap]):
         assert self.main_gui.project is not None
         self.main_gui.set_map_dimensions(blocks.shape[1], blocks.shape[0])
         set_member_by_path(
@@ -126,7 +125,7 @@ class ResizeBorder(QUndoCommand):
         main_gui: PymapGui,
         height_new: int,
         width_new: int,
-        values_old: IntArray,
+        values_old: Tilemap,
     ):
         """Initializes the resize map action.
 
@@ -134,7 +133,7 @@ class ResizeBorder(QUndoCommand):
             main_gui (PymapGui): reference to the main gui
             height_new (int): new height
             width_new (int): new width
-            values_old (IntArray): old values
+            values_old (Tilemap): old values
         """
         super().__init__(
             f'Resize border to {width_new}x{height_new}',
@@ -142,7 +141,7 @@ class ResizeBorder(QUndoCommand):
         self.main_gui = main_gui
         self.buffer = ResizeBuffer(width_new, height_new, values_old)
 
-    def _change_size(self, blocks: IntArray):
+    def _change_size(self, blocks: Tilemap):
         assert self.main_gui.project is not None
         self.main_gui.set_border_dimensions(blocks.shape[1], blocks.shape[0])
         set_member_by_path(
@@ -169,8 +168,8 @@ class SetBorder(QUndoCommand):
         main_gui: PymapGui,
         x: int,
         y: int,
-        blocks_new: IntArray,
-        blocks_old: IntArray,
+        blocks_new: Tilemap,
+        blocks_old: Tilemap,
     ):
         """Initializes the set border action.
 
@@ -178,8 +177,8 @@ class SetBorder(QUndoCommand):
             main_gui (PymapGui): reference to the main gui
             x (int): Which coordinates
             y (int): Which coordinates
-            blocks_new (IntArray): Which blocks to set
-            blocks_old (IntArray): The old blocks
+            blocks_new (Tilemap): Which blocks to set
+            blocks_old (Tilemap): The old blocks
         """
         super().__init__(
             f'Set border at {x}, {y}',
@@ -190,7 +189,7 @@ class SetBorder(QUndoCommand):
         self.blocks_new = blocks_new
         self.blocks_old = blocks_old
 
-    def _set_blocks(self, blocks: IntArray):
+    def _set_blocks(self, blocks: Tilemap):
         # Helper method for setting a set of blocks
         assert self.main_gui.project is not None
         footer_blocks = self.main_gui.get_borders()
@@ -216,9 +215,9 @@ class SetBlocks(QUndoCommand):
         main_gui: PymapGui,
         x: int,
         y: int,
-        layers: Sequence[int] | int | npt.NDArray[np.uint8],
-        blocks_new: IntArray,
-        blocks_old: IntArray,
+        layers: Sequence[int] | int | Tilemap,
+        blocks_new: Tilemap,
+        blocks_old: Tilemap,
     ):
         """Initializes the set blocks action.
 
@@ -227,8 +226,8 @@ class SetBlocks(QUndoCommand):
             x (int): at which x coordinate
             y (int): at which y coordinate
             layers (Sequence[int]): which layers to set
-            blocks_new (IntArray): Which blocks to set
-            blocks_old (IntArray): The old blocks
+            blocks_new (Tilemap): Which blocks to set
+            blocks_old (Tilemap): The old blocks
         """
         super().__init__(
             f'Set blocks at {x}, {y}',
@@ -240,7 +239,7 @@ class SetBlocks(QUndoCommand):
         self.blocks_new = blocks_new
         self.blocks_old = blocks_old
 
-    def _set_blocks(self, blocks: IntArray):
+    def _set_blocks(self, blocks: Tilemap):
         # Helper method for setting a set of blocks
         footer_blocks = self.main_gui.get_map_blocks()
         footer_blocks[
@@ -267,8 +266,8 @@ class ReplaceBlocks(QUndoCommand):
         main_gui: PymapGui,
         idx: Any,
         layer: int,
-        value_new: IntArray,
-        value_old: IntArray,
+        value_new: Tilemap,
+        value_old: Tilemap,
     ):
         """Initializes the replace blocks action.
 
@@ -276,8 +275,8 @@ class ReplaceBlocks(QUndoCommand):
             main_gui (PymapGui): reference to the main gui
             idx (tuple[int, int]): which coordinates
             layer (int): which layer to replace
-            value_new (IntArray): new value
-            value_old (IntArray): old value
+            value_new (Tilemap): new value
+            value_old (Tilemap): old value
         """
         super().__init__('Replace blocks')
         self.main_gui = main_gui

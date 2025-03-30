@@ -6,7 +6,6 @@ import importlib.resources as resources
 from typing import TYPE_CHECKING
 
 import numpy as np
-from numpy.typing import NDArray
 from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
@@ -17,6 +16,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from pymap.gui.types import Tilemap
 
 from ..blocks_like import BlocksLikeTab
 from .level_blocks import LevelBlocksScene
@@ -92,7 +93,7 @@ class LevelsTab(BlocksLikeTab):
         return 1
 
     @property
-    def selected_layers(self) -> NDArray[np.uint8]:
+    def selected_layers(self) -> Tilemap:
         """Returns the selected layers."""
         return np.array([1])
 
@@ -109,11 +110,11 @@ class LevelsTab(BlocksLikeTab):
         """Loads the project."""
         self.set_selection(np.zeros((1, 1, 2), dtype=int))
 
-    def set_selection(self, selection: NDArray[np.uint8]):
+    def set_selection(self, selection: Tilemap):
         """Sets the selection.
 
         Args:
-            selection (NDArray[np.uint8]): The selection.
+            selection (RGBAImage): The selection.
         """
         selection = selection.copy()
         self.selection = selection

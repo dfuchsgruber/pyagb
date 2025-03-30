@@ -6,7 +6,6 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Iterable, cast
 
 import numpy as np
-from numpy.typing import NDArray
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QPen, QPixmap
@@ -22,7 +21,7 @@ from PySide6.QtWidgets import (
 from pymap.gui import blocks
 from pymap.gui.blocks import compute_blocks
 from pymap.gui.render import ndarray_to_QImage
-from pymap.gui.types import MapLayers
+from pymap.gui.types import MapLayers, RGBAImage
 
 from .map_scene import MapScene
 from .tabs.blocks import BlocksTab
@@ -342,12 +341,12 @@ class MapWidget(QWidget):
         )
 
     def update_blocks_at_padded_indices(
-        self, indices_padded: tuple[NDArray[np.uint8], ...] | NDArray[np.uint8]
+        self, indices_padded: tuple[RGBAImage, ...] | RGBAImage
     ):
         """Updates map blocks at certain indices.
 
         Args:
-            indices_padded (tuple[NDArray[np.uint8], ...] | NDArray[np.uint8]):
+            indices_padded (tuple[RGBAImage, ...] | RGBAImage):
                 The indices.
         """
         assert self.blocks is not None, 'Blocks are not loaded'
@@ -362,14 +361,14 @@ class MapWidget(QWidget):
 
     def update_layer_at_indices(
         self,
-        indices: tuple[NDArray[np.uint8], ...] | NDArray[np.uint8],
+        indices: tuple[RGBAImage, ...] | RGBAImage,
         layer: int,
         indices_padded: bool = False,
     ):
         """Updates the map image at certain indices.
 
         Args:
-            indices (tuple[NDArray[np.uint8], ...] | NDArray[np.uint8]):
+            indices (tuple[RGBAImage, ...] | RGBAImage):
                 The indices.
             layer (int): The layer.
             indices_padded (bool, optional): Whether the indices are padded.
@@ -388,12 +387,12 @@ class MapWidget(QWidget):
             raise ValueError('Invalid layer')
 
     def update_levels_at_padded_indices(
-        self, indices_padded: tuple[NDArray[np.uint8], ...] | NDArray[np.uint8]
+        self, indices_padded: tuple[RGBAImage, ...] | RGBAImage
     ):
         """Updates the level images at certain indices.
 
         Args:
-            indices_padded (tuple[NDArray[np.uint8], ...] | NDArray[np.uint8]):
+            indices_padded (tuple[RGBAImage, ...] | RGBAImage):
                 The indices.
 
         """
@@ -407,15 +406,15 @@ class MapWidget(QWidget):
 
     def update_map_at_indices(
         self,
-        indices: tuple[NDArray[np.uint8], ...],
-        blocks: NDArray[np.uint8],
+        indices: tuple[RGBAImage, ...],
+        blocks: RGBAImage,
         layer: int,
     ):
         """Updates the map image at certain indices.
 
         Args:
-            indices (tuple[NDArray[np.uint8], ...]): The indices.
-            blocks (NDArray[np.uint8]): The blocks.
+            indices (tuple[RGBAImage, ...]): The indices.
+            blocks (RGBAImage): The blocks.
             layer (int): The layer.
         """
         if not self.main_gui.footer_loaded:
@@ -434,9 +433,7 @@ class MapWidget(QWidget):
         if 1 in self.layers:
             self.update_levels_at_padded_indices(indices)
 
-    def update_map_at(
-        self, x: int, y: int, layers: MapLayers, blocks: NDArray[np.uint8]
-    ):
+    def update_map_at(self, x: int, y: int, layers: MapLayers, blocks: RGBAImage):
         """Updates the map image with new blocks rooted at a certain position."""
         if not self.main_gui.footer_loaded:
             return
@@ -462,9 +459,7 @@ class MapWidget(QWidget):
                 indices,  # type: ignore
             )
 
-    def update_map_with_smart_shape_blocks_at(
-        self, x: int, y: int, blocks: NDArray[np.uint8]
-    ):
+    def update_map_with_smart_shape_blocks_at(self, x: int, y: int, blocks: RGBAImage):
         """Updates the smart shape meta block map at a position with blocks."""
         if not self.main_gui.footer_loaded:
             return

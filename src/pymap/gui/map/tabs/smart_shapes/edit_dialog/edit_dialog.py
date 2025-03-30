@@ -18,13 +18,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from agb.model.type import IntArray
 from pymap.gui import render
 from pymap.gui.history.smart_shape import SetSmartShapeTemplateBlocks
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
 from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
     smart_shape_get_block_image,
 )
+from pymap.gui.types import Tilemap
 
 from .shape_scene import ShapeScene
 
@@ -100,11 +100,11 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         """The main ui for pymap."""
         return self.smart_shapes_tab.map_widget.main_gui
 
-    def set_selection(self, selection: IntArray) -> None:
+    def set_selection(self, selection: Tilemap) -> None:
         """Sets the selection according to what is selected in this scene.
 
         Args:
-            selection (IntArray): The selection array.
+            selection (Tilemap): The selection array.
         """
         selection = selection.copy()
         self.selection = selection
@@ -144,13 +144,13 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
             item.setAcceptHoverEvents(True)
             self.shape_scene.addItem(item)
 
-    def update_shape_with_blocks(self, x: int, y: int, blocks: IntArray) -> None:
+    def update_shape_with_blocks(self, x: int, y: int, blocks: Tilemap) -> None:
         """Updates the shape with a block rectangle at a certain position.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
-            blocks (IntArray): The blocks.
+            blocks (Tilemap): The blocks.
         """
         assert self.main_gui.block_images is not None, 'Blocks are not loaded'
         for (yy, xx), block_idx in np.ndenumerate(blocks):
@@ -159,13 +159,13 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
             )
             self.shape_block_images[yy + y, xx + x].setPixmap(pixmap)
 
-    def set_shape_blocks(self, x: int, y: int, blocks: IntArray) -> None:
+    def set_shape_blocks(self, x: int, y: int, blocks: Tilemap) -> None:
         """Sets the blocks of the shape.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
-            blocks (IntArray): The blocks.
+            blocks (Tilemap): The blocks.
         """
         smart_shape = self.smart_shapes_tab.current_smart_shape
         assert smart_shape is not None, 'Smart shape is not loaded'

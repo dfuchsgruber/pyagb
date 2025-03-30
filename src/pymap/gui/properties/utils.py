@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
-from agb.model.type import ModelParents, ModelValue
 
+from agb.model.type import ModelParents, ModelValue
 from pymap.configuration import AttributePathType
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 def type_to_parameter(
     project: Project, datatype_name: str
-) -> Type[ModelParameterMixin]:
+) -> type[ModelParameterMixin]:
     """Translates a datatype into a parameter class.
 
     Parameters:
@@ -41,7 +41,6 @@ def type_to_parameter(
     from agb.model.structure import Structure
     from agb.model.unbounded_array import UnboundedArrayType
     from agb.model.union import UnionType
-
     from pymap.gui.properties.parameters.array import (
         FixedSizeArrayTypeParameter,
         UnboundedArrayTypeParameter,
@@ -80,7 +79,10 @@ def get_member_by_path(value: ModelValue, path: AttributePathType) -> ModelValue
     """Returns an attribute of a structure by its path."""
     for edge in path:
         if isinstance(value, np.ndarray):
-            value = value[edge]  # type: ignore
+            value = cast(
+                ModelValue,
+                value[edge],  # type: ignore
+            )
         if isinstance(value, list) and isinstance(edge, int):
             value = value[edge]
         elif isinstance(value, dict) and isinstance(edge, str):

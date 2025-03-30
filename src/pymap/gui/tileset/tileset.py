@@ -376,7 +376,7 @@ class TilesetWidget(QtWidgets.QWidget):
         """Gets the data of the currently selected block.
 
         Returns:
-            npt.NDArray[np.uint8]: The data of the currently selected block.
+            RGBAImage: The data of the currently selected block.
         """
         return self.main_gui.get_block(self.selected_block_idx)
 

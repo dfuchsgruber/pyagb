@@ -2,6 +2,7 @@
 
 from abc import abstractmethod
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -11,6 +12,7 @@ from pymap.configuration import PymapEventConfigType
 from pymap.gui.properties import get_member_by_path, set_member_by_path
 from pymap.gui.render import BlockImages, TileImages
 from pymap.gui.smart_shape.smart_shape import SmartShape
+from pymap.gui.types import Tilemap
 from pymap.project import Project
 
 
@@ -156,11 +158,11 @@ class PymapGuiModel:
         else:
             return 0, 0
 
-    def get_borders(self) -> NDArray[np.uint8]:
+    def get_borders(self) -> Tilemap:
         """Gets the borders of the map.
 
         Returns:
-            npt.NDArray[np.uint8]: The borders
+            RGBAImage: The borders
         """
         assert self.project is not None, 'Project is None'
         borders = get_member_by_path(
@@ -168,7 +170,7 @@ class PymapGuiModel:
             self.project.config['pymap']['footer']['border_path'],
         )
         assert isinstance(borders, np.ndarray), 'Borders are not numpy array'
-        return borders
+        return cast(Tilemap, borders)
 
     def get_block(self, block_idx: int) -> NDArray[np.object_]:
         """Returns the block of the currently detected tileset.
@@ -189,11 +191,11 @@ class PymapGuiModel:
         assert isinstance(blocks, list)
         return np.array(blocks[block_idx % 0x280]).reshape(3, 2, 2)
 
-    def get_map_blocks(self) -> NDArray[np.uint8]:
+    def get_map_blocks(self) -> Tilemap:
         """Gets the map blocks.
 
         Returns:
-            npt.NDArray[np.uint8]: The map blocks, shape [h, w, 2]
+            RGBAImage: The map blocks, shape [h, w, 2]
         """
         assert self.project is not None, 'Project is None'
         blocks = get_member_by_path(
@@ -201,7 +203,7 @@ class PymapGuiModel:
             self.project.config['pymap']['footer']['map_blocks_path'],
         )
         assert isinstance(blocks, np.ndarray), 'Blocks are not numpy array'
-        return blocks
+        return cast(Tilemap, blocks)
 
     def get_footer_label(self) -> str:
         """Gets the label of the current footer.

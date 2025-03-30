@@ -6,7 +6,6 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 import numpy as np
-from numpy.typing import NDArray
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
@@ -15,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from pymap.gui import render
+from pymap.gui.types import RGBAImage
 
 from .tab import MapWidgetTab
 
@@ -43,7 +43,7 @@ class BlocksLikeTab(MapWidgetTab):
         super().__init__(map_widget, parent)
         self._position_last_drawn = None
         self._map_selected_rectangle = None
-        self.selection: NDArray[np.uint8] | None = None
+        self.selection: RGBAImage | None = None
         self._cursor_state = CursorState.DEFAULT
 
     @property
@@ -54,11 +54,11 @@ class BlocksLikeTab(MapWidgetTab):
         """
         raise NotImplementedError
 
-    def set_selection(self, selection: NDArray[np.uint8]) -> None:
+    def set_selection(self, selection: RGBAImage) -> None:
         """Sets the selection.
 
         Args:
-            selection (NDArray[np.uint8]): The selection.
+            selection (RGBAImage): The selection.
         """
         raise NotImplementedError
 
@@ -199,42 +199,40 @@ class BlocksLikeTab(MapWidgetTab):
                 ...
 
     @property
-    def blocks(self) -> NDArray[np.uint8] | None:
+    def blocks(self) -> RGBAImage | None:
         """The blocks."""
         return self.map_widget.blocks
 
-    def set_blocks_at(
-        self, x: int, y: int, layers: NDArray[np.uint8], blocks: NDArray[np.uint8]
-    ):
+    def set_blocks_at(self, x: int, y: int, layers: RGBAImage, blocks: RGBAImage):
         """Sets the blocks at the given position.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
-            layers (NDArray[np.uint8]): The layers.
-            blocks (NDArray[np.uint8]): The blocks.
+            layers (RGBAImage): The layers.
+            blocks (RGBAImage): The blocks.
         """
         self.map_widget.main_gui.set_blocks_at(x, y, layers, blocks)
 
-    def replace_blocks(self, x: int, y: int, layer: int, block: NDArray[np.uint8]):
+    def replace_blocks(self, x: int, y: int, layer: int, block: RGBAImage):
         """Replaces the blocks.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
             layer (int): The layer.
-            block (NDArray[np.uint8]): The block.
+            block (RGBAImage): The block.
         """
         self.map_widget.main_gui.replace_blocks(x, y, layer, block)
 
-    def flood_fill(self, x: int, y: int, layer: int, block: NDArray[np.uint8]):
+    def flood_fill(self, x: int, y: int, layer: int, block: RGBAImage):
         """Flood fills the blocks.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
             layer (int): The layer.
-            block (NDArray[np.uint8]): The block.
+            block (RGBAImage): The block.
         """
         self.map_widget.main_gui.flood_fill(x, y, layer, block)
 

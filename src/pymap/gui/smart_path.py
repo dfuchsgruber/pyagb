@@ -4,7 +4,8 @@ from enum import IntEnum, auto
 from typing import TypeAlias
 
 import numpy as np
-import numpy.typing as npt
+
+from pymap.gui.types import RGBAImage
 
 Coordinate: TypeAlias = tuple[int, int]
 
@@ -131,18 +132,16 @@ class SmartPath:
                 break
         return queue
 
-    def _direction(
-        self, x1: npt.NDArray[np.uint8], x2: npt.NDArray[np.uint8]
-    ) -> SmartShapeDirection:
+    def _direction(self, x1: RGBAImage, x2: RGBAImage) -> SmartShapeDirection:
         """Determines the direction between two coordinates."""
         delta = np.sign(x1 - x2)
         return delta_to_dir.get(tuple(delta), SmartShapeDirection.UNDETERMINED)  # type: ignore
 
-    def append(self, coordinate: Coordinate | npt.NDArray[np.uint8]):
+    def append(self, coordinate: Coordinate | RGBAImage):
         """Appends a coordinate to the smart path.
 
         Args:
-            coordinate (Coordinate | npt.NDArray[np.uint8]): The coordinate to append.
+            coordinate (Coordinate | RGBAImage): The coordinate to append.
         """
         self.coordinates.append(tuple(coordinate))  # type: ignore
         self._directions = np.append(self._directions, SmartShapeDirection.UNDETERMINED)

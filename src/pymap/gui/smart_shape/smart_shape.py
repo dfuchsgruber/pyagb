@@ -3,7 +3,8 @@
 from typing import TypedDict
 
 import numpy as np
-from numpy.typing import NDArray
+
+from pymap.gui.types import RGBAImage
 
 
 class SerializedSmartShape(TypedDict):
@@ -34,10 +35,10 @@ class SmartShape:
         """Initialize the smart shape."""
         self.template = template
         # The blocks are the template blocks mapped to the map
-        self.blocks: NDArray[np.uint8] = np.array(template_blocks, dtype=int)
+        self.blocks: RGBAImage = np.array(template_blocks, dtype=int)
         # The buffer is what is actually mapped to the map
         # It is transient, i.e. not serialized
-        self.buffer: NDArray[np.uint8] = np.array(buffer_blocks, dtype=int)
+        self.buffer: RGBAImage = np.array(buffer_blocks, dtype=int)
 
     def serialize(self) -> SerializedSmartShape:
         """Serialize the smart shape."""

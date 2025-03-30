@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from numpy.typing import NDArray
 from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
@@ -19,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from pymap.gui import render
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
+from pymap.gui.types import Tilemap
 
 from ..blocks_like import BlocksLikeTab
 from .border import BorderScene
@@ -132,7 +132,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         return 0
 
     @property
-    def selected_layers(self) -> NDArray[np.uint8]:
+    def selected_layers(self) -> Tilemap:
         """Returns the selected layers."""
         if self.select_levels.isChecked():
             return np.array([0, 1])
@@ -181,11 +181,11 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
             0, 0, border_blocks.shape[1] * 16, border_blocks.shape[0] * 16
         )
 
-    def set_selection(self, selection: NDArray[np.uint8]):
+    def set_selection(self, selection: Tilemap):
         """Sets the selection.
 
         Args:
-            selection (NDArray[np.uint8]): The selection.
+            selection (RGBAImage): The selection.
         """
         selection = selection.copy()
         self.selection = selection

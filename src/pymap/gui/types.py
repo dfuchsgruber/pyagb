@@ -6,6 +6,10 @@ from typing import Any, Literal, NamedTuple, Protocol, Sequence, TypeAlias, over
 import numpy as np
 from numpy.typing import NDArray
 
+RGBAImage: TypeAlias = NDArray[np.uint8]  # Shape ..., 4
+Tilemap: TypeAlias = NDArray[np.uint8]
+MapLayers: TypeAlias = Sequence[int] | int | RGBAImage
+
 
 @unique
 class ConnectionType(StrEnum):
@@ -24,7 +28,7 @@ class UnpackedConnection(NamedTuple):
     offset: int
     bank: str | int
     map_idx: str | int
-    blocks: NDArray[np.uint8]
+    blocks: RGBAImage
 
 
 class BlockProtocol(Protocol):
@@ -41,6 +45,3 @@ class Block(dict[str, Any], BlockProtocol):
     """A block in a map."""
 
     ...
-
-
-MapLayers: TypeAlias = Sequence[int] | int | NDArray[np.uint8]

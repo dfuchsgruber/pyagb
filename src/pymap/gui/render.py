@@ -9,14 +9,13 @@ from PySide6.QtGui import QImage, qRgb
 
 from agb.image import Image, Palette
 from agb.model.type import ModelValue
+from pymap.gui.types import RGBAImage, Tilemap
 from pymap.project import Project
 
 from .properties import get_member_by_path
 
-TileImages: TypeAlias = npt.NDArray[
-    np.uint8
-]  # Shape: num_palettes x num_tiles x 8 x 8 x 4
-BlockImages: TypeAlias = npt.NDArray[np.uint8]  # Shape: num_blocks x 16 x 16 x 4
+TileImages: TypeAlias = RGBAImage  # Shape: num_palettes x num_tiles x 8 x 8 x 4
+BlockImages: TypeAlias = RGBAImage  # Shape: num_blocks x 16 x 16 x 4
 PackedPalette: TypeAlias = list[int]
 
 
@@ -26,7 +25,7 @@ blocks_pool = np.array([[idx, 0] for idx in range(0x400)], dtype=np.uint8).resha
 )
 
 
-def draw_blocks_pool(block_images: BlockImages) -> npt.NDArray[np.uint8]:
+def draw_blocks_pool(block_images: BlockImages) -> RGBAImage:
     """Draws a picture of all available blocks.
 
     Parameters:
@@ -42,8 +41,8 @@ def draw_blocks_pool(block_images: BlockImages) -> npt.NDArray[np.uint8]:
 
 
 def draw_blocks(
-    block_images: BlockImages, block_map: npt.NDArray[np.uint8] = blocks_pool[..., 0]
-) -> npt.NDArray[np.uint8]:
+    block_images: BlockImages, block_map: Tilemap = blocks_pool[..., 0]
+) -> RGBAImage:
     """Computes the image of an entire block map.
 
     Parameters:
@@ -66,7 +65,7 @@ def get_blocks(
     tileset_secondary: ModelValue,
     tiles: TileImages,
     project: Project,
-) -> npt.NDArray[np.uint8]:
+) -> RGBAImage:
     """Computes the set of blocks for a combination of tilesets.
 
     Parameters:
@@ -99,7 +98,7 @@ def get_blocks(
     return blocks
 
 
-def get_block(block: ModelValue, tiles: TileImages) -> npt.NDArray[np.uint8]:
+def get_block(block: ModelValue, tiles: TileImages) -> RGBAImage:
     """Computes a block.
 
     Parameters:
@@ -202,7 +201,7 @@ def get_tiles(
     )
 
 
-def split_image_into_tiles(image: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+def split_image_into_tiles(image: RGBAImage) -> RGBAImage:
     """Splits an image into 8x8 tiles that are cropped from the image.
 
     Args:
@@ -225,9 +224,7 @@ def split_image_into_tiles(image: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8
     return tiles
 
 
-def tile(
-    tiles: npt.NDArray[np.uint8], tilemap: npt.NDArray[np.uint8]
-) -> npt.NDArray[np.uint8]:
+def tile(tiles: RGBAImage, tilemap: Tilemap) -> RGBAImage:
     """Tiles a list of tiles into a single image.
 
     Args:
@@ -250,7 +247,7 @@ def tile(
     return output
 
 
-def pack_colors(palettes: ModelValue) -> npt.NDArray[np.uint8]:
+def pack_colors(palettes: ModelValue) -> RGBAImage:
     """Packs all members of a palette structure.
 
     Parameters:
@@ -281,12 +278,12 @@ def pack_colors(palettes: ModelValue) -> npt.NDArray[np.uint8]:
 
 
 def ndarray_to_QImage(
-    array: npt.NDArray[np.uint8],
+    array: RGBAImage,
 ) -> QImage:
     """Generates a QImage from a numpy array.
 
     Args:
-        array (npt.NDArray[np.uint8]): The array to convert, shape [h, w, 4].
+        array (RGBAImage): The array to convert, shape [h, w, 4].
 
     Returns:
         QImage: The QImage.

@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 from PySide6.QtGui import QUndoCommand
 
-from agb.model.type import IntArray
 from pymap.gui.smart_shape.smart_shape import SmartShape
+from pymap.gui.types import Tilemap
 
 if TYPE_CHECKING:
     from pymap.gui.main import PymapGui
@@ -89,8 +89,8 @@ class SetSmartShapeTemplateBlocks(QUndoCommand):
         name: str,
         x: int,
         y: int,
-        blocks_new: IntArray,
-        blocks_old: IntArray,
+        blocks_new: Tilemap,
+        blocks_old: Tilemap,
     ):
         """Initializes the smart shape template blocks.
 
@@ -99,8 +99,8 @@ class SetSmartShapeTemplateBlocks(QUndoCommand):
             name (str): The name of the smart shape
             x (int): The x coordinate
             y (int): The y coordinate
-            blocks_new (IntArray): The new blocks
-            blocks_old (IntArray): The old blocks
+            blocks_new (Tilemap): The new blocks
+            blocks_old (Tilemap): The old blocks
         """
         super().__init__(
             f'Set smart shape template blocks at {x}, {y}',
@@ -112,7 +112,7 @@ class SetSmartShapeTemplateBlocks(QUndoCommand):
         self.x = x
         self.y = y
 
-    def _set_blocks(self, blocks: IntArray):
+    def _set_blocks(self, blocks: Tilemap):
         """Helper for setting the blocks."""
         assert self.edit_dialog.smart_shapes_tab.map_widget.main_gui.project is not None
         smart_shape = (
@@ -144,8 +144,8 @@ class SetSmartShapeBlocks(QUndoCommand):
         smart_shape_name: str,
         x: int,
         y: int,
-        blocks_new: IntArray,
-        blocks_old: IntArray,
+        blocks_new: Tilemap,
+        blocks_old: Tilemap,
     ):
         """Initializes the set meta blocks action.
 
@@ -154,8 +154,8 @@ class SetSmartShapeBlocks(QUndoCommand):
             smart_shape_name (str): The name of the smart shape
             x (int): at which x coordinate
             y (int): at which y coordinate
-            blocks_new (IntArray): Which blocks to set
-            blocks_old (IntArray): The old blocks
+            blocks_new (Tilemap): Which blocks to set
+            blocks_old (Tilemap): The old blocks
         """
         super().__init__(
             f'Set smart shape blocks at {x}, {y}',
@@ -167,7 +167,7 @@ class SetSmartShapeBlocks(QUndoCommand):
         self.blocks_old = blocks_old
         self.smart_shape_name = smart_shape_name
 
-    def _set_blocks(self, blocks: IntArray):
+    def _set_blocks(self, blocks: Tilemap):
         # Helper method for setting a set of blocks
         footer_blocks = self.main_gui.smart_shapes[self.smart_shape_name].buffer
         footer_blocks[
@@ -199,8 +199,8 @@ class SmartShapeReplaceBlocks(QUndoCommand):
         smart_shape_name: str,
         idx: Any,
         layer: int,
-        value_new: IntArray,
-        value_old: IntArray,
+        value_new: Tilemap,
+        value_old: Tilemap,
     ):
         """Initializes the replace blocks action.
 
@@ -209,8 +209,8 @@ class SmartShapeReplaceBlocks(QUndoCommand):
             smart_shape_name (str): The name of the smart shape
             idx (tuple[int, int]): which coordinates
             layer (int): which layer to replace
-            value_new (IntArray): new value
-            value_old (IntArray): old value
+            value_new (Tilemap): new value
+            value_old (Tilemap): old value
         """
         super().__init__(
             'Replace smart shape blocks',
@@ -222,7 +222,7 @@ class SmartShapeReplaceBlocks(QUndoCommand):
         self.value_new = value_new
         self.value_old = value_old
 
-    def _fill(self, value: IntArray):
+    def _fill(self, value: Tilemap):
         """Helper for filling the blocks."""
         map_blocks = self.main_gui.smart_shapes[self.smart_shape_name].buffer
         assert isinstance(map_blocks, np.ndarray)

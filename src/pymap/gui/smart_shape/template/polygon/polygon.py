@@ -9,6 +9,7 @@ from scipy.ndimage import convolve  # type: ignore
 from skimage.measure import label as label_image  # type: ignore
 
 from pymap.gui.smart_shape.template.generate_blocks import Adjacent, adjacency_kernel
+from pymap.gui.types import RGBAImage
 
 from ...smart_shape import SmartShape
 from ..template import SmartShapeTemplate
@@ -47,16 +48,16 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
     def generate_blocks(
         self,
         smart_shape: SmartShape,
-        map_blocks: NDArray[np.uint8],
-    ) -> tuple[NDArray[np.uint8], tuple[NDArray[np.int_], ...]]:
+        map_blocks: RGBAImage,
+    ) -> tuple[RGBAImage, tuple[NDArray[np.int_], ...]]:
         """Generate the blocks for the smart shape.
 
         Args:
             smart_shape (SmartShape): The smart shape
-            map_blocks (NDArray[np.uint8]): The map blocks
+            map_blocks (RGBAImage): The map blocks
 
         Returns:
-            tuple[NDArray[np.uint8], NDArray[np.bool_]]: The blocks and the mask
+            tuple[RGBAImage, NDArray[np.bool_]]: The blocks and the mask
         """
         buffer = smart_shape.buffer[..., 0]
         assert ((0 <= buffer) & (buffer < self.num_blocks)).all(), 'Invalid blocks.'
@@ -69,7 +70,7 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
 
         for label in non_background_labels:
             mask_label: NDArray[np.bool_] = labeled == label  # type: ignore
-            adjacency: NDArray[np.uint8] = convolve(
+            adjacency: RGBAImage = convolve(
                 mask_label.astype(int),
                 adjacency_kernel[::-1, ::-1],
                 mode='constant',
@@ -88,14 +89,14 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
         return blocks, idx
 
 
-def adjacency_flags_to_block(adjacency: NDArray[np.uint8]) -> NDArray[np.uint8]:
+def adjacency_flags_to_block(adjacency: RGBAImage) -> RGBAImage:
     """Convert the adjacency flags to a block.
 
     Args:
-        adjacency (NDArray[np.uint8]): The adjacency
+        adjacency (RGBAImage): The adjacency
 
     Returns:
-        NDArray[np.uint8]: The block. -1 if not found.
+        RGBAImage: The block. -1 if not found.
     """
     adjacency_cross = adjacency & Adjacent.ALL_CROSS
     blocks = np.full_like(adjacency, -1)

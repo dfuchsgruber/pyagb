@@ -2,18 +2,16 @@
 
 from typing import NamedTuple, Protocol
 
-import numpy as np
-import numpy.typing as npt
-
 from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
+from pymap.gui.types import RGBAImage
 from pymap.project import Project
 
 
 class EventImage(NamedTuple):
     """An image for a map event."""
 
-    image: npt.NDArray[np.uint8]
+    image: RGBAImage
     x_offset: int
     y_offset: int
 

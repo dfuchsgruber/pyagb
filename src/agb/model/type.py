@@ -13,13 +13,14 @@ if TYPE_CHECKING:
     from pymap.project import Project
 
 ScalarModelValue: TypeAlias = int | str | bool | None
-IntArray: TypeAlias = npt.NDArray[np.uint8]
+IntArray: TypeAlias = npt.NDArray[np.int_]
 ModelValue: TypeAlias = (
     ScalarModelValue
     | Sequence['ModelValue']
     | dict[str, 'ModelValue']
     | tuple[str, 'ModelValue']
     | IntArray
+    | npt.NDArray[np.uint8]
 )
 ModelContextItem: TypeAlias = int | str | bool
 ModelContext: TypeAlias = Sequence[ModelContextItem]

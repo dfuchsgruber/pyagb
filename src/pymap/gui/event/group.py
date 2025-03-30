@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
-import numpy.typing as npt
 from PySide6.QtGui import QBrush, QColor, QFont, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsItemGroup,
@@ -13,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from pymap.configuration import PymapEventConfigType
 from pymap.gui.render import ndarray_to_QImage
+from pymap.gui.types import RGBAImage
 
 if TYPE_CHECKING:
     from .map_scene import MapScene
@@ -56,7 +55,7 @@ class EventGroupImage(QGraphicsItemGroup):
     def __init__(
         self,
         map_scene: MapScene,
-        image: npt.NDArray[np.uint8],
+        image: RGBAImage,
         horizontal_displacement: int,
         vertical_displacement: int,
     ):

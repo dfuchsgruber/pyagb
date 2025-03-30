@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from numpy.typing import NDArray
 from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
@@ -26,6 +25,7 @@ from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
     smart_shape_get_block_image,
 )
 from pymap.gui.smart_shape.smart_shape import SmartShape
+from pymap.gui.types import RGBAImage
 
 from .add_dialog import AddSmartShapeDialog
 from .blocks import SmartShapesBlocksScene
@@ -164,7 +164,7 @@ class SmartShapesTab(BlocksLikeTab):
         return self.map_widget.main_gui.smart_shapes[self.current_smart_shape_name]
 
     @property
-    def smart_shape_blocks(self) -> NDArray[np.uint8]:
+    def smart_shape_blocks(self) -> RGBAImage:
         """The blocks of the smart shape. Note that these are not border padded."""
         return self.map_widget.main_gui.smart_shapes[
             self.current_smart_shape_name
@@ -235,7 +235,7 @@ class SmartShapesTab(BlocksLikeTab):
         return 0
 
     @property
-    def selected_layers(self) -> NDArray[np.uint8]:
+    def selected_layers(self) -> RGBAImage:
         """The selected layers."""
         return np.array([0])
 
@@ -255,7 +255,7 @@ class SmartShapesTab(BlocksLikeTab):
         self.map_widget.load_map()
 
     @property
-    def blocks(self) -> NDArray[np.uint8] | None:
+    def blocks(self) -> RGBAImage | None:
         """The blocks."""
         smart_shape = self.current_smart_shape
         if smart_shape is None:
@@ -279,11 +279,11 @@ class SmartShapesTab(BlocksLikeTab):
             ] = smart_shape.buffer
             return blocks
 
-    def set_selection(self, selection: NDArray[np.uint8]) -> None:
+    def set_selection(self, selection: RGBAImage) -> None:
         """Sets the selection.
 
         Args:
-            selection (NDArray[np.uint8]): The selection.
+            selection (RGBAImage): The selection.
         """
         selection = selection.copy()
         self.selection = selection
@@ -310,42 +310,40 @@ class SmartShapesTab(BlocksLikeTab):
             selection.shape[0] * 16,  # 16 pixels per block
         )
 
-    def set_blocks_at(
-        self, x: int, y: int, layers: NDArray[np.uint8], blocks: NDArray[np.uint8]
-    ):
+    def set_blocks_at(self, x: int, y: int, layers: RGBAImage, blocks: RGBAImage):
         """Sets the blocks at the given position.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
-            layers (NDArray[np.uint8]): The layers.
-            blocks (NDArray[np.uint8]): The blocks.
+            layers (RGBAImage): The layers.
+            blocks (RGBAImage): The blocks.
         """
         self.map_widget.main_gui.smart_shape_set_blocks_at(
             self.current_smart_shape_name, x, y, blocks
         )
 
-    def replace_blocks(self, x: int, y: int, layer: int, block: NDArray[np.uint8]):
+    def replace_blocks(self, x: int, y: int, layer: int, block: RGBAImage):
         """Replaces the blocks.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
             layer (int): The layer.
-            block (NDArray[np.uint8]): The block.
+            block (RGBAImage): The block.
         """
         self.map_widget.main_gui.smart_shape_replace_blocks(
             self.current_smart_shape_name, x, y, layer, block
         )
 
-    def flood_fill(self, x: int, y: int, layer: int, block: NDArray[np.uint8]):
+    def flood_fill(self, x: int, y: int, layer: int, block: RGBAImage):
         """Flood fills the blocks.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
             layer (int): The layer.
-            block (NDArray[np.uint8]): The block.
+            block (RGBAImage): The block.
         """
         self.map_widget.main_gui.smart_shape_flood_fill(
             self.current_smart_shape_name,
