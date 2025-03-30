@@ -25,7 +25,7 @@ from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
     smart_shape_get_block_image,
 )
 from pymap.gui.smart_shape.smart_shape import SmartShape
-from pymap.gui.types import RGBAImage
+from pymap.gui.types import MapLayers, RGBAImage, Tilemap
 
 from .add_dialog import AddSmartShapeDialog
 from .blocks import SmartShapesBlocksScene
@@ -164,7 +164,7 @@ class SmartShapesTab(BlocksLikeTab):
         return self.map_widget.main_gui.smart_shapes[self.current_smart_shape_name]
 
     @property
-    def smart_shape_blocks(self) -> RGBAImage:
+    def smart_shape_blocks(self) -> Tilemap:
         """The blocks of the smart shape. Note that these are not border padded."""
         return self.map_widget.main_gui.smart_shapes[
             self.current_smart_shape_name
@@ -255,7 +255,7 @@ class SmartShapesTab(BlocksLikeTab):
         self.map_widget.load_map()
 
     @property
-    def blocks(self) -> RGBAImage | None:
+    def blocks(self) -> Tilemap | None:
         """The blocks."""
         smart_shape = self.current_smart_shape
         if smart_shape is None:
@@ -279,7 +279,7 @@ class SmartShapesTab(BlocksLikeTab):
             ] = smart_shape.buffer
             return blocks
 
-    def set_selection(self, selection: RGBAImage) -> None:
+    def set_selection(self, selection: Tilemap) -> None:
         """Sets the selection.
 
         Args:
@@ -310,7 +310,7 @@ class SmartShapesTab(BlocksLikeTab):
             selection.shape[0] * 16,  # 16 pixels per block
         )
 
-    def set_blocks_at(self, x: int, y: int, layers: RGBAImage, blocks: RGBAImage):
+    def set_blocks_at(self, x: int, y: int, layers: MapLayers, blocks: Tilemap):
         """Sets the blocks at the given position.
 
         Args:
@@ -323,7 +323,7 @@ class SmartShapesTab(BlocksLikeTab):
             self.current_smart_shape_name, x, y, blocks
         )
 
-    def replace_blocks(self, x: int, y: int, layer: int, block: RGBAImage):
+    def replace_blocks(self, x: int, y: int, layer: int, block: Tilemap):
         """Replaces the blocks.
 
         Args:
@@ -336,7 +336,7 @@ class SmartShapesTab(BlocksLikeTab):
             self.current_smart_shape_name, x, y, layer, block
         )
 
-    def flood_fill(self, x: int, y: int, layer: int, block: RGBAImage):
+    def flood_fill(self, x: int, y: int, layer: int, block: Tilemap):
         """Flood fills the blocks.
 
         Args:

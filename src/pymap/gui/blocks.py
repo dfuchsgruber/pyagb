@@ -11,13 +11,19 @@ from PySide6.QtWidgets import (
 
 from agb.model.type import ModelValue
 from pymap.gui.render import BlockImages, ndarray_to_QImage
-from pymap.gui.types import Block, ConnectionType, RGBAImage, UnpackedConnection
+from pymap.gui.types import (
+    Block,
+    ConnectionType,
+    RGBAImage,
+    Tilemap,
+    UnpackedConnection,
+)
 from pymap.project import Project
 
 from . import properties
 
 
-def compute_blocks(footer: ModelValue, project: Project) -> RGBAImage:
+def compute_blocks(footer: ModelValue, project: Project) -> Tilemap:
     """Computes all blocks for a given header and footer including borders.
 
     Parameters:
@@ -42,7 +48,7 @@ def compute_blocks(footer: ModelValue, project: Project) -> RGBAImage:
         footer, project.config['pymap']['footer']['border_path']
     )
     assert isinstance(border_blocks, np.ndarray)
-    border_blocks = cast(RGBAImage, border_blocks)
+    border_blocks = cast(Tilemap, border_blocks)
     border_height, border_width, _ = border_blocks.shape
 
     # The border is always aligned with the map, therefore one has to consider a
@@ -110,7 +116,7 @@ def filter_visible_connections(
 
 
 def insert_connection(
-    blocks: RGBAImage,
+    blocks: Tilemap,
     connection: UnpackedConnection | None,
     footer: ModelValue,
     project: Project,
@@ -185,7 +191,7 @@ def insert_connection(
 def unpack_connection(
     connection: ModelValue,
     project: Project,
-    connection_blocks: RGBAImage | None,
+    connection_blocks: Tilemap | None,
 ) -> UnpackedConnection | None:
     """Loads a connections data if possible.
 
@@ -255,7 +261,13 @@ def unpack_connection(
             connection_blocks_model = properties.get_member_by_path(
                 footer, project.config['pymap']['footer']['map_blocks_path']
             )
-            connection_blocks = blocks_to_ndarray(connection_blocks_model)  # type: ignore
+            assert isinstance(connection_blocks_model, list), (
+                f'Expected list, got {type(connection_blocks_model)}'
+            )
+            connection_blocks = blocks_to_ndarray(
+                cast(Sequence[Sequence[Block]], connection_blocks_model)  # type: ignore
+            )
+        connection_blocks = cast(Tilemap, connection_blocks)
         return UnpackedConnection(
             type=connection_type,  # type: ignore
             offset=offset,
@@ -269,7 +281,7 @@ def unpack_connection(
 def unpack_connections(
     connections: ModelValue,
     project: Project,
-    default_blocks: RGBAImage | None = None,
+    default_blocks: Tilemap | None = None,
 ) -> list[UnpackedConnection | None]:
     """Unpacks a list of connections."""
     assert isinstance(connections, list), f'Expected list, got {type(connections)}'

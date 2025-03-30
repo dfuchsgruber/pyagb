@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from pymap.gui import render
-from pymap.gui.types import RGBAImage
+from pymap.gui.types import MapLayers, Tilemap
 
 from .tab import MapWidgetTab
 
@@ -43,7 +43,7 @@ class BlocksLikeTab(MapWidgetTab):
         super().__init__(map_widget, parent)
         self._position_last_drawn = None
         self._map_selected_rectangle = None
-        self.selection: RGBAImage | None = None
+        self.selection: Tilemap | None = None
         self._cursor_state = CursorState.DEFAULT
 
     @property
@@ -54,7 +54,7 @@ class BlocksLikeTab(MapWidgetTab):
         """
         raise NotImplementedError
 
-    def set_selection(self, selection: RGBAImage) -> None:
+    def set_selection(self, selection: Tilemap) -> None:
         """Sets the selection.
 
         Args:
@@ -199,11 +199,11 @@ class BlocksLikeTab(MapWidgetTab):
                 ...
 
     @property
-    def blocks(self) -> RGBAImage | None:
+    def blocks(self) -> Tilemap | None:
         """The blocks."""
         return self.map_widget.blocks
 
-    def set_blocks_at(self, x: int, y: int, layers: RGBAImage, blocks: RGBAImage):
+    def set_blocks_at(self, x: int, y: int, layers: MapLayers, blocks: Tilemap):
         """Sets the blocks at the given position.
 
         Args:
@@ -214,7 +214,7 @@ class BlocksLikeTab(MapWidgetTab):
         """
         self.map_widget.main_gui.set_blocks_at(x, y, layers, blocks)
 
-    def replace_blocks(self, x: int, y: int, layer: int, block: RGBAImage):
+    def replace_blocks(self, x: int, y: int, layer: int, block: Tilemap):
         """Replaces the blocks.
 
         Args:
@@ -225,7 +225,7 @@ class BlocksLikeTab(MapWidgetTab):
         """
         self.map_widget.main_gui.replace_blocks(x, y, layer, block)
 
-    def flood_fill(self, x: int, y: int, layer: int, block: RGBAImage):
+    def flood_fill(self, x: int, y: int, layer: int, block: Tilemap):
         """Flood fills the blocks.
 
         Args:

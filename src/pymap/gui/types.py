@@ -7,7 +7,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 RGBAImage: TypeAlias = NDArray[np.uint8]  # Shape ..., 4
-Tilemap: TypeAlias = NDArray[np.uint8]
+Tilemap: TypeAlias = NDArray[np.int_]
 MapLayers: TypeAlias = Sequence[int] | int | RGBAImage
 
 
@@ -28,7 +28,7 @@ class UnpackedConnection(NamedTuple):
     offset: int
     bank: str | int
     map_idx: str | int
-    blocks: RGBAImage
+    blocks: Tilemap
 
 
 class BlockProtocol(Protocol):

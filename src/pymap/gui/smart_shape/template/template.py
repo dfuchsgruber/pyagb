@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from PySide6.QtGui import QPixmap
 
 from pymap.gui.smart_shape.smart_shape import SmartShape
-from pymap.gui.types import RGBAImage
+from pymap.gui.types import Tilemap
 
 
 class SmartShapeTemplate:
@@ -78,8 +78,8 @@ class SmartShapeTemplate:
     def generate_blocks(
         self,
         smart_shape: SmartShape,
-        map_blocks: RGBAImage,
-    ) -> tuple[RGBAImage, tuple[NDArray[np.int_], ...]]:
+        map_blocks: Tilemap,
+    ) -> tuple[Tilemap, tuple[NDArray[np.int_], ...]]:
         """Generates map blocks for the given smart shape.
 
         Args:

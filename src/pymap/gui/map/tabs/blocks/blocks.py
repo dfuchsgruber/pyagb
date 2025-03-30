@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 
 from pymap.gui import render
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
-from pymap.gui.types import Tilemap
+from pymap.gui.types import MapLayers, Tilemap
 
 from ..blocks_like import BlocksLikeTab
 from .border import BorderScene
@@ -132,7 +132,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         return 0
 
     @property
-    def selected_layers(self) -> Tilemap:
+    def selected_layers(self) -> MapLayers:
         """Returns the selected layers."""
         if self.select_levels.isChecked():
             return np.array([0, 1])

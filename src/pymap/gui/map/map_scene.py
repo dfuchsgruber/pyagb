@@ -32,6 +32,7 @@ class MapScene(BaseMapScene):
         # draw events per block
         self.last_draw = None
         self.smart_drawing = None
+        self._last_mouse_pos = None
 
     def event_coordinates_to_padded_map_coordinates(
         self,
@@ -85,8 +86,15 @@ class MapScene(BaseMapScene):
             event, *map_coordinates
         )
 
+    # @ProfileBlock('MapScene:mouseMoveEvent')
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
+        pos = event.scenePos()
+        x, y = int(pos.x() / 16), int(pos.y() / 16)
+        if (x, y) == self._last_mouse_pos:
+            return
+        self._last_mouse_pos = (x, y)
+
         if not self.map_widget.header_loaded:
             return
         map_coordinates = self.event_coordinates_to_padded_map_coordinates(event)

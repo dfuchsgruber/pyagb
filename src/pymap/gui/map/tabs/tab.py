@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pymap.gui.types import Tilemap
+from pymap.gui.types import MapLayers, Tilemap
 
 from ..level import level_to_info
 
@@ -28,7 +28,7 @@ class MapWidgetTab(QWidget):
 
     @property
     @abstractmethod
-    def selected_layers(self) -> Tilemap:
+    def selected_layers(self) -> MapLayers:
         """Get the selected levels."""
         raise NotImplementedError
 

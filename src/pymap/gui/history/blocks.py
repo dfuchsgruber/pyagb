@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from PySide6.QtGui import QUndoCommand
 
 from pymap.gui.properties.utils import set_member_by_path
-from pymap.gui.types import Tilemap
+from pymap.gui.types import MapLayers, Tilemap
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
@@ -215,7 +215,7 @@ class SetBlocks(QUndoCommand):
         main_gui: PymapGui,
         x: int,
         y: int,
-        layers: Sequence[int] | int | Tilemap,
+        layers: MapLayers,
         blocks_new: Tilemap,
         blocks_old: Tilemap,
     ):

@@ -6,6 +6,7 @@ import os
 import sys
 from functools import partial
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -266,7 +267,8 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """Returns whether the borders are shown."""
         return self.map_widget.blocks_tab.show_border.isChecked()
 
-    def tab_changed(self):
+    # @ProfileBlock('main_gui:tab_changed')
+    def tab_changed(self, *args: Any, **kwargs: Any):
         """Callback method for when a tab is changed."""
         # Update map data and blocks lazily in order to prevent lag
         # when mapping blocks or tiles
@@ -792,7 +794,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         x: int,
         y: int,
         layers: MapLayers,
-        blocks: RGBAImage,
+        blocks: Tilemap,
     ):
         """Sets the blocks on the header and adds an item to the history."""
         if not self.footer_loaded:
@@ -818,7 +820,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if x < map_width and y < map_height:
             self.set_blocks_at(x, y, layers, blocks)
 
-    def flood_fill(self, x: int, y: int, layer: int, value: RGBAImage):
+    def flood_fill(self, x: int, y: int, layer: int, value: Tilemap):
         """Flood fills with origin (x, y) and a certain layer with a new value."""
         if not self.footer_loaded:
             return
@@ -830,7 +832,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             ReplaceBlocks(self, idx, layer, value, map_blocks[y, x])
         )
 
-    def replace_blocks(self, x: int, y: int, layer: int, value: RGBAImage) -> None:
+    def replace_blocks(self, x: int, y: int, layer: int, value: Tilemap) -> None:
         """Replaces all blocks that are like (x, y) in the layer by the new value."""
         map_blocks = self.get_map_blocks()[:, :, layer]
         idx = np.where(map_blocks == map_blocks[y, x])
@@ -844,7 +846,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self,
         idx: tuple[NDArray[np.int_], ...],
         layer: int,
-        value: RGBAImage,
+        value: Tilemap,
     ):
         """Replaces all blocks in the index by the new value."""
         if not self.footer_loaded:
@@ -860,7 +862,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         smart_shape_name: str,
         x: int,
         y: int,
-        blocks: RGBAImage,
+        blocks: Tilemap,
     ):
         """Sets the blocks of a smart shape and adds an action to the history.
 
@@ -886,7 +888,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         smart_shape_name: str,
         x: int,
         y: int,
-        value: RGBAImage,
+        value: Tilemap,
         layer: int = 0,
     ):
         """Flood fills with origin (x, y) and a certain layer with a new value."""
@@ -894,7 +896,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             return
         smart_shape_map_blocks = self.smart_shapes[smart_shape_name].buffer[..., layer]
         # Value 0 is not recognized by the connected component algorithm
-        labeled: RGBAImage = label_image(smart_shape_map_blocks + 1, connectivity=1)  # type: ignore
+        labeled: Tilemap = label_image(smart_shape_map_blocks + 1, connectivity=1)  # type: ignore
         idx = np.where(labeled == labeled[y, x])
         self.map_widget.undo_stack.push(
             SmartShapeReplaceBlocks(
@@ -908,7 +910,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         x: int,
         y: int,
         layer: int,
-        value: RGBAImage,
+        value: Tilemap,
     ):
         """Replaces all blocks that are like (x, y) in the layer by the new value."""
         if not self.footer_loaded:

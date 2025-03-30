@@ -20,7 +20,7 @@ PackedPalette: TypeAlias = list[int]
 
 
 # height x width x level static array that enumerates all blocks
-blocks_pool = np.array([[idx, 0] for idx in range(0x400)], dtype=np.uint8).reshape(
+blocks_pool = np.array([[idx, 0] for idx in range(0x400)], dtype=np.int_).reshape(
     (128, 8, 2)
 )
 

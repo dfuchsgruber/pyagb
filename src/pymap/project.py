@@ -97,11 +97,26 @@ class Project:
         else:
             self.coder = None
 
+    # Getter for self.path
+    @property
+    def path(self) -> str | Path | None:
+        """Returns the file path of the project."""
+        return self._path
+
+    @path.setter
+    def path(self, value: str | Path | None):
+        """Sets the file path of the project."""
+        self._path = value
+        if value is not None:
+            # We cache the project directory as resolution can be costly
+            self._project_dir = Path(value).parent.resolve()
+
     @contextlib.contextmanager
     def project_dir(self):
         """Changes the working directory to the project directory."""
         assert self.path is not None, 'Project path is not initialized'
-        with working_dir(Path(self.path).parent.resolve()) as path:
+        assert self._project_dir is not None, 'Project directory is not initialized'
+        with working_dir(self._project_dir) as path:
             yield path
 
     def from_file(self, file_path: str | Path):
