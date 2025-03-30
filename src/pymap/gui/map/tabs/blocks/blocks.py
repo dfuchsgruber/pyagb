@@ -132,7 +132,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         return 0
 
     @property
-    def selected_layers(self) -> NDArray[np.int_]:
+    def selected_layers(self) -> NDArray[np.uint8]:
         """Returns the selected layers."""
         if self.select_levels.isChecked():
             return np.array([0, 1])
@@ -181,11 +181,11 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
             0, 0, border_blocks.shape[1] * 16, border_blocks.shape[0] * 16
         )
 
-    def set_selection(self, selection: NDArray[np.int_]):
+    def set_selection(self, selection: NDArray[np.uint8]):
         """Sets the selection.
 
         Args:
-            selection (NDArray[np.int_]): The selection.
+            selection (NDArray[np.uint8]): The selection.
         """
         selection = selection.copy()
         self.selection = selection

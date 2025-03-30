@@ -49,7 +49,7 @@ class Image:
         self.depth = depth
         self.width = width
         self.height = height
-        self.data = np.zeros((width, height), dtype=np.int_)
+        self.data = np.zeros((width, height), dtype=np.uint8)
         if data is not None:
             for x, y in product(range(width), range(height)):
                 byte_index, bit_index = self._position_to_data_idx(x, y)
@@ -169,7 +169,7 @@ class Image:
 
     def to_rgba(
         self, palette: Sequence[int], transparent: int | None = 0
-    ) -> npt.NDArray[np.int_]:
+    ) -> npt.NDArray[np.uint8]:
         """Creates a RGBA image based on the image resource.
 
         Parameters:
@@ -185,8 +185,8 @@ class Image:
         image : np.ndarray, shape [h, w, 4]
             The RGBA image.
         """
-        palette_ndarray = np.array(palette, dtype=np.int_).reshape(-1, 3)
-        palette_rgba = np.zeros((len(palette_ndarray), 4), dtype=np.int_)
+        palette_ndarray = np.array(palette, dtype=np.uint8).reshape(-1, 3)
+        palette_rgba = np.zeros((len(palette_ndarray), 4), dtype=np.uint8)
         palette_rgba[:, :3] = palette_ndarray
         palette_rgba[:, 3] = 255
         if transparent is not None:

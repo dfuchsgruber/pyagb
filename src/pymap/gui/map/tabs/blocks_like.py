@@ -43,7 +43,7 @@ class BlocksLikeTab(MapWidgetTab):
         super().__init__(map_widget, parent)
         self._position_last_drawn = None
         self._map_selected_rectangle = None
-        self.selection: NDArray[np.int_] | None = None
+        self.selection: NDArray[np.uint8] | None = None
         self._cursor_state = CursorState.DEFAULT
 
     @property
@@ -54,11 +54,11 @@ class BlocksLikeTab(MapWidgetTab):
         """
         raise NotImplementedError
 
-    def set_selection(self, selection: NDArray[np.int_]) -> None:
+    def set_selection(self, selection: NDArray[np.uint8]) -> None:
         """Sets the selection.
 
         Args:
-            selection (NDArray[np.int_]): The selection.
+            selection (NDArray[np.uint8]): The selection.
         """
         raise NotImplementedError
 
@@ -110,8 +110,10 @@ class BlocksLikeTab(MapWidgetTab):
         This is replace the current block with the selection.
 
         Args:
-            x (int): The x coordinate of the mouse in map coordinates (with border padding).
-            y (int): The y coordinate of the mouse in map coordinates (with border padding).
+            x (int): The x coordinate of the mouse in map coordinates
+                (with border padding).
+            y (int): The y coordinate of the mouse in map coordinates
+                (with border padding).
         """
         map_width, map_height = self.map_widget.main_gui.get_map_dimensions()
         border_width, border_height = self.map_widget.main_gui.get_border_padding()
@@ -133,8 +135,10 @@ class BlocksLikeTab(MapWidgetTab):
         """Event handler for pressing the mouse with the control key pressed.
 
         Args:
-            x (int): The x coordinate of the mouse in map coordinates (with border padding).
-            y (int): The y coordinate of the mouse in map coordinates (with border padding).
+            x (int): The x coordinate of the mouse in map coordinates
+                (with border padding).
+            y (int): The y coordinate of the mouse in map coordinates
+                (with border padding).
         """
         map_width, map_height = self.map_widget.main_gui.get_map_dimensions()
         border_width, border_height = self.map_widget.main_gui.get_border_padding()
@@ -195,42 +199,42 @@ class BlocksLikeTab(MapWidgetTab):
                 ...
 
     @property
-    def blocks(self) -> NDArray[np.int_] | None:
+    def blocks(self) -> NDArray[np.uint8] | None:
         """The blocks."""
         return self.map_widget.blocks
 
     def set_blocks_at(
-        self, x: int, y: int, layers: NDArray[np.int_], blocks: NDArray[np.int_]
+        self, x: int, y: int, layers: NDArray[np.uint8], blocks: NDArray[np.uint8]
     ):
         """Sets the blocks at the given position.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
-            layers (NDArray[np.int_]): The layers.
-            blocks (NDArray[np.int_]): The blocks.
+            layers (NDArray[np.uint8]): The layers.
+            blocks (NDArray[np.uint8]): The blocks.
         """
         self.map_widget.main_gui.set_blocks_at(x, y, layers, blocks)
 
-    def replace_blocks(self, x: int, y: int, layer: int, block: NDArray[np.int_]):
+    def replace_blocks(self, x: int, y: int, layer: int, block: NDArray[np.uint8]):
         """Replaces the blocks.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
             layer (int): The layer.
-            block (NDArray[np.int_]): The block.
+            block (NDArray[np.uint8]): The block.
         """
         self.map_widget.main_gui.replace_blocks(x, y, layer, block)
 
-    def flood_fill(self, x: int, y: int, layer: int, block: NDArray[np.int_]):
+    def flood_fill(self, x: int, y: int, layer: int, block: NDArray[np.uint8]):
         """Flood fills the blocks.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
             layer (int): The layer.
-            block (NDArray[np.int_]): The block.
+            block (NDArray[np.uint8]): The block.
         """
         self.map_widget.main_gui.flood_fill(x, y, layer, block)
 

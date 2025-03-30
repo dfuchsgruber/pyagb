@@ -164,7 +164,7 @@ class SmartShapesTab(BlocksLikeTab):
         return self.map_widget.main_gui.smart_shapes[self.current_smart_shape_name]
 
     @property
-    def smart_shape_blocks(self) -> NDArray[np.int_]:
+    def smart_shape_blocks(self) -> NDArray[np.uint8]:
         """The blocks of the smart shape. Note that these are not border padded."""
         return self.map_widget.main_gui.smart_shapes[
             self.current_smart_shape_name
@@ -235,7 +235,7 @@ class SmartShapesTab(BlocksLikeTab):
         return 0
 
     @property
-    def selected_layers(self) -> NDArray[np.int_]:
+    def selected_layers(self) -> NDArray[np.uint8]:
         """The selected layers."""
         return np.array([0])
 
@@ -255,7 +255,7 @@ class SmartShapesTab(BlocksLikeTab):
         self.map_widget.load_map()
 
     @property
-    def blocks(self) -> NDArray[np.int_] | None:
+    def blocks(self) -> NDArray[np.uint8] | None:
         """The blocks."""
         smart_shape = self.current_smart_shape
         if smart_shape is None:
@@ -279,11 +279,11 @@ class SmartShapesTab(BlocksLikeTab):
             ] = smart_shape.buffer
             return blocks
 
-    def set_selection(self, selection: NDArray[np.int_]) -> None:
+    def set_selection(self, selection: NDArray[np.uint8]) -> None:
         """Sets the selection.
 
         Args:
-            selection (NDArray[np.int_]): The selection.
+            selection (NDArray[np.uint8]): The selection.
         """
         selection = selection.copy()
         self.selection = selection
@@ -311,41 +311,41 @@ class SmartShapesTab(BlocksLikeTab):
         )
 
     def set_blocks_at(
-        self, x: int, y: int, layers: NDArray[np.int_], blocks: NDArray[np.int_]
+        self, x: int, y: int, layers: NDArray[np.uint8], blocks: NDArray[np.uint8]
     ):
         """Sets the blocks at the given position.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
-            layers (NDArray[np.int_]): The layers.
-            blocks (NDArray[np.int_]): The blocks.
+            layers (NDArray[np.uint8]): The layers.
+            blocks (NDArray[np.uint8]): The blocks.
         """
         self.map_widget.main_gui.smart_shape_set_blocks_at(
             self.current_smart_shape_name, x, y, blocks
         )
 
-    def replace_blocks(self, x: int, y: int, layer: int, block: NDArray[np.int_]):
+    def replace_blocks(self, x: int, y: int, layer: int, block: NDArray[np.uint8]):
         """Replaces the blocks.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
             layer (int): The layer.
-            block (NDArray[np.int_]): The block.
+            block (NDArray[np.uint8]): The block.
         """
         self.map_widget.main_gui.smart_shape_replace_blocks(
             self.current_smart_shape_name, x, y, layer, block
         )
 
-    def flood_fill(self, x: int, y: int, layer: int, block: NDArray[np.int_]):
+    def flood_fill(self, x: int, y: int, layer: int, block: NDArray[np.uint8]):
         """Flood fills the blocks.
 
         Args:
             x (int): The x coordinate.
             y (int): The y coordinate.
             layer (int): The layer.
-            block (NDArray[np.int_]): The block.
+            block (NDArray[np.uint8]): The block.
         """
         self.map_widget.main_gui.smart_shape_flood_fill(
             self.current_smart_shape_name,

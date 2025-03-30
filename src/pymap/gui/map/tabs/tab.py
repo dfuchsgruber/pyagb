@@ -28,7 +28,7 @@ class MapWidgetTab(QWidget):
 
     @property
     @abstractmethod
-    def selected_layers(self) -> NDArray[np.int_]:
+    def selected_layers(self) -> NDArray[np.uint8]:
         """Get the selected levels."""
         raise NotImplementedError
 
@@ -51,7 +51,7 @@ class MapWidgetTab(QWidget):
         raise NotImplementedError
 
     @abstractmethod
-    def set_selection(self, selection: NDArray[np.int_]) -> None:
+    def set_selection(self, selection: NDArray[np.uint8]) -> None:
         """Set the selection."""
         raise NotImplementedError
 

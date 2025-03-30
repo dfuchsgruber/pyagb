@@ -24,7 +24,7 @@ class UnpackedConnection(NamedTuple):
     offset: int
     bank: str | int
     map_idx: str | int
-    blocks: NDArray[np.int_]
+    blocks: NDArray[np.uint8]
 
 
 class BlockProtocol(Protocol):
@@ -43,4 +43,4 @@ class Block(dict[str, Any], BlockProtocol):
     ...
 
 
-MapLayers: TypeAlias = Sequence[int] | int | NDArray[np.int_]
+MapLayers: TypeAlias = Sequence[int] | int | NDArray[np.uint8]

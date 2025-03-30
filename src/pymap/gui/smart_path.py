@@ -91,8 +91,8 @@ class SmartPath:
     def complete(self, x: int, y: int, max_iterations: int = 10000) -> list[Coordinate]:
         """Completes the smart shape.
 
-        This adds all coordinates to the smart shape so that it will be a continuous shape
-        by linear interpolation.
+        This adds all coordinates to the smart shape so that it will be a continuous
+        shape by linear interpolation.
 
         Args:
             x (int): the x of the final coordinate
@@ -132,17 +132,17 @@ class SmartPath:
         return queue
 
     def _direction(
-        self, x1: npt.NDArray[np.int_], x2: npt.NDArray[np.int_]
+        self, x1: npt.NDArray[np.uint8], x2: npt.NDArray[np.uint8]
     ) -> SmartShapeDirection:
         """Determines the direction between two coordinates."""
         delta = np.sign(x1 - x2)
         return delta_to_dir.get(tuple(delta), SmartShapeDirection.UNDETERMINED)  # type: ignore
 
-    def append(self, coordinate: Coordinate | npt.NDArray[np.int_]):
+    def append(self, coordinate: Coordinate | npt.NDArray[np.uint8]):
         """Appends a coordinate to the smart path.
 
         Args:
-            coordinate (Coordinate | npt.NDArray[np.int_]): The coordinate to append.
+            coordinate (Coordinate | npt.NDArray[np.uint8]): The coordinate to append.
         """
         self.coordinates.append(tuple(coordinate))  # type: ignore
         self._directions = np.append(self._directions, SmartShapeDirection.UNDETERMINED)

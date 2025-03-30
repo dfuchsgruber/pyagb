@@ -77,16 +77,16 @@ class SmartShapeTemplate:
     def generate_blocks(
         self,
         smart_shape: SmartShape,
-        map_blocks: NDArray[np.int_],
-    ) -> tuple[NDArray[np.int_], tuple[NDArray[np.int_], ...]]:
+        map_blocks: NDArray[np.uint8],
+    ) -> tuple[NDArray[np.uint8], tuple[NDArray[np.int_], ...]]:
         """Generates map blocks for the given smart shape.
 
         Args:
             smart_shape (SmartShape): The smart shape to generate blocks for.
-            map_blocks (NDArray[np.int_]): The blocks of the map.
+            map_blocks (NDArray[np.uint8]): The blocks of the map.
 
         Returns:
-            NDArray[np.int_]: The updated buffer.
-            NDArray[np.int_]: Which blocks in the buffer a to be changed.
+            NDArray[np.uint8]: The updated buffer.
+            NDArray[np.uint8]: Which blocks in the buffer a to be changed.
         """
         raise NotImplementedError

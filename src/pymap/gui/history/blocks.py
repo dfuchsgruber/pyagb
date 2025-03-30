@@ -216,7 +216,7 @@ class SetBlocks(QUndoCommand):
         main_gui: PymapGui,
         x: int,
         y: int,
-        layers: Sequence[int] | int | npt.NDArray[np.int_],
+        layers: Sequence[int] | int | npt.NDArray[np.uint8],
         blocks_new: IntArray,
         blocks_old: IntArray,
     ):

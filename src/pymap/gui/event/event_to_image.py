@@ -13,7 +13,7 @@ from pymap.project import Project
 class EventImage(NamedTuple):
     """An image for a map event."""
 
-    image: npt.NDArray[np.int_]
+    image: npt.NDArray[np.uint8]
     x_offset: int
     y_offset: int
 

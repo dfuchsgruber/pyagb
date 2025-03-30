@@ -376,7 +376,7 @@ class TilesetWidget(QtWidgets.QWidget):
         """Gets the data of the currently selected block.
 
         Returns:
-            npt.NDArray[np.int_]: The data of the currently selected block.
+            npt.NDArray[np.uint8]: The data of the currently selected block.
         """
         return self.main_gui.get_block(self.selected_block_idx)
 
@@ -416,7 +416,7 @@ class TilesetWidget(QtWidgets.QWidget):
             pixmaps: dict[int, QPixmap] = {}
             for flip in range(4):
                 # Assemble the entire picture
-                image = np.zeros((512, 128, 4), dtype=np.int_)
+                image = np.zeros((512, 128, 4), dtype=np.uint8)
                 for idx, tile_img in enumerate(self.main_gui.tiles[palette_idx]):
                     x, y = idx % 16, idx // 16
                     if flip & mask_horizontal:
@@ -557,7 +557,7 @@ class TilesetWidget(QtWidgets.QWidget):
         self.selection = selection
         self.selection_scene.clear()
         image = np.zeros(
-            (8 * selection.shape[0], 8 * selection.shape[1], 4), dtype=np.int_
+            (8 * selection.shape[0], 8 * selection.shape[1], 4), dtype=np.uint8
         )
         for (y, x), tile in np.ndenumerate(selection):
             assert isinstance(tile, dict)

@@ -17,7 +17,7 @@ from pymap.project import Project
 from . import properties
 
 
-def compute_blocks(footer: ModelValue, project: Project) -> NDArray[np.int_]:
+def compute_blocks(footer: ModelValue, project: Project) -> NDArray[np.uint8]:
     """Computes all blocks for a given header and footer including borders.
 
     Parameters:
@@ -109,7 +109,7 @@ def filter_visible_connections(
 
 
 def insert_connection(
-    blocks: NDArray[np.int_],
+    blocks: NDArray[np.uint8],
     connection: UnpackedConnection | None,
     footer: ModelValue,
     project: Project,
@@ -184,7 +184,7 @@ def insert_connection(
 def unpack_connection(
     connection: ModelValue,
     project: Project,
-    connection_blocks: NDArray[np.int_] | None,
+    connection_blocks: NDArray[np.uint8] | None,
 ) -> UnpackedConnection | None:
     """Loads a connections data if possible.
 
@@ -268,7 +268,7 @@ def unpack_connection(
 def unpack_connections(
     connections: ModelValue,
     project: Project,
-    default_blocks: NDArray[np.int_] | None = None,
+    default_blocks: NDArray[np.uint8] | None = None,
 ) -> list[UnpackedConnection | None]:
     """Unpacks a list of connections."""
     assert isinstance(connections, list), f'Expected list, got {type(connections)}'
@@ -278,7 +278,7 @@ def unpack_connections(
     ]
 
 
-def blocks_to_ndarray(blocks: Sequence[Sequence[Block]]) -> NDArray[np.int_]:
+def blocks_to_ndarray(blocks: Sequence[Sequence[Block]]) -> NDArray[np.uint8]:
     """Converts a blocks list into a numpy ndarray."""
     return np.array(
         [[[data['block_idx'], data['level']] for data in line] for line in blocks],
@@ -286,7 +286,7 @@ def blocks_to_ndarray(blocks: Sequence[Sequence[Block]]) -> NDArray[np.int_]:
     )
 
 
-def ndarray_to_blocks(x: NDArray[np.int_]) -> list[list[Block]]:
+def ndarray_to_blocks(x: NDArray[np.uint8]) -> list[list[Block]]:
     """Converts a numpy ndarray back into serializable blocks."""
     return [
         [Block(block_idx=int(block_idx), level=int(level)) for block_idx, level in line]
@@ -295,13 +295,13 @@ def ndarray_to_blocks(x: NDArray[np.int_]) -> list[list[Block]]:
 
 
 def block_idxs_to_pixmaps(
-    block_idxs: NDArray[np.int_],
+    block_idxs: NDArray[np.uint8],
     block_images: BlockImages,
 ) -> NDArray[Any]:
     """Maps an ndarray of block_idxs to an array of pixmaps.
 
     Args:
-        block_idxs (NDArray[np.int_]): An array of block idxs to map to pixmaps.
+        block_idxs (NDArray[np.uint8]): An array of block idxs to map to pixmaps.
         block_images (BlockImages): The images of blocks.
 
     Returns:

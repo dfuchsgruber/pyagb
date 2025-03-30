@@ -50,7 +50,7 @@ class BlockScene(QGraphicsScene):
         assert self.tileset_widget.main_gui.tiles is not None
         self.clear()
         block = self.tileset_widget.selected_block[self.layer]
-        image = np.zeros((16, 16, 4), dtype=np.int_)
+        image = np.zeros((16, 16, 4), dtype=np.uint8)
 
         for (y, x), tile in np.ndenumerate(block.reshape(2, 2)):
             assert isinstance(tile, dict)

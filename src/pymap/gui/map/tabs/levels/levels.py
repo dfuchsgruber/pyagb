@@ -92,7 +92,7 @@ class LevelsTab(BlocksLikeTab):
         return 1
 
     @property
-    def selected_layers(self) -> NDArray[np.int_]:
+    def selected_layers(self) -> NDArray[np.uint8]:
         """Returns the selected layers."""
         return np.array([1])
 
@@ -109,11 +109,11 @@ class LevelsTab(BlocksLikeTab):
         """Loads the project."""
         self.set_selection(np.zeros((1, 1, 2), dtype=int))
 
-    def set_selection(self, selection: NDArray[np.int_]):
+    def set_selection(self, selection: NDArray[np.uint8]):
         """Sets the selection.
 
         Args:
-            selection (NDArray[np.int_]): The selection.
+            selection (NDArray[np.uint8]): The selection.
         """
         selection = selection.copy()
         self.selection = selection

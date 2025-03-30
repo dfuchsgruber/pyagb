@@ -156,11 +156,11 @@ class PymapGuiModel:
         else:
             return 0, 0
 
-    def get_borders(self) -> NDArray[np.int_]:
+    def get_borders(self) -> NDArray[np.uint8]:
         """Gets the borders of the map.
 
         Returns:
-            npt.NDArray[np.int_]: The borders
+            npt.NDArray[np.uint8]: The borders
         """
         assert self.project is not None, 'Project is None'
         borders = get_member_by_path(
@@ -189,11 +189,11 @@ class PymapGuiModel:
         assert isinstance(blocks, list)
         return np.array(blocks[block_idx % 0x280]).reshape(3, 2, 2)
 
-    def get_map_blocks(self) -> NDArray[np.int_]:
+    def get_map_blocks(self) -> NDArray[np.uint8]:
         """Gets the map blocks.
 
         Returns:
-            npt.NDArray[np.int_]: The map blocks, shape [h, w, 2]
+            npt.NDArray[np.uint8]: The map blocks, shape [h, w, 2]
         """
         assert self.project is not None, 'Project is None'
         blocks = get_member_by_path(

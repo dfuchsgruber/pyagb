@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 from skimage.measure import label as label_image  # type: ignore
 
+from pymap.debug import ProfileBlock
 from pymap.gui import render
 from pymap.gui.connection import ConnectionWidget
 from pymap.gui.event import EventWidget
@@ -533,6 +534,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             return pressed == QMessageBox.StandardButton.Cancel
         return False
 
+    @ProfileBlock('open_header')
     def open_header(self, bank: str, map_idx: str, prompt_saving: bool = True):
         """Opens a new map header and displays it."""
         if self.project is None:
@@ -778,7 +780,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         )
         self.event_widget.load_header()
 
-    def set_border_at(self, x: int, y: int, blocks: npt.NDArray[np.int_]):
+    def set_border_at(self, x: int, y: int, blocks: npt.NDArray[np.uint8]):
         """Sets the blocks of the border and adds an action to the history."""
         if not self.footer_loaded:
             return
@@ -792,7 +794,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         x: int,
         y: int,
         layers: MapLayers,
-        blocks: npt.NDArray[np.int_],
+        blocks: npt.NDArray[np.uint8],
     ):
         """Sets the blocks on the header and adds an item to the history."""
         if not self.footer_loaded:
@@ -818,26 +820,26 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if x < map_width and y < map_height:
             self.set_blocks_at(x, y, layers, blocks)
 
-    def flood_fill(self, x: int, y: int, layer: int, value: npt.NDArray[np.int_]):
+    def flood_fill(self, x: int, y: int, layer: int, value: npt.NDArray[np.uint8]):
         """Flood fills with origin (x, y) and a certain layer with a new value."""
         if not self.footer_loaded:
             return
         map_blocks = self.get_map_blocks()[..., layer]
         # Value 0 is not recognized by the connected component algorithm
-        labeled: NDArray[np.int_] = label_image(map_blocks + 1, connectivity=1)  # type: ignore
+        labeled: NDArray[np.uint8] = label_image(map_blocks + 1, connectivity=1)  # type: ignore
         idx = np.where(labeled == labeled[y, x])
         self.map_widget.undo_stack.push(
             ReplaceBlocks(self, idx, layer, value, map_blocks[y, x])
         )
 
     def replace_blocks(
-        self, x: int, y: int, layer: int, value: npt.NDArray[np.int_]
+        self, x: int, y: int, layer: int, value: npt.NDArray[np.uint8]
     ) -> None:
         """Replaces all blocks that are like (x, y) in the layer by the new value."""
         map_blocks = self.get_map_blocks()[:, :, layer]
-        idx = np.where(map_blocks == map_blocks[y, x])  # type: ignore
+        idx = np.where(map_blocks == map_blocks[y, x])
         self.replace_blocks_at(
-            idx=idx,  # type: ignore
+            idx=idx,
             layer=layer,
             value=value,
         )
@@ -846,7 +848,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self,
         idx: tuple[NDArray[np.int_], ...],
         layer: int,
-        value: npt.NDArray[np.int_],
+        value: npt.NDArray[np.uint8],
     ):
         """Replaces all blocks in the index by the new value."""
         if not self.footer_loaded:
@@ -862,7 +864,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         smart_shape_name: str,
         x: int,
         y: int,
-        blocks: npt.NDArray[np.int_],
+        blocks: npt.NDArray[np.uint8],
     ):
         """Sets the blocks of a smart shape and adds an action to the history.
 
@@ -871,7 +873,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             x (int): The x coordinate.
             y (int): The y coordinate.
             layers (MapLayers): Which layers to set.
-            blocks (npt.NDArray[np.int_]): The blocks to set.
+            blocks (npt.NDArray[np.uint8]): The blocks to set.
         """
         if not self.footer_loaded:
             return
@@ -888,7 +890,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         smart_shape_name: str,
         x: int,
         y: int,
-        value: npt.NDArray[np.int_],
+        value: npt.NDArray[np.uint8],
         layer: int = 0,
     ):
         """Flood fills with origin (x, y) and a certain layer with a new value."""
@@ -896,7 +898,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             return
         smart_shape_map_blocks = self.smart_shapes[smart_shape_name].buffer[..., layer]
         # Value 0 is not recognized by the connected component algorithm
-        labeled: NDArray[np.int_] = label_image(
+        labeled: NDArray[np.uint8] = label_image(
             smart_shape_map_blocks + 1, connectivity=1
         )  # type: ignore
         idx = np.where(labeled == labeled[y, x])
@@ -912,7 +914,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         x: int,
         y: int,
         layer: int,
-        value: npt.NDArray[np.int_],
+        value: npt.NDArray[np.uint8],
     ):
         """Replaces all blocks that are like (x, y) in the layer by the new value."""
         if not self.footer_loaded:

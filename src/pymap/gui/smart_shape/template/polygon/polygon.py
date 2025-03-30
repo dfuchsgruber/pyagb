@@ -47,16 +47,16 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
     def generate_blocks(
         self,
         smart_shape: SmartShape,
-        map_blocks: NDArray[np.int_],
-    ) -> tuple[NDArray[np.int_], tuple[NDArray[np.int_], ...]]:
+        map_blocks: NDArray[np.uint8],
+    ) -> tuple[NDArray[np.uint8], tuple[NDArray[np.int_], ...]]:
         """Generate the blocks for the smart shape.
 
         Args:
             smart_shape (SmartShape): The smart shape
-            map_blocks (NDArray[np.int_]): The map blocks
+            map_blocks (NDArray[np.uint8]): The map blocks
 
         Returns:
-            tuple[NDArray[np.int_], NDArray[np.bool_]]: The blocks and the mask
+            tuple[NDArray[np.uint8], NDArray[np.bool_]]: The blocks and the mask
         """
         buffer = smart_shape.buffer[..., 0]
         assert ((0 <= buffer) & (buffer < self.num_blocks)).all(), 'Invalid blocks.'
@@ -69,7 +69,7 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
 
         for label in non_background_labels:
             mask_label: NDArray[np.bool_] = labeled == label  # type: ignore
-            adjacency: NDArray[np.int_] = convolve(
+            adjacency: NDArray[np.uint8] = convolve(
                 mask_label.astype(int),
                 adjacency_kernel[::-1, ::-1],
                 mode='constant',
@@ -88,14 +88,14 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
         return blocks, idx
 
 
-def adjacency_flags_to_block(adjacency: NDArray[np.int_]) -> NDArray[np.int_]:
+def adjacency_flags_to_block(adjacency: NDArray[np.uint8]) -> NDArray[np.uint8]:
     """Convert the adjacency flags to a block.
 
     Args:
-        adjacency (NDArray[np.int_]): The adjacency
+        adjacency (NDArray[np.uint8]): The adjacency
 
     Returns:
-        NDArray[np.int_]: The block. -1 if not found.
+        NDArray[np.uint8]: The block. -1 if not found.
     """
     adjacency_cross = adjacency & Adjacent.ALL_CROSS
     blocks = np.full_like(adjacency, -1)

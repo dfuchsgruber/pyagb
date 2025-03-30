@@ -56,7 +56,7 @@ class EventGroupImage(QGraphicsItemGroup):
     def __init__(
         self,
         map_scene: MapScene,
-        image: npt.NDArray[np.int_],
+        image: npt.NDArray[np.uint8],
         horizontal_displacement: int,
         vertical_displacement: int,
     ):
