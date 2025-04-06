@@ -177,9 +177,11 @@ class MapWidget(QWidget):
 
     def load_header(self, *args: Any):
         """Updates the entire header related widgets."""
+        self.load_map()
+        # The tabs are loaded after the map scene is built, because some of them
+        # move items in the scene (e.g. the selection rectangle for events)
         for idx in range(self.tabs.count()):
             self.tabs.widget(idx).load_header()
-        self.load_map()
 
     def load_map(self):
         """Loads the entire map image."""

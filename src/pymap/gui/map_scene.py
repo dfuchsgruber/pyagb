@@ -6,6 +6,7 @@ from enum import IntFlag, auto, unique
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, cast
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsItem,
@@ -44,6 +45,7 @@ class MapScene(QGraphicsScene):
         BORDER_EFFECT = auto()
         SMART_SHAPE = auto()
         EVENTS = auto()
+        SELECTED_EVENT = auto()
         CONNECTIONS = auto()
 
     def __init__(self, main_gui: PymapGui, parent: QWidget | None = None):
@@ -60,6 +62,7 @@ class MapScene(QGraphicsScene):
         self.levels_group = None
         self.border_effect_group = None
         self.events_group = None
+        self.selected_event_group = None
         # Note that self.blocks is a padded tilemap of what is visible
         # and does not correspond to the actual blocks of the footer
         # which are still held in the main_gui.footer
@@ -72,6 +75,8 @@ class MapScene(QGraphicsScene):
         self.blocks_group = None
         self.levels_group = None
         self.border_effect_group = None
+        self.events_group = None
+        self.selected_event_group = None
 
     def update_grid(self):
         """Updates the grid of the scene."""
@@ -125,6 +130,7 @@ class MapScene(QGraphicsScene):
         self.add_level_images()
         self.add_border_effect()
         self.add_event_images()
+        self.add_selected_event_images()
 
     def compute_blocks(self):
         """Computes the visible block tilemap."""
@@ -225,41 +231,128 @@ class MapScene(QGraphicsScene):
             bool, self.main_gui.settings.value('event_widget/show_pictures', True, bool)
         )
 
+    def _event_to_qgraphics_item(
+        self, event: ModelValue, event_type: PymapEventConfigType
+    ) -> QGraphicsItem:
+        """Converts an event to a QGraphicsItem.
+
+        Args:
+            event (ModelValue): The event.
+            event_type (PymapEventConfigType): The event type.
+
+        Returns:
+            QGraphicsItem | None: The QGraphicsItem or None if no image is available.
+        """
+        from pymap.gui.map.tabs.events.event_to_image import EventImage
+
+        assert self.main_gui.project is not None
+        event_image = self.event_to_image.event_to_image(
+            event, event_type, self.main_gui.project
+        )
+        padded_x, padded_y = self.main_gui.get_border_padding()
+        x, y = self.pad_coordinates(
+            properties.get_member_by_path(event, event_type['x_path']),
+            properties.get_member_by_path(event, event_type['y_path']),
+            padded_x,
+            padded_y,
+        )
+        if event_image is not None and self.show_event_images:
+            event_image = EventImage(*event_image)
+            pixmap = QPixmap.fromImage(ndarray_to_QImage(event_image.image))
+            item = QGraphicsPixmapItem(pixmap)
+            item.setPos(
+                16 * (x) + event_image.x_offset, 16 * (y) + event_image.y_offset
+            )
+        else:
+            item = self._get_event_image_rectangle(event_type)
+            item.setPos(16 * x, 16 * y)
+        return item
+
+    def update_event_image(self, event_type: PymapEventConfigType, event_idx: int):
+        """Updates a certain event image.
+
+        Args:
+            event_type (PymapEventConfigType): The event type.
+            event_idx (int): The event index.
+        """
+        assert self.main_gui.project is not None
+        if self.events_group is None:
+            return
+        item_old = self.event_images[event_type['name']][event_idx]
+        if item_old in self.events_group.childItems():
+            # Remove the item from the group and the scene
+            self.events_group.removeFromGroup(item_old)
+            self.removeItem(item_old)
+            del item_old  # should not be necessary, but just in case
+
+        event = self.main_gui.get_event(event_type, event_idx)
+        item = self._event_to_qgraphics_item(event, event_type)
+        item.setAcceptHoverEvents(True)
+        self.events_group.addToGroup(item)
+        self.event_images[event_type['name']][event_idx] = item
+
+    def remove_event_image(self, event_type: PymapEventConfigType, event_idx: int):
+        """Removes a certain event image.
+
+        Args:
+            event_type (PymapEventConfigType): The event type.
+            event_idx (int): The event index.
+        """
+        assert self.main_gui.project is not None
+        if self.events_group is None:
+            return
+        item = self.event_images[event_type['name']][event_idx]
+        if item in self.events_group.childItems():
+            # Remove the item from the group and the scene
+            self.events_group.removeFromGroup(item)
+            self.removeItem(item)
+            del item
+        # Remove the item from the list
+        self.event_images[event_type['name']].pop(event_idx)
+
+    def insert_event_image(
+        self, event_type: PymapEventConfigType, event_idx: int, event: ModelValue
+    ):
+        """Inserts a certain event image.
+
+        Args:
+            event_type (PymapEventConfigType): The event type.
+            event_idx (int): The event index.
+            event (ModelValue): The event.
+        """
+        assert self.main_gui.project is not None
+        if self.events_group is None:
+            return
+        item = self._event_to_qgraphics_item(event, event_type)
+        item.setAcceptHoverEvents(True)
+        self.events_group.addToGroup(item)
+        self.event_images[event_type['name']].insert(event_idx, item)
+
     def add_event_images(self):
         """Adds all event images to the scene."""
         assert self.main_gui.project is not None
-        from pymap.gui.map.tabs.events.event_to_image import EventImage
-
         self.events_group = QGraphicsItemGroup()
         self.event_images: dict[str, list[QGraphicsItem]] = {}
         for event_type in self.main_gui.project.config['pymap']['header']['events']:
             self.event_images[event_type['name']] = []
             events = self.main_gui.get_events(event_type)
             for event in events:
-                event_image = self.event_to_image.event_to_image(
-                    event, event_type, self.main_gui.project
-                )
-                padded_x, padded_y = self.main_gui.get_border_padding()
-                x, y = self.pad_coordinates(
-                    properties.get_member_by_path(event, event_type['x_path']),
-                    properties.get_member_by_path(event, event_type['y_path']),
-                    padded_x,
-                    padded_y,
-                )
-                if event_image is not None and self.show_event_images:
-                    event_image = EventImage(*event_image)
-                    pixmap = QPixmap.fromImage(ndarray_to_QImage(event_image.image))
-                    item = QGraphicsPixmapItem(pixmap)
-                    item.setPos(
-                        16 * (x) + event_image.x_offset, 16 * (y) + event_image.y_offset
-                    )
-                else:
-                    item = self._get_event_image_rectangle(event_type)
-                    item.setPos(16 * x, 16 * y)
+                item = self._event_to_qgraphics_item(event, event_type)
                 item.setAcceptHoverEvents(True)
                 self.events_group.addToGroup(item)
                 self.event_images[event_type['name']].append(item)
         self.addItem(self.events_group)
+
+    def add_selected_event_images(self):
+        """Adds the selected event images to the scene."""
+        assert self.main_gui.project is not None
+        self.selected_event_group = QGraphicsItemGroup()
+        rect = QGraphicsRectItem(0, 0, 16, 16)
+        color = QColor.fromRgbF(1.0, 0.0, 0.0, 1.0)
+        rect.setPen(QPen(color, 2.0))
+        rect.setBrush(Qt.BrushStyle.NoBrush)
+        self.selected_event_group.addToGroup(rect)
+        self.addItem(self.selected_event_group)
 
     @staticmethod
     def _get_event_image_rectangle(
@@ -299,6 +392,35 @@ class MapScene(QGraphicsScene):
             self.main_gui.map_widget.levels_tab.level_opacity_slider.sliderPosition()
             / 20
         )
+
+    def update_selected_event_image(
+        self, event_type: PymapEventConfigType, event_idx: int | None
+    ):
+        """Updates the selected event image (the red rectangle).
+
+        Args:
+            event_type (PymapEventConfigType): The event type.
+            event_idx (int): The event index. If None or -1, the event is hidden.
+        """
+        assert self.main_gui.project is not None
+        if self.selected_event_group is None:
+            return
+        if event_idx is None or event_idx < 0:
+            # Hide the selected event group
+            self.selected_event_group.setVisible(False)
+            return
+        # Show the selected event group
+        self.selected_event_group.setVisible(True)
+
+        event = self.main_gui.get_event(event_type, event_idx)
+        padded_x, padded_y = self.main_gui.get_border_padding()
+        x, y = self.pad_coordinates(
+            properties.get_member_by_path(event, event_type['x_path']),
+            properties.get_member_by_path(event, event_type['y_path']),
+            padded_x,
+            padded_y,
+        )
+        self.selected_event_group.setPos(16 * x, 16 * y)
 
     def update_level_image_at_padded_position(self, x: int, y: int):
         """Updates the level image at the given padded position.
@@ -401,6 +523,10 @@ class MapScene(QGraphicsScene):
         if self.events_group is not None:
             self.events_group.setVisible(
                 (visible_layers & MapScene.VisibleLayer.EVENTS) > 0
+            )
+        if self.selected_event_group is not None:
+            self.selected_event_group.setVisible(
+                (visible_layers & MapScene.VisibleLayer.SELECTED_EVENT) > 0
             )
 
     @staticmethod
