@@ -18,6 +18,8 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QWidget,
 )
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTabBar, QLabel
+
 
 from pymap.gui import blocks
 from pymap.gui.blocks import compute_blocks
@@ -89,12 +91,20 @@ class MapWidget(QWidget):
         self.undo_stack.canUndoChanged.connect(self._update_undo_redo_tooltips)
         self.undo_stack.indexChanged.connect(self._update_undo_redo_tooltips)
 
+        grid_layout = QtWidgets.QGridLayout()
+        self.tab_bar = QTabBar()
+        self.tab_bar.setExpanding(False)
+        grid_layout.addWidget(self.tab_bar, 1, 1, 1, 2)
+        self.add_tab('Blocks')
+        self.add_tab('Levels')
+        self.add_tab('Smart Shape')
+        self.add_tab('Events')
+        self.add_tab('Connections')
+
         # (Re-)Build the ui
-        layout = QtWidgets.QGridLayout()
-        self.setLayout(layout)
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        layout.addWidget(splitter, 1, 1, 1, 1)
+        grid_layout.addWidget(splitter, 2, 1, 1, 1)
 
         self.map_scene = MapScene(self)
         self.map_scene_view = QtWidgets.QGraphicsView()
@@ -107,9 +117,9 @@ class MapWidget(QWidget):
         splitter.addWidget(self.map_scene_view)
 
         self.info_label = QtWidgets.QLabel()
-        layout.addWidget(self.info_label, 2, 1, 1, 1)
-        layout.setRowStretch(1, 1)
-        layout.setRowStretch(2, 0)
+        grid_layout.addWidget(self.info_label, 3, 1, 1, 1)
+        grid_layout.setRowStretch(2, 1)
+        grid_layout.setRowStretch(3, 0)
 
         # Divide into a widget for blocks and levels
         self.tabs = MapTabsWidget()
@@ -137,7 +147,20 @@ class MapWidget(QWidget):
                 'map_widget/horizontal_splitter_state', splitter.saveState()
             )
         )
+        self.setLayout(grid_layout)
         self.load_header()  # Disables all widgets
+
+    def add_tab(
+        self,
+        name: str,
+    ):
+        """Adds a tab to the map widget.
+
+        Args:
+            name (str): The name of the tab.
+            tab (QWidget): The tab.
+        """
+        self.tab_bar.addTab(name)
 
     @property
     def header_loaded(self) -> bool:
@@ -160,28 +183,27 @@ class MapWidget(QWidget):
     # @Profile('MapWidget:tab_changed')
     def tab_changed(self, *args: Any, **kwargs: Any):
         """Triggered when the user switches from the blocks to levels tab."""
-        self.update_layers()
-        self.load_map()
+        # self.update_layers()
+        # self.load_map()
 
     def update_layers(self):
         """Updates the current layers."""
-        self.layers = self.tabs.currentWidget().selected_layers
+        # self.layers = self.tabs.currentWidget().selected_layers
 
     def load_project(self, *args: Any):
         """Update project related widgets."""
         if not self.main_gui.project_loaded:
             return
         assert self.main_gui.project is not None, 'Project is not loaded'
-        for idx in range(self.tabs.count()):
-            self.tabs.widget(idx).load_project()
+        # for idx in range(self.tabs.count()):
+        #     self.tabs.widget(idx).load_project()
         self.load_header()
 
     def load_header(self, *args: Any):
         """Updates the entire header related widgets."""
-        for idx in range(self.tabs.count()):
-            self.tabs.widget(idx).load_header()
+        # for idx in range(self.tabs.count()):
+        #     self.tabs.widget(idx).load_header()
         self.load_map()
-
         if self.main_gui.project is None or self.main_gui.header is None:
             self.blocks = None
 
@@ -190,36 +212,7 @@ class MapWidget(QWidget):
         self.map_scene.clear()
         if self.main_gui.project is None or self.main_gui.header is None:
             return
-        padded_width, padded_height = self.main_gui.get_border_padding()
-        map_width, map_height = self.main_gui.get_map_dimensions()
-
-        # Crop the visible blocks from all blocks including the border
-        self.blocks = compute_blocks(self.main_gui.footer, self.main_gui.project)
-        connections = self.main_gui.get_connections()
-        for connection in blocks.filter_visible_connections(
-            blocks.unpack_connections(connections, self.main_gui.project)
-        ):
-            blocks.insert_connection(
-                self.blocks, connection, self.main_gui.footer, self.main_gui.project
-            )
-        visible_width, visible_height = (
-            map_width + 2 * padded_width,
-            map_height + 2 * padded_height,
-        )
-        invisible_border_width, invisible_border_height = (
-            (self.blocks.shape[1] - visible_width) // 2,
-            (self.blocks.shape[0] - visible_height) // 2,
-        )
-        self.blocks = self.blocks[
-            invisible_border_height : self.blocks.shape[0] - invisible_border_height,
-            invisible_border_width : self.blocks.shape[1] - invisible_border_width,
-        ]
-        self.update_block_images()
-        self.update_level_images()
-        self.update_smart_shape_images()
-        self.tabs.currentWidget().load_map()
-        self.update_border_effect()
-        self.update_grid()
+        self.map_scene.load_map()
 
     def update_grid(self):
         """Updates the grid."""

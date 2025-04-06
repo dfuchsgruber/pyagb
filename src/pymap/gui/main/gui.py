@@ -705,8 +705,8 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.footer_widget.load()
         self.header_widget.load()
         # It is important to place this after the map widget, since it reuses its tiling
-        self.event_widget.load_header()
-        self.connection_widget.load_header()
+        # self.event_widget.load_header()
+        # self.connection_widget.load_header()
 
     def resource_tree_toggle_header_listing(self):
         """Toggles the listing method for the resource tree."""
