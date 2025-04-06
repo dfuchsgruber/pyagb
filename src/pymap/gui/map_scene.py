@@ -3,20 +3,26 @@
 from __future__ import annotations
 
 from enum import IntFlag, auto, unique
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Callable, cast
 
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QBrush, QColor, QFont, QPen, QPixmap
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsItemGroup,
     QGraphicsOpacityEffect,
     QGraphicsPixmapItem,
+    QGraphicsRectItem,
     QGraphicsScene,
+    QGraphicsTextItem,
     QWidget,
 )
-from PySide6.QtGui import QBrush, QColor, QPen, QPixmap
 
-from pymap.gui import blocks
+from agb.model.type import ModelValue
+from pymap.configuration import PymapEventConfigType
+from pymap.gui import blocks, properties
 from pymap.gui.blocks import compute_blocks
+from pymap.gui.event import EventToImage, NullEventToImage
 from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.types import Tilemap
 
@@ -53,6 +59,7 @@ class MapScene(QGraphicsScene):
         self.blocks_group = None
         self.levels_group = None
         self.border_effect_group = None
+        self.events_group = None
         # Note that self.blocks is a padded tilemap of what is visible
         # and does not correspond to the actual blocks of the footer
         # which are still held in the main_gui.footer
@@ -80,6 +87,30 @@ class MapScene(QGraphicsScene):
         else:
             self.grid_group = None
 
+    def _load_event_to_image_backend(self):
+        """Loads the event to image backend."""
+        project = self.main_gui.project
+        event_to_image: None | EventToImage = None
+        if project is not None:
+            backend = project.config['pymap']['display']['event_to_image_backend']
+
+            if backend is not None:
+                with project.project_dir():
+                    with open(Path(backend)) as f:
+                        namespace: dict[str, object] = {}
+                        exec(f.read(), namespace)
+                        get_event_to_image = namespace['get_event_to_image']
+                        assert isinstance(get_event_to_image, Callable)
+                        event_to_image = cast(EventToImage, get_event_to_image())
+        if event_to_image is None:
+            self.event_to_image = NullEventToImage()
+        else:
+            self.event_to_image = event_to_image
+
+    def load_project(self):
+        """Loads the project."""
+        self._load_event_to_image_backend()
+
     def load_map(self):
         """(Re-)Loads the entire map scene.
 
@@ -93,6 +124,7 @@ class MapScene(QGraphicsScene):
         self.add_block_images()
         self.add_level_images()
         self.add_border_effect()
+        self.add_event_images()
 
     def compute_blocks(self):
         """Computes the visible block tilemap."""
@@ -185,6 +217,81 @@ class MapScene(QGraphicsScene):
         self.levels_group.setGraphicsEffect(self.level_image_opacity_effect)
         self.update_level_image_opacity()
         self.addItem(self.levels_group)
+
+    @property
+    def show_event_images(self) -> bool:
+        """Returns whether the event images are shown."""
+        return cast(
+            bool, self.main_gui.settings.value('event_widget/show_pictures', True, bool)
+        )
+
+    def add_event_images(self):
+        """Adds all event images to the scene."""
+        assert self.main_gui.project is not None
+        from pymap.gui.map.tabs.events.event_to_image import EventImage
+
+        self.events_group = QGraphicsItemGroup()
+        self.event_images: dict[str, list[QGraphicsItem]] = {}
+        for event_type in self.main_gui.project.config['pymap']['header']['events']:
+            self.event_images[event_type['name']] = []
+            events = self.main_gui.get_events(event_type)
+            for event in events:
+                event_image = self.event_to_image.event_to_image(
+                    event, event_type, self.main_gui.project
+                )
+                padded_x, padded_y = self.main_gui.get_border_padding()
+                x, y = self.pad_coordinates(
+                    properties.get_member_by_path(event, event_type['x_path']),
+                    properties.get_member_by_path(event, event_type['y_path']),
+                    padded_x,
+                    padded_y,
+                )
+                if event_image is not None and self.show_event_images:
+                    event_image = EventImage(*event_image)
+                    pixmap = QPixmap.fromImage(ndarray_to_QImage(event_image.image))
+                    item = QGraphicsPixmapItem(pixmap)
+                    item.setPos(
+                        16 * (x) + event_image.x_offset, 16 * (y) + event_image.y_offset
+                    )
+                else:
+                    item = self._get_event_image_rectangle(event_type)
+                    item.setPos(16 * x, 16 * y)
+                item.setAcceptHoverEvents(True)
+                self.events_group.addToGroup(item)
+                self.event_images[event_type['name']].append(item)
+        self.addItem(self.events_group)
+
+    @staticmethod
+    def _get_event_image_rectangle(
+        event_type: PymapEventConfigType,
+    ) -> QGraphicsItemGroup:
+        """Creates a rectangle for the event image.
+
+        Args:
+            event_type (PymapEventConfigType): The event type.
+
+        Returns:
+            QGraphicsItemGroup: The group.
+        """
+        group = QGraphicsItemGroup()
+        color = QColor.fromRgbF(*(event_type['box_color']))
+        rect = QGraphicsRectItem(0, 0, 16, 16)
+        rect.setBrush(QBrush(color))
+        rect.setPen(QPen(0))
+        text = QGraphicsTextItem(event_type['name'][0])
+        text.setPos(
+            6 - text.sceneBoundingRect().width() / 2,
+            6 - text.sceneBoundingRect().height() / 2,
+        )
+
+        font = QFont('Ubuntu')
+        font.setBold(True)
+        font.setPixelSize(16)
+        text.setFont(font)
+        text.setDefaultTextColor(QColor.fromRgbF(*(event_type['text_color'])))
+        group.addToGroup(rect)
+        group.addToGroup(text)
+        return group
 
     def update_level_image_opacity(self):
         """Updates the opacity of the level images."""
@@ -291,3 +398,23 @@ class MapScene(QGraphicsScene):
             self.levels_group.setVisible(
                 (visible_layers & MapScene.VisibleLayer.LEVELS) > 0
             )
+        if self.events_group is not None:
+            self.events_group.setVisible(
+                (visible_layers & MapScene.VisibleLayer.EVENTS) > 0
+            )
+
+    @staticmethod
+    def pad_coordinates(
+        x: ModelValue, y: ModelValue, padded_x: int, padded_y: int
+    ) -> tuple[int, int]:
+        """Tries to transform the text string of an event to integer coordinates."""
+        x, y = str(x), str(y)  # This enables arbitrary bases
+        try:
+            x = int(x, 0)
+            y = int(y, 0)
+        except ValueError:
+            return (
+                -10000,
+                -10000,
+            )  # This is hacky but prevents the events from being rendered
+        return (x + padded_x), (y + padded_y)

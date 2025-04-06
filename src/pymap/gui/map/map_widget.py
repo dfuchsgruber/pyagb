@@ -20,6 +20,7 @@ from pymap.gui.types import MapLayers, Tilemap
 
 from .map_scene import MapScene
 from .tabs.blocks import BlocksTab
+from .tabs.events import EventsTab
 from .tabs.levels import LevelsTab
 from .tabs.smart_shapes.smart_shapes import SmartShapesTab
 from .tabs.tab import MapWidgetTab
@@ -34,6 +35,7 @@ class MapWidgetTabType(IntEnum):
     BLOCKS = 0
     LEVELS = 1
     AUTO_SHAPES = 2
+    EVENTS = 3
 
 
 class MapTabsWidget(QTabWidget):
@@ -114,6 +116,9 @@ class MapWidget(QWidget):
         self.tabs.insertTab(
             MapWidgetTabType.AUTO_SHAPES, self.smart_shapes_tab, 'Smart Shapes'
         )
+        self.events_tab = EventsTab(self)
+        self.tabs.insertTab(MapWidgetTabType.EVENTS, self.events_tab, 'Events')
+
         self.tabs.currentChanged.connect(self.tab_changed)
 
         splitter.addWidget(self.tabs)
@@ -167,6 +172,7 @@ class MapWidget(QWidget):
         assert self.main_gui.project is not None, 'Project is not loaded'
         for idx in range(self.tabs.count()):
             self.tabs.widget(idx).load_project()
+        self.map_scene.load_project()
         self.load_header()
 
     def load_header(self, *args: Any):

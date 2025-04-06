@@ -20,11 +20,12 @@ from pymap.gui.history import ChangeEventProperty, path_to_statement
 from pymap.gui.properties import get_member_by_path
 
 from .event_to_image import EventToImage, NullEventToImage
-from .map_scene import MapScene
+
 from .tab import EventTab
 
 if TYPE_CHECKING:
     from ..main.gui import PymapGui
+    from .map_scene import MapScene
 
 
 class EventWidget(QWidget):
@@ -57,6 +58,9 @@ class EventWidget(QWidget):
             )
         )
         layout.addWidget(splitter, 1, 1, 1, 1)
+
+        from .map_scene import MapScene
+
         self.map_scene = MapScene(self)
         self.map_scene_view = QtWidgets.QGraphicsView()
         self.map_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
