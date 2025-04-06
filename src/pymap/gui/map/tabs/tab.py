@@ -83,6 +83,12 @@ class MapWidgetTab(QWidget):
         """Event handler for releasing the mouse."""
         raise NotImplementedError
 
+    def map_scene_mouse_double_clicked(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
+        """Event handler for double clicking the mouse."""
+        ...
+
     def get_info_text_by_position(self, x: int, y: int) -> str | None:
         """Get the information text for the position."""
         if not self.map_widget.header_loaded:

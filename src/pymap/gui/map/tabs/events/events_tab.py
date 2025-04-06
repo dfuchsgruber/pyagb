@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 from PySide6 import QtWidgets
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QGraphicsSceneMouseEvent,
     QSplitter,
@@ -13,7 +14,10 @@ from PySide6.QtWidgets import (
 )
 
 from pymap.configuration import PymapEventConfigType
+from pymap.gui.history.event import ChangeEventProperty
+from pymap.gui.history.statement import path_to_statement
 from pymap.gui.map_scene import MapScene
+from pymap.gui.properties.utils import get_member_by_path
 
 from ..tab import MapWidgetTab
 from .tab import EventTab
@@ -23,12 +27,7 @@ if TYPE_CHECKING:
 
 
 class EventsTab(MapWidgetTab):
-    """Tabs with block like functionality.
-
-    They have a selection of blocks that can be drawn to the map. They also
-    support flood filling and replacement. The selection can be taken from the map as
-    well or set natively via the `set_selection` method to `selection`.
-    """
+    """Tab for the events on the map."""
 
     def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):
         """Initialize the tab."""
@@ -59,6 +58,11 @@ class EventsTab(MapWidgetTab):
         self.tabs = {}
         splitter.addWidget(self.tab_widget)
         splitter.setSizes([4 * 10**6, 10**6])  # Ugly as hell hack to take large values
+
+        # Recording mouse events
+        self.last_dragged_position: tuple[int, int] | None = None
+        self.dragged_event = None
+        self.is_dragging = False
 
     def _tab_changed(self, index: int) -> None:
         """Event handler for changing the tab.
@@ -129,6 +133,60 @@ class EventsTab(MapWidgetTab):
             | MapScene.VisibleLayer.SELECTED_EVENT
         )
 
+    def _get_event_by_padded_position(
+        self,
+        x: int,
+        y: int,
+    ) -> tuple[PymapEventConfigType, int] | None:
+        """Finds an event associated with a mouse event by the position of the mouse event."""
+        if (
+            self.map_widget.main_gui.project is None
+            or self.map_widget.main_gui.header is None
+        ):
+            return None
+        map_width, map_height = self.map_widget.main_gui.get_map_dimensions()
+        padded_x, padded_y = self.map_widget.main_gui.get_border_padding()
+
+        if x - padded_x in range(map_width) and y - padded_y in range(map_height):
+            # Check if there is any event that can be picked up
+            for event_type in self.map_widget.main_gui.project.config['pymap'][
+                'header'
+            ]['events']:
+                events = self.map_widget.main_gui.get_events(event_type)
+                for event_idx, event in enumerate(events):
+                    event_x, event_y = self.map_widget.map_scene.pad_coordinates(
+                        get_member_by_path(event, event_type['x_path']),
+                        get_member_by_path(event, event_type['y_path']),
+                        padded_x,
+                        padded_y,
+                    )
+
+                    if x == event_x and event_y == y:
+                        return event_type, event_idx
+        return None
+
+    def _select_event_at_padded_position(
+        self,
+        x: int,
+        y: int,
+    ):
+        """Selects an event at the given position."""
+        target = self._get_event_by_padded_position(x, y)
+        if target is not None:
+            event_type, event_idx = target
+
+            # Change to the tab and select the event
+            tab = self.tabs[event_type['datatype']]
+            if self.tab_widget.currentWidget() != tab:
+                self.tab_widget.setCurrentWidget(tab)
+            if tab.idx_combobox.currentIndex() != event_idx:
+                tab.idx_combobox.setCurrentIndex(event_idx)
+
+            # Update the mouse events
+            self.last_dragged_position = x, y
+            self.dragged_event = event_type, event_idx
+            self.is_dragging = False
+
     def map_scene_mouse_pressed(
         self, event: QGraphicsSceneMouseEvent, x: int, y: int
     ) -> None:
@@ -139,6 +197,11 @@ class EventsTab(MapWidgetTab):
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
+        if not self.map_widget.header_loaded:
+            return
+        if not event.button() == Qt.MouseButton.LeftButton:
+            return
+        self._select_event_at_padded_position(x, y)
 
     def map_scene_mouse_pressed_shift(self, x: int, y: int):
         """Event handler for pressing the mouse with the shift key pressed.
@@ -151,6 +214,7 @@ class EventsTab(MapWidgetTab):
             y (int): The y coordinate of the mouse in map coordinates
                 (with border padding).
         """
+        self._select_event_at_padded_position(x, y)
 
     def map_scene_mouse_pressed_control(self, x: int, y: int):
         """Event handler for pressing the mouse with the control key pressed.
@@ -161,6 +225,7 @@ class EventsTab(MapWidgetTab):
             y (int): The y coordinate of the mouse in map coordinates
                 (with border padding).
         """
+        self._select_event_at_padded_position(x, y)
 
     def map_scene_mouse_moved(
         self, event: QGraphicsSceneMouseEvent, x: int, y: int
@@ -172,6 +237,46 @@ class EventsTab(MapWidgetTab):
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
+        if not self.map_widget.header_loaded:
+            return
+        if event.buttons() != Qt.MouseButton.LeftButton:
+            return
+        if self.last_dragged_position is not None and self.last_dragged_position != (
+            x,
+            y,
+        ):
+            assert self.dragged_event is not None, 'Dragged event is None'
+            event_type, event_idx = self.dragged_event
+            padded_x, padded_y = self.map_widget.main_gui.get_border_padding()
+
+            # Start the dragging macro if not started already
+            if not self.is_dragging:
+                self.is_dragging = True
+                self.map_widget.undo_stack.beginMacro(
+                    f'Drag event {event_type["name"]} {event_idx}'
+                )
+
+            # Drag the current event to this position
+            redo_statement_x, undo_statement_x = path_to_statement(
+                event_type['x_path'],
+                self.last_dragged_position[0] - padded_x,
+                x - padded_x,
+            )
+            redo_statement_y, undo_statement_y = path_to_statement(
+                event_type['y_path'],
+                self.last_dragged_position[1] - padded_y,
+                y - padded_y,
+            )
+            self.map_widget.undo_stack.push(
+                ChangeEventProperty(
+                    self,
+                    event_type,
+                    event_idx,
+                    [redo_statement_x, redo_statement_y],
+                    [undo_statement_x, undo_statement_y],
+                )
+            )
+            self.last_dragged_position = x, y
 
     def map_scene_mouse_released(
         self, event: QGraphicsSceneMouseEvent, x: int, y: int
@@ -183,3 +288,28 @@ class EventsTab(MapWidgetTab):
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
+        if not self.map_widget.header_loaded:
+            return
+        if event.buttons() != Qt.MouseButton.LeftButton:
+            return
+        if self.is_dragging:
+            self.is_dragging = False
+            self.map_widget.undo_stack.endMacro()
+        self.last_dragged_position = None
+        self.dragged_event = None
+
+    def map_scene_mouse_double_clicked(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
+        """Event handler for double clicking the mouse."""
+        if not self.map_widget.header_loaded:
+            return
+        if event.buttons() != Qt.MouseButton.LeftButton:
+            return
+        target = self._get_event_by_padded_position(x, y)
+        if target is None:
+            return
+        event_type, event_idx = target
+        tab = self.tabs[event_type['datatype']]
+        if event_type.get('goto_header_button_button_enabled', False):
+            tab.goto_header(event_idx)
