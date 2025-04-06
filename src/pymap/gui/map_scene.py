@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import IntEnum, auto, unique
+from enum import IntFlag, auto, unique
 from typing import TYPE_CHECKING
 
 from PySide6.QtGui import QPixmap
@@ -30,7 +30,7 @@ class MapScene(QGraphicsScene):
     """Scene that will show the map."""
 
     @unique
-    class Layer(IntEnum):
+    class VisibleLayer(IntFlag):
         """Layers that can be visible."""
 
         BLOCKS = auto()
@@ -53,6 +53,9 @@ class MapScene(QGraphicsScene):
         self.blocks_group = None
         self.levels_group = None
         self.border_effect_group = None
+        # Note that self.blocks is a padded tilemap of what is visible
+        # and does not correspond to the actual blocks of the footer
+        # which are still held in the main_gui.footer
         self.blocks: Tilemap | None = None
 
     def clear(self) -> None:
@@ -137,6 +140,28 @@ class MapScene(QGraphicsScene):
             self.blocks_group.addToGroup(item)
         self.addItem(self.blocks_group)
 
+    def update_block_image_at_padded_position(self, x: int, y: int):
+        """Updates the block image at the given padded position.
+
+        Args:
+            x (int): The x coordinate.
+            y (int): The y coordinate.
+        """
+        assert self.blocks is not None, 'Blocks are not loaded'
+        padded_width, padded_height = self.main_gui.get_border_padding()
+        map_width, map_height = self.main_gui.get_map_dimensions()
+        if x in range(padded_width, padded_width + map_width) and y in range(
+            padded_height, padded_height + map_height
+        ):
+            # Draw the blocks
+            block_idx: int = self.blocks[y, x, 0]
+            assert self.main_gui.block_images is not None, 'Blocks are not loaded'
+            pixmap = QPixmap.fromImage(
+                ndarray_to_QImage(self.main_gui.block_images[block_idx])
+            )
+            item: QGraphicsPixmapItem = self.block_images[y, x]
+            item.setPixmap(pixmap)
+
     def add_level_images(self):
         """Adds all level images to the scene."""
         assert self.blocks is not None, 'Blocks are not loaded'
@@ -152,16 +177,40 @@ class MapScene(QGraphicsScene):
                 pixmap = self.main_gui.map_widget.levels_tab.level_blocks_pixmaps[level]
                 item = QGraphicsPixmapItem(pixmap)
                 item.setAcceptHoverEvents(True)
-                opacity = QGraphicsOpacityEffect()
-                opacity.setOpacity(
-                    self.main_gui.map_widget.levels_tab.level_opacity_slider.sliderPosition()
-                    / 20
-                )
-                item.setGraphicsEffect(opacity)
                 item.setPos(16 * x, 16 * y)
                 self.level_images[y, x] = item
                 self.levels_group.addToGroup(item)
+
+        self.level_image_opacity_effect = QGraphicsOpacityEffect()
+        self.levels_group.setGraphicsEffect(self.level_image_opacity_effect)
+        self.update_level_image_opacity()
         self.addItem(self.levels_group)
+
+    def update_level_image_opacity(self):
+        """Updates the opacity of the level images."""
+        self.level_image_opacity_effect.setOpacity(
+            self.main_gui.map_widget.levels_tab.level_opacity_slider.sliderPosition()
+            / 20
+        )
+
+    def update_level_image_at_padded_position(self, x: int, y: int):
+        """Updates the level image at the given padded position.
+
+        Args:
+            x (int): The x coordinate.
+            y (int): The y coordinate.
+        """
+        assert self.blocks is not None, 'Blocks are not loaded'
+        padded_width, padded_height = self.main_gui.get_border_padding()
+        map_width, map_height = self.main_gui.get_map_dimensions()
+        if x in range(padded_width, padded_width + map_width) and y in range(
+            padded_height, padded_height + map_height
+        ):
+            # Draw the pixmaps
+            level: int = self.blocks[y, x, 1]
+            pixmap = self.main_gui.map_widget.levels_tab.level_blocks_pixmaps[level]
+            item: QGraphicsPixmapItem = self.level_images[y, x]
+            item.setPixmap(pixmap)
 
     def add_border_effect(self):
         """Adds the opacity effect for borders."""
@@ -224,17 +273,21 @@ class MapScene(QGraphicsScene):
             16 * (2 * padded_height + map_height),
         )
 
-    def update_visible_layers(self, visible_layers: Layer):
+    def update_visible_layers(self, visible_layers: VisibleLayer):
         """Shows / Hides certain layers.
 
         Args:
             visible_layers (Layer): Mask for visible layers.
         """
         if self.blocks_group is not None:
-            self.blocks_group.setVisible((visible_layers & MapScene.Layer.BLOCKS) > 0)
+            self.blocks_group.setVisible(
+                (visible_layers & MapScene.VisibleLayer.BLOCKS) > 0
+            )
         if self.border_effect_group is not None:
             self.border_effect_group.setVisible(
-                (visible_layers & MapScene.Layer.BORDER_EFFECT) > 0
+                (visible_layers & MapScene.VisibleLayer.BORDER_EFFECT) > 0
             )
         if self.levels_group is not None:
-            self.levels_group.setVisible((visible_layers & MapScene.Layer.LEVELS) > 0)
+            self.levels_group.setVisible(
+                (visible_layers & MapScene.VisibleLayer.LEVELS) > 0
+            )

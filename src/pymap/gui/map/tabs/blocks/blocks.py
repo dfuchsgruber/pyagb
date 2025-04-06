@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from pymap.gui import render
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
+from pymap.gui.map_scene import MapScene
 from pymap.gui.types import MapLayers, Tilemap
 
 from ..blocks_like import BlocksLikeTab
@@ -132,6 +133,15 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         return 0
 
     @property
+    def visible_layers(self) -> MapScene.VisibleLayer:
+        """Get the visible layers."""
+        return (
+            MapScene.VisibleLayer.BLOCKS
+            | MapScene.VisibleLayer.CONNECTIONS
+            | MapScene.VisibleLayer.BORDER_EFFECT
+        )
+
+    @property
     def selected_layers(self) -> MapLayers:
         """Returns the selected layers."""
         if self.select_levels.isChecked():
@@ -208,7 +218,6 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
 
     def load_map(self):
         """Reloads the map image by using tiles of the map widget."""
-        self.map_widget.add_block_images_to_scene()
 
     @property
     def main_gui(self) -> PymapGui:

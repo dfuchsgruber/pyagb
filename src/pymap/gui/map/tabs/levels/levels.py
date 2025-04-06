@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pymap.gui.map_scene import MapScene
 from pymap.gui.types import Tilemap
 
 from ..blocks_like import BlocksLikeTab
@@ -93,6 +94,16 @@ class LevelsTab(BlocksLikeTab):
         return 1
 
     @property
+    def visible_layers(self) -> MapScene.VisibleLayer:
+        """Get the visible layers."""
+        return (
+            MapScene.VisibleLayer.BLOCKS
+            | MapScene.VisibleLayer.CONNECTIONS
+            | MapScene.VisibleLayer.BORDER_EFFECT
+            | MapScene.VisibleLayer.LEVELS
+        )
+
+    @property
     def selected_layers(self) -> Tilemap:
         """Returns the selected layers."""
         return np.array([1])
@@ -104,7 +115,7 @@ class LevelsTab(BlocksLikeTab):
         assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
         opacity = self.level_opacity_slider.sliderPosition()
         self.map_widget.main_gui.settings.setValue('map_widget/level_opacity', opacity)
-        self.map_widget.load_map()
+        self.map_widget.map_scene.update_level_image_opacity()
 
     def load_project(self) -> None:
         """Loads the project."""
@@ -132,5 +143,3 @@ class LevelsTab(BlocksLikeTab):
 
     def load_map(self):
         """Reloads the map image by using tiles of the map widget."""
-        self.map_widget.add_block_images_to_scene()
-        self.map_widget.add_level_images_to_scene()

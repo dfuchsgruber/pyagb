@@ -9,21 +9,13 @@ import numpy as np
 import numpy.typing as npt
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QPen, QPixmap
 from PySide6.QtWidgets import (
-    QGraphicsOpacityEffect,
-    QGraphicsPixmapItem,
     QSizePolicy,
     QSplitter,
     QTabWidget,
     QWidget,
 )
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTabBar, QLabel
 
-
-from pymap.gui import blocks
-from pymap.gui.blocks import compute_blocks
-from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.types import MapLayers, Tilemap
 
 from .map_scene import MapScene
@@ -84,7 +76,6 @@ class MapWidget(QWidget):
         super().__init__(parent=parent)
         self.main_gui = main_gui
         # Store blocks in an seperate numpy array that contains the border as well
-        self.blocks = None  # Array of map blocks *with* padding
         self.layers = np.array(0)
         self.undo_stack = QtGui.QUndoStack()
         self.undo_stack.canRedoChanged.connect(self._update_undo_redo_tooltips)
@@ -92,15 +83,6 @@ class MapWidget(QWidget):
         self.undo_stack.indexChanged.connect(self._update_undo_redo_tooltips)
 
         grid_layout = QtWidgets.QGridLayout()
-        self.tab_bar = QTabBar()
-        self.tab_bar.setExpanding(False)
-        grid_layout.addWidget(self.tab_bar, 1, 1, 1, 2)
-        self.add_tab('Blocks')
-        self.add_tab('Levels')
-        self.add_tab('Smart Shape')
-        self.add_tab('Events')
-        self.add_tab('Connections')
-
         # (Re-)Build the ui
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
@@ -150,18 +132,6 @@ class MapWidget(QWidget):
         self.setLayout(grid_layout)
         self.load_header()  # Disables all widgets
 
-    def add_tab(
-        self,
-        name: str,
-    ):
-        """Adds a tab to the map widget.
-
-        Args:
-            name (str): The name of the tab.
-            tab (QWidget): The tab.
-        """
-        self.tab_bar.addTab(name)
-
     @property
     def header_loaded(self) -> bool:
         """Whether the header is loaded.
@@ -183,8 +153,8 @@ class MapWidget(QWidget):
     # @Profile('MapWidget:tab_changed')
     def tab_changed(self, *args: Any, **kwargs: Any):
         """Triggered when the user switches from the blocks to levels tab."""
-        # self.update_layers()
-        # self.load_map()
+        widget = self.tabs.currentWidget()
+        self.map_scene.update_visible_layers(widget.visible_layers)
 
     def update_layers(self):
         """Updates the current layers."""
@@ -195,17 +165,15 @@ class MapWidget(QWidget):
         if not self.main_gui.project_loaded:
             return
         assert self.main_gui.project is not None, 'Project is not loaded'
-        # for idx in range(self.tabs.count()):
-        #     self.tabs.widget(idx).load_project()
+        for idx in range(self.tabs.count()):
+            self.tabs.widget(idx).load_project()
         self.load_header()
 
     def load_header(self, *args: Any):
         """Updates the entire header related widgets."""
-        # for idx in range(self.tabs.count()):
-        #     self.tabs.widget(idx).load_header()
+        for idx in range(self.tabs.count()):
+            self.tabs.widget(idx).load_header()
         self.load_map()
-        if self.main_gui.project is None or self.main_gui.header is None:
-            self.blocks = None
 
     def load_map(self):
         """Loads the entire map image."""
@@ -213,127 +181,11 @@ class MapWidget(QWidget):
         if self.main_gui.project is None or self.main_gui.header is None:
             return
         self.map_scene.load_map()
+        self.map_scene.update_visible_layers(self.tabs.currentWidget().visible_layers)
 
     def update_grid(self):
         """Updates the grid."""
         self.map_scene.update_grid()
-
-    def update_block_images(self):
-        """Recomputes the block images for the map."""
-        assert self.blocks is not None, 'Blocks are not loaded'
-        self.block_images = np.empty_like(self.blocks[:, :, 0], dtype=object)
-        for (y, x), block_idx in np.ndenumerate(self.blocks[:, :, 0]):
-            # Draw the blocks
-            assert self.main_gui.block_images is not None, 'Blocks are not loaded'
-            pixmap = QPixmap.fromImage(
-                ndarray_to_QImage(self.main_gui.block_images[block_idx])
-            )
-            item = QGraphicsPixmapItem(pixmap)
-            item.setAcceptHoverEvents(True)
-            item.setPos(16 * x, 16 * y)
-            self.block_images[y, x] = item
-
-    def update_level_images(self):
-        """Recomputes the level images for the map."""
-        assert self.blocks is not None, 'Blocks are not loaded'
-        self.level_images = np.empty_like(self.blocks[:, :, 0], dtype=object)
-        padded_width, padded_height = self.main_gui.get_border_padding()
-        map_width, map_height = self.main_gui.get_map_dimensions()
-
-        for (y, x), level in np.ndenumerate(self.blocks[:, :, 1]):
-            if x in range(padded_width, padded_width + map_width) and y in range(
-                padded_height, padded_height + map_height
-            ):
-                # Draw the pixmaps
-                pixmap = self.levels_tab.level_blocks_pixmaps[level]
-                item = QGraphicsPixmapItem(pixmap)
-                item.setAcceptHoverEvents(True)
-                opacity = QGraphicsOpacityEffect()
-                opacity.setOpacity(
-                    self.levels_tab.level_opacity_slider.sliderPosition() / 20
-                )
-                item.setGraphicsEffect(opacity)
-                item.setPos(16 * x, 16 * y)
-                self.level_images[y, x] = item
-
-    def update_smart_shape_images(self):
-        """Updates the images of the smart shape meta block map."""
-        assert self.blocks is not None, 'Blocks are not loaded'
-        assert self.main_gui.project is not None, 'Project is not loaded'
-        self.smart_shape_images = np.empty_like(self.blocks[:, :, 0], dtype=object)
-        padded_width, padded_height = self.main_gui.get_border_padding()
-        map_width, map_height = self.main_gui.get_map_dimensions()
-        smart_shape = self.smart_shapes_tab.current_smart_shape
-        if not smart_shape:
-            return
-
-        pixmaps = self.main_gui.project.smart_shape_templates[
-            smart_shape.template
-        ].block_pixmaps
-
-        for (y, x), _ in np.ndenumerate(self.blocks[:, :, 1]):
-            if x in range(padded_width, padded_width + map_width) and y in range(
-                padded_height, padded_height + map_height
-            ):
-                block_idx: int = self.smart_shapes_tab.smart_shape_blocks[
-                    y - padded_height, x - padded_width, 0
-                ]
-                item = QGraphicsPixmapItem(pixmaps[block_idx])
-                item.setAcceptHoverEvents(True)
-                opacity = QGraphicsOpacityEffect()
-                opacity.setOpacity(0.5)
-                item.setGraphicsEffect(opacity)
-                item.setPos(16 * x, 16 * y)
-                self.smart_shape_images[y, x] = item
-
-    def update_border_effect(self):
-        """Recomputes the rectangles that create the border opacity effect."""
-        assert self.main_gui.project is not None, 'Project is not loaded'
-        padded_width, padded_height = self.main_gui.get_border_padding()
-        map_width, map_height = self.main_gui.get_map_dimensions()
-
-        # Apply shading to border parts by adding opaque rectangles
-        border_color = QColor.fromRgbF(
-            *(self.main_gui.project.config['pymap']['display']['border_color'])
-        )
-        self.north_border = self.map_scene.addRect(
-            0,
-            0,
-            (2 * padded_width + map_width) * 16,
-            padded_height * 16,
-            pen=QPen(0),
-            brush=QBrush(border_color),
-        )
-        self.south_border = self.map_scene.addRect(
-            0,
-            (padded_height + map_height) * 16,
-            (2 * padded_width + map_width) * 16,
-            padded_height * 16,
-            pen=QPen(0),
-            brush=QBrush(border_color),
-        )
-        self.west_border = self.map_scene.addRect(
-            0,
-            16 * padded_height,
-            16 * padded_width,
-            16 * map_height,
-            pen=QPen(0),
-            brush=QBrush(border_color),
-        )
-        self.east_border = self.map_scene.addRect(
-            16 * (padded_width + map_width),
-            16 * padded_height,
-            16 * padded_width,
-            16 * map_height,
-            pen=QPen(0),
-            brush=QBrush(border_color),
-        )
-        self.map_scene.setSceneRect(
-            0,
-            0,
-            16 * (2 * padded_width + map_width),
-            16 * (2 * padded_height + map_height),
-        )
 
     def update_blocks_at_padded_indices(
         self, indices_padded: tuple[npt.NDArray[np.int_], ...] | npt.NDArray[np.int_]
@@ -344,15 +196,10 @@ class MapWidget(QWidget):
             indices_padded (tuple[npt.NDArray[np.int_], ...] | npt.NDArray[np.int_]):
                 The indices.
         """
-        assert self.blocks is not None, 'Blocks are not loaded'
-        assert self.main_gui.block_images is not None, 'Blocks are not loaded'
         idx_y, idx_x = indices_padded
-        for y, x, block_idx in zip(idx_y, idx_x, self.blocks[idx_y, idx_x, 0]):
-            y, x, block_idx = cast(int, y), cast(int, x), cast(int, block_idx)
-            pixmap = QPixmap.fromImage(
-                ndarray_to_QImage(self.main_gui.block_images[block_idx])
-            )
-            self.block_images[y, x].setPixmap(pixmap)
+        for y, x in zip(idx_y, idx_x):
+            y, x = cast(int, y), cast(int, x)
+            self.map_scene.update_block_image_at_padded_position(x, y)
 
     def update_layer_at_indices(
         self,
@@ -391,13 +238,10 @@ class MapWidget(QWidget):
                 The indices.
 
         """
-        assert self.blocks is not None, 'Blocks are not loaded'
         idx_y, idx_x = indices_padded
-        for y, x, level in zip(idx_y, idx_x, self.blocks[idx_y, idx_x, 1]):
-            y, x, level = cast(int, y), cast(int, x), cast(int, level)
-            self.level_images[y, x].setPixmap(
-                self.levels_tab.level_blocks_pixmaps[level]
-            )
+        for y, x in zip(idx_y, idx_x):
+            y, x = cast(int, y), cast(int, x)
+            self.map_scene.update_level_image_at_padded_position(x, y)
 
     def update_map_at_indices(
         self,
@@ -415,12 +259,12 @@ class MapWidget(QWidget):
         """
         if not self.main_gui.footer_loaded:
             return
-        assert self.blocks is not None, 'Blocks are not loaded'
+        assert self.map_scene.blocks is not None, 'Blocks are not loaded'
         assert self.main_gui.block_images is not None, 'Blocks are not loaded'
         padded_width, padded_height = self.main_gui.get_border_padding()
-        self.blocks[indices[0] + padded_height, indices[1] + padded_width, layer] = (
-            blocks[...]
-        )
+        self.map_scene.blocks[
+            indices[0] + padded_height, indices[1] + padded_width, layer
+        ] = blocks[...]
         indices = np.array(indices).copy()
         indices[0] += padded_height
         indices[1] += padded_width
@@ -434,10 +278,11 @@ class MapWidget(QWidget):
         """Updates the map image with new blocks rooted at a certain position."""
         if not self.main_gui.footer_loaded:
             return
-        assert self.blocks is not None, 'Blocks are not loaded'
+        assert self.map_scene.blocks is not None, 'Blocks are not loaded'
         assert self.main_gui.block_images is not None, 'Blocks are not loaded'
         padded_width, padded_height = self.main_gui.get_border_padding()
-        self.blocks[
+
+        self.map_scene.blocks[
             padded_height + y : padded_height + y + blocks.shape[0],
             padded_width + x : padded_width + x + blocks.shape[1],
             layers,
@@ -458,40 +303,20 @@ class MapWidget(QWidget):
 
     def update_map_with_smart_shape_blocks_at(self, x: int, y: int, blocks: Tilemap):
         """Updates the smart shape meta block map at a position with blocks."""
-        if not self.main_gui.footer_loaded:
-            return
-        smart_shape = self.main_gui.smart_shapes[
-            self.smart_shapes_tab.current_smart_shape_name
-        ]
-        assert self.main_gui.project is not None
-        template = self.main_gui.project.smart_shape_templates[smart_shape.template]
-        smart_shape.buffer[y : y + blocks.shape[0], x : x + blocks.shape[1]] = blocks
-        padded_width, padded_height = self.main_gui.get_border_padding()
-        map_width, map_height = self.main_gui.get_map_dimensions()
-        # Redraw relevant block pixmaps
-        for (yy, xx), block_idx in np.ndenumerate(blocks[:, :, 0]):
-            pixmap = template.block_pixmaps[block_idx]
-            if x + xx in range(map_width) and y + yy in range(map_height):
-                self.smart_shape_images[
-                    padded_height + y + yy, padded_width + x + xx
-                ].setPixmap(pixmap)
-
-    def add_block_images_to_scene(self):
-        """Adds the block images to the scene."""
-        for (y, x), item in np.ndenumerate(self.block_images[:, :]):
-            item.setPos(16 * x, 16 * y)
-            self.map_scene.addItem(item)
-
-    def add_level_images_to_scene(self):
-        """Adds the level images to the scene."""
-        for (y, x), item in np.ndenumerate(self.level_images[:, :]):
-            if item is not None:
-                item.setPos(16 * x, 16 * y)
-                self.map_scene.addItem(item)
-
-    def add_smart_shape_images_to_scene(self):
-        """Adds the smart shape images to the scene."""
-        for (y, x), item in np.ndenumerate(self.smart_shape_images[:, :]):
-            if item is not None:
-                item.setPos(16 * x, 16 * y)
-                self.map_scene.addItem(item)
+        # if not self.main_gui.footer_loaded:
+        #     return
+        # smart_shape = self.main_gui.smart_shapes[
+        #     self.smart_shapes_tab.current_smart_shape_name
+        # ]
+        # assert self.main_gui.project is not None
+        # template = self.main_gui.project.smart_shape_templates[smart_shape.template]
+        # smart_shape.buffer[y : y + blocks.shape[0], x : x + blocks.shape[1]] = blocks
+        # padded_width, padded_height = self.main_gui.get_border_padding()
+        # map_width, map_height = self.main_gui.get_map_dimensions()
+        # # Redraw relevant block pixmaps
+        # for (yy, xx), block_idx in np.ndenumerate(blocks[:, :, 0]):
+        #     pixmap = template.block_pixmaps[block_idx]
+        #     if x + xx in range(map_width) and y + yy in range(map_height):
+        #         self.smart_shape_images[
+        #             padded_height + y + yy, padded_width + x + xx
+        #         ].setPixmap(pixmap)
