@@ -24,6 +24,15 @@ class ConnectionType(StrEnum):
     WEST = 'west'
 
 
+# The opposite direction of each connection type
+opposite_connection_direction: dict[ConnectionType, ConnectionType] = {
+    ConnectionType.NORTH: ConnectionType.SOUTH,
+    ConnectionType.SOUTH: ConnectionType.NORTH,
+    ConnectionType.EAST: ConnectionType.WEST,
+    ConnectionType.WEST: ConnectionType.EAST,
+}
+
+
 class UnpackedConnection(NamedTuple):
     """A connection between two maps, unpacked from the actual model value."""
 

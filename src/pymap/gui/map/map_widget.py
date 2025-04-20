@@ -20,6 +20,7 @@ from pymap.gui.types import MapLayers, Tilemap
 
 from .map_scene import MapScene
 from .tabs.blocks import BlocksTab
+from .tabs.connections import ConnectionsTab
 from .tabs.events import EventsTab
 from .tabs.levels import LevelsTab
 from .tabs.smart_shapes.smart_shapes import SmartShapesTab
@@ -36,6 +37,7 @@ class MapWidgetTabType(IntEnum):
     LEVELS = 1
     AUTO_SHAPES = 2
     EVENTS = 3
+    CONNECTIONS = 4
 
 
 class MapTabsWidget(QTabWidget):
@@ -118,6 +120,10 @@ class MapWidget(QWidget):
         )
         self.events_tab = EventsTab(self)
         self.tabs.insertTab(MapWidgetTabType.EVENTS, self.events_tab, 'Events')
+        self.connections_tab = ConnectionsTab(self)
+        self.tabs.insertTab(
+            MapWidgetTabType.CONNECTIONS, self.connections_tab, 'Connections'
+        )
 
         self.tabs.currentChanged.connect(self.tab_changed)
 

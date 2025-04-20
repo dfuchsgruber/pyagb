@@ -15,8 +15,8 @@ from pymap.gui.types import MapLayers, Tilemap
 from ..level import level_to_info
 
 if TYPE_CHECKING:
-    from ..map_widget import MapWidget
     from ..map_scene import MapScene
+    from ..map_widget import MapWidget
 
 
 class MapWidgetTab(QWidget):
