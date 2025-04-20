@@ -12,7 +12,7 @@ from pymap.gui import properties
 from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
 
 if TYPE_CHECKING:
-    from pymap.gui.map.tabs.events import EventsTab
+    from pymap.gui.map.tabs.events.tab import EventsTab
 
 
 class ChangeEventProperty(ChangeProperty):

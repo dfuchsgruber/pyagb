@@ -186,6 +186,11 @@ class EventsTab(MapWidgetTab):
             self.last_dragged_position = x, y
             self.dragged_event = event_type, event_idx
             self.is_dragging = False
+        else:
+            # If no event is selected, set the dragged event to None
+            self.last_dragged_position = None
+            self.dragged_event = None
+            self.is_dragging = False
 
     def map_scene_mouse_pressed(
         self, event: QGraphicsSceneMouseEvent, x: int, y: int
@@ -289,8 +294,6 @@ class EventsTab(MapWidgetTab):
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
         if not self.map_widget.header_loaded:
-            return
-        if event.buttons() != Qt.MouseButton.LeftButton:
             return
         if self.is_dragging:
             self.is_dragging = False
