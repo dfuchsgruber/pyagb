@@ -1,7 +1,7 @@
 """Specific datatypes that pymap needs."""
 
 from enum import StrEnum, unique
-from typing import Any, Literal, NamedTuple, Protocol, Sequence, TypeAlias, overload
+from typing import Any, Literal, Protocol, Sequence, TypeAlias, overload
 
 import numpy as np
 from numpy.typing import NDArray
@@ -31,16 +31,6 @@ opposite_connection_direction: dict[ConnectionType, ConnectionType] = {
     ConnectionType.EAST: ConnectionType.WEST,
     ConnectionType.WEST: ConnectionType.EAST,
 }
-
-
-class UnpackedConnection(NamedTuple):
-    """A connection between two maps, unpacked from the actual model value."""
-
-    type: str
-    offset: int
-    bank: str | int
-    map_idx: str | int
-    blocks: Tilemap
 
 
 class BlockProtocol(Protocol):

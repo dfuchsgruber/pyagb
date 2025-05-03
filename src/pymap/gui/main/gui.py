@@ -547,7 +547,9 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.header_widget.undo_stack.clear()
         self.event_widget.undo_stack.clear()
         self.connection_widget.undo_stack.clear()
-        self.header, _, _ = self.project.load_header(bank, map_idx)
+        self.header, _, _ = self.project.load_header(
+            bank, map_idx, unpack_connections=True
+        )
         self.header_bank = bank
         self.header_map_idx = map_idx
         # Trigger opening of the footer
@@ -692,7 +694,9 @@ class PymapGui(QMainWindow, PymapGuiModel):
         assert self.header_bank is not None, 'Header bank is not loaded'
         assert self.header_map_idx is not None, 'Header map index is not loaded'
 
-        self.project.save_header(self.header, self.header_bank, self.header_map_idx)
+        self.project.save_header(
+            self.header, self.header_bank, self.header_map_idx, pack_connections=True
+        )
         # Adapt history
         self.header_widget.undo_stack.setClean()
         self.event_widget.undo_stack.setClean()

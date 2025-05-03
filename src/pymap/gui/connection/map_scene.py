@@ -11,12 +11,12 @@ from PySide6.QtWidgets import (
 )
 
 from pymap.gui.map_scene import MapScene as BaseMapScene
-from pymap.gui.types import ConnectionType, UnpackedConnection
+from pymap.gui.types import ConnectionType
 
 from .. import history
 
 if TYPE_CHECKING:
-    from .connection_widget import ConnectionWidget
+    from .connection_widget import ConnectionWidget, UnpackedConnection
 
 
 class MapScene(BaseMapScene):

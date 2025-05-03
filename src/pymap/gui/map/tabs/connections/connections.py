@@ -16,9 +16,8 @@ from pymap.configuration import PymapEventConfigType
 from pymap.gui.icon import Icon, icon_paths
 from pymap.gui.map_scene import MapScene
 from pymap.gui.properties.utils import get_member_by_path
-from pymap.debug import Profile
 
-
+# from pymap.debug import Profile
 from ..tab import MapWidgetTab
 from .properties import ConnectionProperties
 
@@ -299,7 +298,6 @@ class ConnectionsTab(MapWidgetTab):
             return
         # TODO
 
-    @Profile(name='ConnectionsTab.select_connection')
     def select_connection(self, idx: int) -> None:
         """Select a connection."""
         if not self.map_widget.header_loaded:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy as np
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QGraphicsPixmapItem, QMessageBox
 from pymap.gui import blocks
 from pymap.gui.icon import Icon, icon_paths
 from pymap.gui.render import ndarray_to_QImage
-from pymap.gui.types import ConnectionType, UnpackedConnection
+from pymap.gui.types import ConnectionType, Tilemap
 
 from .. import history, properties
 from .connection_properties import ConnectionProperties
@@ -20,6 +20,14 @@ from .map_scene import MapScene
 
 if TYPE_CHECKING:
     from ..main.gui import PymapGui
+
+
+class UnpackedConnection(NamedTuple):
+    bank: int
+    map_idx: int
+    offset: int
+    connection_type: ConnectionType
+    blocks: Tilemap
 
 
 class ConnectionWidget(QtWidgets.QWidget):

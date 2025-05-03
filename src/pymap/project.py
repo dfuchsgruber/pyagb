@@ -185,7 +185,7 @@ class Project:
         self.path = file_path
 
     def load_header(
-        self, bank: int | str, map_idx: int | str
+        self, bank: int | str, map_idx: int | str, unpack_connections: bool = False
     ) -> tuple[ModelValue, str | None, str | None]:
         """Opens a header by its location in the table and verifies label and type.
 
@@ -197,6 +197,9 @@ class Project:
         map_idx : int or str
             The map index in the bank. If it is an integer or integer string, it is
             converted into its "canonical" form.
+        unpack_connections : bool
+            If the connections should be unpacked, i.e. if the blocks of
+            connections should also be loaded.
 
         Returns:
         --------
@@ -240,7 +243,28 @@ class Project:
                     f'Header {bank}.{map_idx} namespace mismatches '
                     'the namespaces stored in the project file'
                 )
-                return header['data'], label, namespace
+                data = header['data']
+                if unpack_connections:
+                    from pymap.gui.blocks import (
+                        unpack_connections as _unpack_connections,
+                    )
+
+                    connections = get_member_by_path(
+                        data,
+                        self.config['pymap']['header']['connections'][
+                            'connections_path'
+                        ],
+                    )
+                    unpacked_connections = _unpack_connections(connections, self)
+                    set_member_by_path(
+                        data,
+                        unpacked_connections,
+                        self.config['pymap']['header']['connections'][
+                            'connections_path'
+                        ],
+                    )
+
+                return data, label, namespace
             else:
                 return None, None, None
 
@@ -389,7 +413,13 @@ class Project:
         else:
             raise RuntimeError(f'Header [{bank}, {map_idx.zfill(2)}] not existent.')
 
-    def save_header(self, header: ModelValue, bank: str | int, map_idx: str | int):
+    def save_header(
+        self,
+        header: ModelValue,
+        bank: str | int,
+        map_idx: str | int,
+        pack_connections: bool = False,
+    ):
         """Saves a header.
 
         Parameters:
@@ -411,6 +441,29 @@ class Project:
                 assert path is not None, (
                     f'Path to header [{bank}, {map_idx.zfill(2)}] is not initialized'
                 )
+                if pack_connections:
+                    from pymap.gui.blocks import (
+                        unpack_connections as _pack_connections,
+                    )
+
+                    header = deepcopy(header)
+                    connections = get_member_by_path(
+                        header,
+                        self.config['pymap']['header']['connections'][
+                            'connections_path'
+                        ],
+                    )
+                    assert isinstance(connections, list), (
+                        'Connections are not a list, cannot pack them'
+                    )
+                    set_member_by_path(
+                        header,
+                        _pack_connections(connections, self),
+                        self.config['pymap']['header']['connections'][
+                            'connections_path'
+                        ],
+                    )
+
                 with open(
                     Path(path), 'w+', encoding=self.config['json']['encoding']
                 ) as f:

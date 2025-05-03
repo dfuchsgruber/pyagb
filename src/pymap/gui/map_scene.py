@@ -22,7 +22,12 @@ from PySide6.QtWidgets import (
 from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
 from pymap.gui import blocks, properties
-from pymap.gui.blocks import compute_blocks, unpack_connections
+from pymap.gui.blocks import (
+    compute_blocks,
+    connection_get_blocks,
+    connection_get_connection_type,
+    connection_get_offset,
+)
 from pymap.gui.event import EventToImage, NullEventToImage
 from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.types import ConnectionType, Tilemap
@@ -145,9 +150,7 @@ class MapScene(QGraphicsScene):
         # Crop the visible blocks from all blocks including the border
         self.blocks = compute_blocks(self.main_gui.footer, self.main_gui.project)  #
         connections = self.main_gui.get_connections()
-        for connection in blocks.filter_visible_connections(
-            blocks.unpack_connections(connections, self.main_gui.project)
-        ):
+        for connection in connections:
             blocks.insert_connection(
                 self.blocks, connection, self.main_gui.footer, self.main_gui.project
             )
@@ -232,16 +235,18 @@ class MapScene(QGraphicsScene):
     def visible_connection_idxs(self) -> dict[ConnectionType, int]:
         """Returns the visible connection indexes."""
         assert self.main_gui.project is not None
-        unpacked_connections = unpack_connections(
-            self.main_gui.get_connections(), self.main_gui.project
-        )
         visible_connections = {
             connection_type: next(
                 (
                     idx
-                    for idx, connection in enumerate(unpacked_connections)
+                    for idx, connection in enumerate(self.main_gui.get_connections())
                     if connection is not None
-                    and connection.type == str(connection_type)
+                    and str(
+                        connection_get_connection_type(
+                            connection, self.main_gui.project
+                        )
+                    )
+                    == str(connection_type)
                 ),
                 None,
             )
@@ -269,32 +274,43 @@ class MapScene(QGraphicsScene):
         )
         padded_width, padded_height = self.main_gui.get_border_padding()
         map_width, map_height = self.main_gui.get_map_dimensions()
-        unpacked_connections = unpack_connections(
-            self.main_gui.get_connections(),
-            self.main_gui.project,
-        )
+        connections = self.main_gui.get_connections()
 
         self._connection_rectangles: dict[ConnectionType, QGraphicsRectItem] = {}
         for connection_type, connection_idx in self.visible_connection_idxs.items():
-            connection = unpacked_connections[connection_idx]
+            connection = connections[connection_idx]
             if connection is None:
                 continue
+            connection_blocks = connection_get_blocks(
+                connection,
+                self.main_gui.project,
+            )
+            connection_type = connection_get_connection_type(
+                connection,
+                self.main_gui.project,
+            )
+            connection_offset = connection_get_offset(
+                connection,
+                self.main_gui.project,
+            )
+            if connection_blocks is None or connection_offset is None:
+                continue
             connection_width, connection_height = (
-                connection.blocks.shape[1],
-                connection.blocks.shape[0],
+                connection_blocks.shape[1],
+                connection_blocks.shape[0],
             )
 
-            match connection.type:
+            match connection_type:
                 case ConnectionType.NORTH:
                     rect = (
-                        16 * (padded_width + connection.offset),
+                        16 * (padded_width + connection_offset),
                         16 * (padded_height - connection_height),
                         16 * connection_width,
                         16 * connection_height,
                     )
                 case ConnectionType.SOUTH:
                     rect = (
-                        16 * (padded_width + connection.offset),
+                        16 * (padded_width + connection_offset),
                         16 * (padded_height + map_height),
                         16 * connection_width,
                         16 * connection_height,
@@ -302,21 +318,21 @@ class MapScene(QGraphicsScene):
                 case ConnectionType.EAST:
                     rect = (
                         16 * (padded_width + map_width),
-                        16 * (padded_height + connection.offset),
+                        16 * (padded_height + connection_offset),
                         16 * connection_width,
                         16 * connection_height,
                     )
                 case ConnectionType.WEST:
                     rect = (
                         16 * (padded_width - connection_width),
-                        16 * (padded_height + connection.offset),
+                        16 * (padded_height + connection_offset),
                         16 * connection_width,
                         16 * connection_height,
                     )
                 case _:
-                    raise ValueError(f'Invalid connection type {connection.type}')
+                    raise ValueError(f'Invalid connection type {connection_type}')
 
-            self._connection_rectangles[connection.type] = self.addRect(
+            self._connection_rectangles[connection_type] = self.addRect(
                 *self.fix_rectangle(
                     *rect,
                     16 * (map_width + 2 * padded_width),
@@ -326,7 +342,7 @@ class MapScene(QGraphicsScene):
                 brush=QBrush(connection_color),
             )
             self.connection_rectangles_group.addToGroup(
-                self._connection_rectangles[connection.type]
+                self._connection_rectangles[connection_type]
             )
 
         self.addItem(self.connection_rectangles_group)
