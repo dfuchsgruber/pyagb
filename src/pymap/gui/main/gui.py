@@ -1002,8 +1002,10 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
 def main():
     """Main entry point that runs the ui."""
+    working_dir = os.getcwd()
     app = QApplication(sys.argv)
     app.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.Round)
     ex = PymapGui()
     ex.show()
+    os.chdir(working_dir)
     sys.exit(app.exec_())

@@ -116,8 +116,9 @@ class Project:
         """Changes the working directory to the project directory."""
         assert self.path is not None, 'Project path is not initialized'
         assert self._project_dir is not None, 'Project directory is not initialized'
-        with working_dir(self._project_dir) as path:
-            yield path
+        yield self._project_dir
+        # with working_dir(self._project_dir) as path:
+        #     yield path
 
     def from_file(self, file_path: str | Path):
         """Initializes the project from a json file.

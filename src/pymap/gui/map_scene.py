@@ -22,10 +22,10 @@ from PySide6.QtWidgets import (
 from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
 from pymap.gui import blocks, properties
-from pymap.gui.blocks import compute_blocks
+from pymap.gui.blocks import compute_blocks, unpack_connections
 from pymap.gui.event import EventToImage, NullEventToImage
 from pymap.gui.render import ndarray_to_QImage
-from pymap.gui.types import Tilemap
+from pymap.gui.types import ConnectionType, Tilemap
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
@@ -47,6 +47,7 @@ class MapScene(QGraphicsScene):
         EVENTS = auto()
         SELECTED_EVENT = auto()
         CONNECTIONS = auto()
+        CONNECTION_RECTANGLES = auto()
 
     def __init__(self, main_gui: PymapGui, parent: QWidget | None = None):
         """Initializes the map scene.
@@ -63,6 +64,7 @@ class MapScene(QGraphicsScene):
         self.border_effect_group = None
         self.events_group = None
         self.selected_event_group = None
+        self.connection_rectangles_group = None
         # Note that self.blocks is a padded tilemap of what is visible
         # and does not correspond to the actual blocks of the footer
         # which are still held in the main_gui.footer
@@ -77,6 +79,7 @@ class MapScene(QGraphicsScene):
         self.border_effect_group = None
         self.events_group = None
         self.selected_event_group = None
+        self.connection_rectangles_group = None
 
     def update_grid(self):
         """Updates the grid of the scene."""
@@ -131,6 +134,7 @@ class MapScene(QGraphicsScene):
         self.add_border_effect()
         self.add_event_images()
         self.add_selected_event_images()
+        self.add_connection_rectangles()
 
     def compute_blocks(self):
         """Computes the visible block tilemap."""
@@ -223,6 +227,157 @@ class MapScene(QGraphicsScene):
         self.levels_group.setGraphicsEffect(self.level_image_opacity_effect)
         self.update_level_image_opacity()
         self.addItem(self.levels_group)
+
+    @property
+    def visible_connection_idxs(self) -> dict[ConnectionType, int]:
+        """Returns the visible connection indexes."""
+        assert self.main_gui.project is not None
+        unpacked_connections = unpack_connections(
+            self.main_gui.get_connections(), self.main_gui.project
+        )
+        visible_connections = {
+            connection_type: next(
+                (
+                    idx
+                    for idx, connection in enumerate(unpacked_connections)
+                    if connection is not None
+                    and connection.type == str(connection_type)
+                ),
+                None,
+            )
+            for connection_type in ConnectionType
+        }
+        return {
+            connection_type: idx
+            for connection_type, idx in visible_connections.items()
+            if idx is not None
+        }
+
+    def add_connection_rectangles(self):
+        """Adds the rectangles around connections to the scene."""
+        assert self.main_gui.project is not None and self.main_gui.header is not None
+        self.connection_rectangles_group = QGraphicsItemGroup()
+        connection_color = QColor.fromRgbF(
+            *(self.main_gui.project.config['pymap']['display']['connection_color'])
+        )
+        connection_border_color = QColor.fromRgbF(
+            *(
+                self.main_gui.project.config['pymap']['display'][
+                    'connection_border_color'
+                ]
+            )
+        )
+        padded_width, padded_height = self.main_gui.get_border_padding()
+        map_width, map_height = self.main_gui.get_map_dimensions()
+        unpacked_connections = unpack_connections(
+            self.main_gui.get_connections(),
+            self.main_gui.project,
+        )
+
+        self._connection_rectangles: dict[ConnectionType, QGraphicsRectItem] = {}
+        for connection_type, connection_idx in self.visible_connection_idxs.items():
+            connection = unpacked_connections[connection_idx]
+            if connection is None:
+                continue
+            connection_width, connection_height = (
+                connection.blocks.shape[1],
+                connection.blocks.shape[0],
+            )
+
+            match connection.type:
+                case ConnectionType.NORTH:
+                    rect = (
+                        16 * (padded_width + connection.offset),
+                        16 * (padded_height - connection_height),
+                        16 * connection_width,
+                        16 * connection_height,
+                    )
+                case ConnectionType.SOUTH:
+                    rect = (
+                        16 * (padded_width + connection.offset),
+                        16 * (padded_height + map_height),
+                        16 * connection_width,
+                        16 * connection_height,
+                    )
+                case ConnectionType.EAST:
+                    rect = (
+                        16 * (padded_width + map_width),
+                        16 * (padded_height + connection.offset),
+                        16 * connection_width,
+                        16 * connection_height,
+                    )
+                case ConnectionType.WEST:
+                    rect = (
+                        16 * (padded_width - connection_width),
+                        16 * (padded_height + connection.offset),
+                        16 * connection_width,
+                        16 * connection_height,
+                    )
+                case _:
+                    raise ValueError(f'Invalid connection type {connection.type}')
+
+            self._connection_rectangles[connection.type] = self.addRect(
+                *self.fix_rectangle(
+                    *rect,
+                    16 * (map_width + 2 * padded_width),
+                    16 * (map_height + 2 * padded_height),
+                ),
+                pen=QPen(connection_border_color),
+                brush=QBrush(connection_color),
+            )
+            self.connection_rectangles_group.addToGroup(
+                self._connection_rectangles[connection.type]
+            )
+
+        self.addItem(self.connection_rectangles_group)
+
+    def update_selected_connection(self, connection_idx: int):
+        """Updates the selected connection rectangle.
+
+        Args:
+            connection_idx (int | None): The index of the connection.
+        """
+        assert self.main_gui.project is not None
+        if self.connection_rectangles_group is None or connection_idx < 0:
+            return
+        connection_color = QColor.fromRgbF(
+            *(self.main_gui.project.config['pymap']['display']['connection_color'])
+        )
+        connection_active_color = QColor.fromRgbF(
+            *(
+                self.main_gui.project.config['pymap']['display'][
+                    'connection_active_color'
+                ]
+            )
+        )
+        connection_border_color = QColor.fromRgbF(
+            *(
+                self.main_gui.project.config['pymap']['display'][
+                    'connection_border_color'
+                ]
+            )
+        )
+        connection_active_border_color = QColor.fromRgbF(
+            *(
+                self.main_gui.project.config['pymap']['display'][
+                    'connection_active_border_color'
+                ]
+            )
+        )
+        idx_to_visible_connection_type = {
+            idx: connection_type
+            for connection_type, idx in self.visible_connection_idxs.items()
+        }
+        selected_connection_type = idx_to_visible_connection_type.get(
+            connection_idx, None
+        )
+        for connection_type, rect in self._connection_rectangles.items():
+            if connection_type == selected_connection_type:
+                rect.setPen(QPen(connection_active_border_color, 2.0))
+                rect.setBrush(QBrush(connection_active_color))
+            else:
+                rect.setPen(QPen(connection_border_color))
+                rect.setBrush(QBrush(connection_color))
 
     @property
     def show_event_images(self) -> bool:
@@ -452,37 +607,40 @@ class MapScene(QGraphicsScene):
             *(self.main_gui.project.config['pymap']['display']['border_color'])
         )
         self.border_effect_group = QGraphicsItemGroup()
+        brush = QBrush(border_color)
+        no_border_pen = QPen(Qt.PenStyle.NoPen)
+        # no outline
         self.north_border = self.addRect(
             0,
             0,
             (2 * padded_width + map_width) * 16,
             padded_height * 16,
-            pen=QPen(0),
-            brush=QBrush(border_color),
+            brush=brush,
+            pen=no_border_pen,
         )
         self.south_border = self.addRect(
             0,
             (padded_height + map_height) * 16,
             (2 * padded_width + map_width) * 16,
             padded_height * 16,
-            pen=QPen(0),
-            brush=QBrush(border_color),
+            brush=brush,
+            pen=no_border_pen,
         )
         self.west_border = self.addRect(
             0,
             16 * padded_height,
             16 * padded_width,
             16 * map_height,
-            pen=QPen(0),
-            brush=QBrush(border_color),
+            brush=brush,
+            pen=no_border_pen,
         )
         self.east_border = self.addRect(
             16 * (padded_width + map_width),
             16 * padded_height,
             16 * padded_width,
             16 * map_height,
-            pen=QPen(0),
-            brush=QBrush(border_color),
+            brush=brush,
+            pen=no_border_pen,
         )
         self.border_effect_group.addToGroup(self.north_border)
         self.border_effect_group.addToGroup(self.south_border)
@@ -528,6 +686,10 @@ class MapScene(QGraphicsScene):
             self.selected_event_group.setVisible(
                 (visible_layers & MapScene.VisibleLayer.SELECTED_EVENT) > 0
             )
+        if self.connection_rectangles_group is not None:
+            self.connection_rectangles_group.setVisible(
+                (visible_layers & MapScene.VisibleLayer.CONNECTION_RECTANGLES) > 0
+            )
 
     @staticmethod
     def pad_coordinates(
@@ -544,3 +706,20 @@ class MapScene(QGraphicsScene):
                 -10000,
             )  # This is hacky but prevents the events from being rendered
         return (x + padded_x), (y + padded_y)
+
+    @staticmethod
+    def fix_rectangle(
+        x: int, y: int, width: int, height: int, max_width: int, max_height: int
+    ) -> tuple[int, int, int, int]:
+        """Fixes the position of a rectangle to fit into the graphics scene."""
+        # Fix negative bounds
+        x, width = max(0, x), width + min(0, x)
+        y, height = max(0, y), height + min(0, y)
+        # Fix positive bounds
+        if x + width > max_width:
+            width = max_width - x
+        if y + height > max_height:
+            height = max_height - y
+        # If width or height became negative, do not show the rect
+        width, height = max(0, width), max(0, height)
+        return x, y, width, height

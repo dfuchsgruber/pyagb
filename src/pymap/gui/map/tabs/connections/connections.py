@@ -16,6 +16,8 @@ from pymap.configuration import PymapEventConfigType
 from pymap.gui.icon import Icon, icon_paths
 from pymap.gui.map_scene import MapScene
 from pymap.gui.properties.utils import get_member_by_path
+from pymap.debug import Profile
+
 
 from ..tab import MapWidgetTab
 from .properties import ConnectionProperties
@@ -87,9 +89,29 @@ class ConnectionsTab(MapWidgetTab):
 
     def load_project(self):
         """Loads the project."""
+        pass
 
     def load_header(self):
-        """Loads the tab."""
+        """Loads a header."""
+        if (
+            self.map_widget.main_gui.project is None
+            or self.map_widget.main_gui.header is None
+            or self.map_widget.main_gui.footer is None
+        ):
+            self.idx_combobox.blockSignals(True)
+            self.idx_combobox.clear()
+            self.idx_combobox.blockSignals(False)
+            return
+
+        connections_model = self.map_widget.main_gui.get_connections()
+        self.idx_combobox.blockSignals(True)
+        self.idx_combobox.clear()
+        self.idx_combobox.addItems(list(map(str, range(len(connections_model)))))
+        self.idx_combobox.setCurrentIndex(self.selected_connection_idx)
+        # We want select connection to be triggered even if the current idx
+        # is -1 in order to clear the properties
+        self.select_connection(self.selected_connection_idx)
+        self.idx_combobox.blockSignals(False)
 
     @property
     def visible_layers(self) -> MapScene.VisibleLayer:
@@ -98,7 +120,19 @@ class ConnectionsTab(MapWidgetTab):
             MapScene.VisibleLayer.BLOCKS
             | MapScene.VisibleLayer.BORDER_EFFECT
             | MapScene.VisibleLayer.CONNECTIONS
-            | MapScene.VisibleLayer.SELECTED_EVENT
+            | MapScene.VisibleLayer.CONNECTION_RECTANGLES
+        )
+
+    @property
+    def selected_connection_idx(self) -> int:
+        """Returns the index of currently selected connection or -1.
+
+        If no connections exist, returns -1. If the combox has selected index -1,
+        returns 0.
+        """
+        return min(
+            len(self.map_widget.main_gui.get_connections()) - 1,
+            max(0, self.idx_combobox.currentIndex()),
         )
 
     def _get_connection_by_padded_position(
@@ -265,13 +299,17 @@ class ConnectionsTab(MapWidgetTab):
             return
         # TODO
 
-    def select_connection(self) -> None:
+    @Profile(name='ConnectionsTab.select_connection')
+    def select_connection(self, idx: int) -> None:
         """Select a connection."""
         if not self.map_widget.header_loaded:
             return
         if not self.map_widget.main_gui.project:
             return
-        # TODO
+        self.connection_properties.load()
+        self.map_widget.map_scene.update_selected_connection(
+            self.selected_connection_idx
+        )
 
     def update_connection(self, connection_idx: int, mirror_offset: bool):
         """Update the connection."""

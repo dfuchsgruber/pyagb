@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from agb.model.type import ModelContext, ModelValue
 from PySide6.QtWidgets import (
     QWidget,
 )
 
+from agb.model.type import ModelContext, ModelValue
 from pymap.gui.history import (
     ChangeConnectionProperty,
 )

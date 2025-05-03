@@ -133,6 +133,7 @@ class ConnectionWidget(QtWidgets.QWidget):
     def load_header(self):
         """Loads graphics for the current header."""
         self.map_scene.clear()
+        return
 
         if (
             self.main_gui.project is None

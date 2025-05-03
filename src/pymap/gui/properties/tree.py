@@ -108,7 +108,7 @@ class PropertiesTree(ParameterTree):
         raise NotImplementedError
 
     def load(self):
-        """Loads the currently displayed event."""
+        """Loads the currently displayed value."""
         self.clear()
         try:
             value = self.model_value
