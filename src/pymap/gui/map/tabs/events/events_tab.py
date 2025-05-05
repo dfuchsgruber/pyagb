@@ -298,3 +298,34 @@ class EventsTab(MapWidgetTab):
         tab = self.tabs[event_type['datatype']]
         if event_type.get('goto_header_button_button_enabled', False):
             tab.goto_header(event_idx)
+
+    def shift_events(self, x: int, y: int):
+        """Shifts the events of the current map header."""
+        if not self.map_widget.main_gui.header_loaded:
+            return
+        self.map_widget.undo_stack.beginMacro('ShiftEvents')
+        assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
+        for event_type in self.map_widget.main_gui.project.config['pymap']['header'][
+            'events'
+        ]:
+            for event_idx in range(self.map_widget.main_gui.get_num_events(event_type)):
+                event = self.map_widget.main_gui.get_event(event_type, event_idx)
+
+                x_old = eval(str(get_member_by_path(event, event_type['x_path'])))
+                y_old = eval(str(get_member_by_path(event, event_type['y_path'])))
+                redo_statement_x, undo_statement_x = path_to_statement(
+                    event_type['x_path'], x_old, x_old + x
+                )
+                redo_statement_y, undo_statement_y = path_to_statement(
+                    event_type['y_path'], y_old, y_old + y
+                )
+                self.map_widget.undo_stack.push(
+                    ChangeEventProperty(
+                        self,
+                        event_type,
+                        event_idx,
+                        [redo_statement_x, redo_statement_y],
+                        [undo_statement_x, undo_statement_y],
+                    )
+                )
+        self.map_widget.undo_stack.endMacro()

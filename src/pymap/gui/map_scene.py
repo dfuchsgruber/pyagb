@@ -28,7 +28,6 @@ from pymap.gui.blocks import (
     connection_get_connection_type,
     connection_get_offset,
 )
-from pymap.gui.event import EventToImage, NullEventToImage
 from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.types import ConnectionType, Tilemap, visible_connection_directions
 
@@ -103,6 +102,11 @@ class MapScene(QGraphicsScene):
 
     def _load_event_to_image_backend(self):
         """Loads the event to image backend."""
+        from pymap.gui.map.tabs.events.event_to_image import (
+            EventToImage,
+            NullEventToImage,
+        )
+
         project = self.main_gui.project
         event_to_image: None | EventToImage = None
         if project is not None:
@@ -549,6 +553,16 @@ class MapScene(QGraphicsScene):
                 self.events_group.addToGroup(item)
                 self.event_images[event_type['name']].append(item)
         self.addItem(self.events_group)
+        self.events_group.setVisible(
+            (self.visible_layers & MapScene.VisibleLayer.EVENTS) > 0
+        )
+
+    def update_event_images(self):
+        """Updates all event images by recomputing them all."""
+        if self.events_group is None:
+            return
+        self.removeItem(self.events_group)
+        self.add_event_images()
 
     def add_selected_event_images(self):
         """Adds the selected event images to the scene."""

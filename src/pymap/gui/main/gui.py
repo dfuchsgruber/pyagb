@@ -26,8 +26,6 @@ from PySide6.QtWidgets import (
 from skimage.measure import label as label_image  # type: ignore
 
 from pymap.gui import render
-from pymap.gui.connection import ConnectionWidget
-from pymap.gui.event import EventWidget
 from pymap.gui.footer import FooterWidget
 from pymap.gui.header import HeaderWidget
 from pymap.gui.history import (
@@ -81,17 +79,13 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
         # Add the tabs
         self.central_widget = QTabWidget()
-        self.event_widget = EventWidget(self)
         self.map_widget = MapWidget(self)
-        self.connection_widget = ConnectionWidget(self)
         self.header_widget = HeaderWidget(self)
         self.footer_widget = FooterWidget(self)
         self.tileset_widget = TilesetWidget(self)
 
         self.central_widget.addTab(self.map_widget, 'Map')
-        self.central_widget.addTab(self.event_widget, 'Events')
         self.central_widget.addTab(self.tileset_widget, 'Tileset')
-        self.central_widget.addTab(self.connection_widget, 'Connections')
         self.central_widget.addTab(self.header_widget, 'Header')
         self.central_widget.addTab(self.footer_widget, 'Footer')
         self.central_widget.currentChanged.connect(self.tab_changed)
@@ -271,13 +265,8 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """Callback method for when a tab is changed."""
         # Update map data and blocks lazily in order to prevent lag
         # when mapping blocks or tiles
-        if self.central_widget.currentWidget() is self.event_widget:
-            self.map_widget.load_header()
-            self.event_widget.load_header()
         if self.central_widget.currentWidget() is self.map_widget:
             self.map_widget.load_header()
-        if self.central_widget.currentWidget() is self.connection_widget:
-            self.connection_widget.load_header()
 
     def closeEvent(self, event: QCloseEvent):
         """Query to save currently open files on closing."""
@@ -341,7 +330,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
         self.map_widget.load_project()
         self.footer_widget.load()
         self.header_widget.load()
-        self.event_widget.load_project()
         self.tileset_widget.load_project()
 
     def clear_header(self):
@@ -456,7 +444,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             if shift_blocks:
                 self.shift_blocks(x, y)
             if shift_events:
-                self.event_widget.shift_events(x, y)
+                self.map_widget.events_tab.shift_events(x, y)
 
     def prompt_save_header(self) -> bool:
         """Prompts to save the header if it is unsafed.
@@ -466,11 +454,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """
         if not self.header_loaded:
             return False
-        if self.header is not None and (
-            not self.header_widget.undo_stack.isClean()
-            or not self.event_widget.undo_stack.isClean()
-            or not self.connection_widget.undo_stack.isClean()
-        ):
+        if self.header is not None and (not self.header_widget.undo_stack.isClean()):
             assert self.project is not None
             assert self.header_bank is not None
             assert self.header_map_idx is not None
@@ -545,8 +529,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
         ):
             return
         self.header_widget.undo_stack.clear()
-        self.event_widget.undo_stack.clear()
-        self.connection_widget.undo_stack.clear()
         self.header, _, _ = self.project.load_header(
             bank, map_idx, unpack_connections=True
         )
@@ -699,8 +681,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
         )
         # Adapt history
         self.header_widget.undo_stack.setClean()
-        self.event_widget.undo_stack.setClean()
-        self.connection_widget.undo_stack.setClean()
 
     def update_gui(self):
         """Updates this gui and all child widgets."""
@@ -738,8 +718,6 @@ class PymapGui(QMainWindow, PymapGuiModel):
         )
         if self.header_loaded:
             self.map_widget.update_grid()
-            self.event_widget.update_grid()
-            self.connection_widget.update_grid()
 
     @property
     def grid_visible(self) -> bool:
@@ -781,7 +759,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             'event_widget/show_pictures',
             not self.settings.value('event_widget/show_pictures', False, bool),
         )
-        self.event_widget.load_header()
+        self.map_widget.map_scene.update_event_images()
 
     def set_border_at(self, x: int, y: int, blocks: Tilemap):
         """Sets the blocks of the border and adds an action to the history."""
