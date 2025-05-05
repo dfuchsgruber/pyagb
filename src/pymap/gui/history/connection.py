@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from PySide6.QtGui import QUndoCommand
 
 from agb.model.type import ModelValue
+from pymap.gui.blocks import unpack_connection
 from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
 from pymap.gui.properties import get_parents_by_path
 
@@ -40,6 +42,7 @@ class ChangeConnectionProperty(ChangeProperty):
         self.connections_tab = connections_tab
         self.connection_idx = connection_idx
         self.mirror_offset = mirror_offset
+        self.previous_value = deepcopy(self.get_root())
 
     def get_root(self) -> ModelValue:
         """Returns the root object of the property to change with this command."""
@@ -49,12 +52,28 @@ class ChangeConnectionProperty(ChangeProperty):
     def redo(self):
         """Executes the redo statements."""
         super().redo()
-        self.connections_tab.update_connection(self.connection_idx, self.mirror_offset)
+        self.connections_tab.update_connection(
+            self.connection_idx, previous_value=self.previous_value
+        )
+        self.connections_tab.map_widget.update_blocks()
+        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
+        if self.mirror_offset:
+            self.connections_tab.mirror_connection_update_to_adjacent_connection(
+                self.connection_idx,
+            )
 
     def undo(self):
         """Executes the redo statements."""
         super().undo()
-        self.connections_tab.update_connection(self.connection_idx, self.mirror_offset)
+        self.connections_tab.update_connection(
+            self.connection_idx, previous_value=self.previous_value
+        )
+        self.connections_tab.map_widget.update_blocks()
+        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
+        if self.mirror_offset:
+            self.connections_tab.mirror_connection_update_to_adjacent_connection(
+                self.connection_idx,
+            )
 
 
 class AppendConnection(QUndoCommand):
@@ -93,7 +112,12 @@ class AppendConnection(QUndoCommand):
         self.connections_tab.map_widget.main_gui.set_number_of_connections(
             len(connections)
         )
+        connections[-1] = unpack_connection(
+            connections[-1], self.connections_tab.map_widget.main_gui.project
+        )
         self.connections_tab.load_header()
+        self.connections_tab.map_widget.update_blocks()
+        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
 
     def undo(self):
         """Removes the last event."""
@@ -103,6 +127,8 @@ class AppendConnection(QUndoCommand):
             len(connections)
         )
         self.connections_tab.load_header()
+        self.connections_tab.map_widget.update_blocks()
+        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
 
 
 class RemoveConnection(QUndoCommand):
@@ -131,6 +157,8 @@ class RemoveConnection(QUndoCommand):
             len(connections)
         )
         self.connections_tab.load_header()
+        self.connections_tab.map_widget.update_blocks()
+        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
 
     def undo(self):
         """Reinserts the connection."""
@@ -143,4 +171,10 @@ class RemoveConnection(QUndoCommand):
         self.connections_tab.map_widget.main_gui.set_number_of_connections(
             len(connections)
         )
+        connections[self.connection_idx] = unpack_connection(
+            connections[self.connection_idx],
+            self.connections_tab.map_widget.main_gui.project,
+        )
         self.connections_tab.load_header()
+        self.connections_tab.map_widget.update_blocks()
+        self.connections_tab.map_widget.map_scene.update_connection_rectangles()

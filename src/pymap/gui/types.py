@@ -32,6 +32,10 @@ opposite_connection_direction: dict[ConnectionType, ConnectionType] = {
     ConnectionType.WEST: ConnectionType.EAST,
 }
 
+visible_connection_directions: set[ConnectionType] = set(
+    opposite_connection_direction.keys()
+)
+
 
 class BlockProtocol(Protocol):
     """A block in a map."""

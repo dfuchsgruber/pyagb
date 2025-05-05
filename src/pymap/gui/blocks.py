@@ -181,13 +181,15 @@ def connection_get_connection_type(
         connection,
         project.config['pymap']['header']['connections']['connection_type_path'],
     )
-    assert isinstance(connection_type, str), (
-        f'Expected str, got {type(connection_type)}'
-    )
+    if isinstance(connection_type, int):
+        connection_type = str(connection_type)
     try:
-        connection_type = int(str(connection_type), 0)
+        connection_type = str(int(str(connection_type), 0))
     except ValueError:
         pass
+    if not isinstance(connection_type, str):
+        # The connection type is not a valid string
+        return None
     try:
         return ConnectionType(
             project.config['pymap']['header']['connections']['connection_types'].get(
@@ -315,7 +317,7 @@ def connection_get_blocks(
 def unpack_connection(
     connection: ModelValue,
     project: Project,
-    connection_blocks: Tilemap | None,
+    connection_blocks: Tilemap | None = None,
 ) -> ModelValue:
     """Loads a connections data if possible.
 
@@ -337,24 +339,23 @@ def unpack_connection(
             map_idx = connection_get_map_idx(connection, project)
             if bank is not None and map_idx is not None:
                 header, _, _ = project.load_header(bank, map_idx)
-                if header is None:
-                    return None
-                footer_label = properties.get_member_by_path(
-                    header, project.config['pymap']['header']['footer_path']
-                )
-                assert isinstance(footer_label, str), (
-                    f'Expected str, got {type(footer_label)}'
-                )
-                footer, _, _ = project.load_footer(footer_label)
-                connection_blocks_model = properties.get_member_by_path(
-                    footer, project.config['pymap']['footer']['map_blocks_path']
-                )
-                assert isinstance(connection_blocks_model, list), (
-                    f'Expected list, got {type(connection_blocks_model)}'
-                )
-                connection_blocks = blocks_to_ndarray(
-                    cast(Sequence[Sequence[Block]], connection_blocks_model)  # type: ignore
-                )
+                if header is not None:
+                    footer_label = properties.get_member_by_path(
+                        header, project.config['pymap']['header']['footer_path']
+                    )
+                    assert isinstance(footer_label, str), (
+                        f'Expected str, got {type(footer_label)}'
+                    )
+                    footer, _, _ = project.load_footer(footer_label)
+                    connection_blocks_model = properties.get_member_by_path(
+                        footer, project.config['pymap']['footer']['map_blocks_path']
+                    )
+                    assert isinstance(connection_blocks_model, list), (
+                        f'Expected list, got {type(connection_blocks_model)}'
+                    )
+                    connection_blocks = blocks_to_ndarray(
+                        cast(Sequence[Sequence[Block]], connection_blocks_model)  # type: ignore
+                    )
         connection_blocks = cast(Tilemap, connection_blocks)
         set_member_by_path(
             connection,

@@ -443,7 +443,7 @@ class Project:
                 )
                 if pack_connections:
                     from pymap.gui.blocks import (
-                        unpack_connections as _pack_connections,
+                        pack_connections as _pack_connections,
                     )
 
                     header = deepcopy(header)

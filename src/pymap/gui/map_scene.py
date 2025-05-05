@@ -30,7 +30,7 @@ from pymap.gui.blocks import (
 )
 from pymap.gui.event import EventToImage, NullEventToImage
 from pymap.gui.render import ndarray_to_QImage
-from pymap.gui.types import ConnectionType, Tilemap
+from pymap.gui.types import ConnectionType, Tilemap, visible_connection_directions
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
@@ -63,6 +63,7 @@ class MapScene(QGraphicsScene):
         """
         super().__init__(parent=parent)
         self.main_gui = main_gui
+        self.visible_layers = self.VisibleLayer(0)
         self.grid_group = None
         self.blocks_group = None
         self.levels_group = None
@@ -195,8 +196,8 @@ class MapScene(QGraphicsScene):
         assert self.blocks is not None, 'Blocks are not loaded'
         padded_width, padded_height = self.main_gui.get_border_padding()
         map_width, map_height = self.main_gui.get_map_dimensions()
-        if x in range(padded_width, padded_width + map_width) and y in range(
-            padded_height, padded_height + map_height
+        if x in range(2 * padded_width + map_width) and y in range(
+            2 * padded_height + map_height
         ):
             # Draw the blocks
             block_idx: int = self.blocks[y, x, 0]
@@ -258,6 +259,81 @@ class MapScene(QGraphicsScene):
             if idx is not None
         }
 
+    def connection_rectangle_get_position_and_dimensions(
+        self, connection_idx: int
+    ) -> tuple[int, int, int, int]:
+        """Returns the position and dimensions of a connection.
+
+        Args:
+            connection_idx (int): The index of the connection.
+
+        Returns:
+            tuple[int, int, int, int]: The position and dimensions of the connection.
+        """
+        assert self.main_gui.project is not None
+        padded_width, padded_height = self.main_gui.get_border_padding()
+        map_width, map_height = self.main_gui.get_map_dimensions()
+        connections = self.main_gui.get_connections()
+        connection = connections[connection_idx]
+        if connection is None:
+            return 0, 0, 0, 0
+        connection_blocks = connection_get_blocks(
+            connection,
+            self.main_gui.project,
+        )
+        connection_type = connection_get_connection_type(
+            connection,
+            self.main_gui.project,
+        )
+        connection_offset = connection_get_offset(
+            connection,
+            self.main_gui.project,
+        )
+        if connection_blocks is None or connection_offset is None:
+            return 0, 0, 0, 0
+        connection_width, connection_height = (
+            connection_blocks.shape[1],
+            connection_blocks.shape[0],
+        )
+
+        match connection_type:
+            case ConnectionType.NORTH:
+                rect = (
+                    16 * (padded_width + connection_offset),
+                    16 * (padded_height - connection_height),
+                    16 * connection_width,
+                    16 * connection_height,
+                )
+            case ConnectionType.SOUTH:
+                rect = (
+                    16 * (padded_width + connection_offset),
+                    16 * (padded_height + map_height),
+                    16 * connection_width,
+                    16 * connection_height,
+                )
+            case ConnectionType.EAST:
+                rect = (
+                    16 * (padded_width + map_width),
+                    16 * (padded_height + connection_offset),
+                    16 * connection_width,
+                    16 * connection_height,
+                )
+            case ConnectionType.WEST:
+                rect = (
+                    16 * (padded_width - connection_width),
+                    16 * (padded_height + connection_offset),
+                    16 * connection_width,
+                    16 * connection_height,
+                )
+            case _:
+                raise ValueError(f'Invalid connection type {connection_type}')
+
+        return self.fix_rectangle(
+            *rect,
+            16 * (map_width + 2 * padded_width),
+            16 * (map_height + 2 * padded_height),
+        )
+
     def add_connection_rectangles(self):
         """Adds the rectangles around connections to the scene."""
         assert self.main_gui.project is not None and self.main_gui.header is not None
@@ -272,80 +348,40 @@ class MapScene(QGraphicsScene):
                 ]
             )
         )
-        padded_width, padded_height = self.main_gui.get_border_padding()
-        map_width, map_height = self.main_gui.get_map_dimensions()
-        connections = self.main_gui.get_connections()
-
         self._connection_rectangles: dict[ConnectionType, QGraphicsRectItem] = {}
-        for connection_type, connection_idx in self.visible_connection_idxs.items():
-            connection = connections[connection_idx]
-            if connection is None:
-                continue
-            connection_blocks = connection_get_blocks(
-                connection,
-                self.main_gui.project,
-            )
-            connection_type = connection_get_connection_type(
-                connection,
-                self.main_gui.project,
-            )
-            connection_offset = connection_get_offset(
-                connection,
-                self.main_gui.project,
-            )
-            if connection_blocks is None or connection_offset is None:
-                continue
-            connection_width, connection_height = (
-                connection_blocks.shape[1],
-                connection_blocks.shape[0],
-            )
-
-            match connection_type:
-                case ConnectionType.NORTH:
-                    rect = (
-                        16 * (padded_width + connection_offset),
-                        16 * (padded_height - connection_height),
-                        16 * connection_width,
-                        16 * connection_height,
-                    )
-                case ConnectionType.SOUTH:
-                    rect = (
-                        16 * (padded_width + connection_offset),
-                        16 * (padded_height + map_height),
-                        16 * connection_width,
-                        16 * connection_height,
-                    )
-                case ConnectionType.EAST:
-                    rect = (
-                        16 * (padded_width + map_width),
-                        16 * (padded_height + connection_offset),
-                        16 * connection_width,
-                        16 * connection_height,
-                    )
-                case ConnectionType.WEST:
-                    rect = (
-                        16 * (padded_width - connection_width),
-                        16 * (padded_height + connection_offset),
-                        16 * connection_width,
-                        16 * connection_height,
-                    )
-                case _:
-                    raise ValueError(f'Invalid connection type {connection_type}')
-
+        for connection_type in visible_connection_directions:
+            if connection_type not in self.visible_connection_idxs:
+                rect = 0, 0, 0, 0
+            else:
+                rect = self.connection_rectangle_get_position_and_dimensions(
+                    self.visible_connection_idxs[connection_type]
+                )
             self._connection_rectangles[connection_type] = self.addRect(
-                *self.fix_rectangle(
-                    *rect,
-                    16 * (map_width + 2 * padded_width),
-                    16 * (map_height + 2 * padded_height),
-                ),
+                *rect,
                 pen=QPen(connection_border_color),
                 brush=QBrush(connection_color),
             )
             self.connection_rectangles_group.addToGroup(
                 self._connection_rectangles[connection_type]
             )
-
         self.addItem(self.connection_rectangles_group)
+
+    def update_connection_rectangles(self):
+        """Updates the connection rectangles."""
+        assert self.main_gui.project is not None
+        if self.connection_rectangles_group is None:
+            return
+        for (
+            connection_type,
+            rectangle_graphics_item,
+        ) in self._connection_rectangles.items():
+            if connection_type not in self.visible_connection_idxs:
+                rect = 0, 0, 0, 0
+            else:
+                rect = self.connection_rectangle_get_position_and_dimensions(
+                    self.visible_connection_idxs[connection_type]
+                )
+            rectangle_graphics_item.setRect(*rect)
 
     def update_selected_connection(self, connection_idx: int):
         """Updates the selected connection rectangle.
@@ -581,7 +617,8 @@ class MapScene(QGraphicsScene):
             self.selected_event_group.setVisible(False)
             return
         # Show the selected event group
-        self.selected_event_group.setVisible(True)
+        if self.visible_layers & MapScene.VisibleLayer.SELECTED_EVENT:
+            self.selected_event_group.setVisible(True)
 
         event = self.main_gui.get_event(event_type, event_idx)
         padded_x, padded_y = self.main_gui.get_border_padding()
@@ -682,6 +719,7 @@ class MapScene(QGraphicsScene):
         Args:
             visible_layers (Layer): Mask for visible layers.
         """
+        self.visible_layers = visible_layers
         if self.blocks_group is not None:
             self.blocks_group.setVisible(
                 (visible_layers & MapScene.VisibleLayer.BLOCKS) > 0
