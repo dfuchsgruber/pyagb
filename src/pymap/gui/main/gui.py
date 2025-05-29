@@ -243,16 +243,26 @@ class PymapGui(QMainWindow, PymapGuiModel):
     def update_redo_undo_tooltips(self, widget: QWidget, undo_stack: QUndoStack):
         """Updates the redo and undo tooltips."""
         if self.central_widget.currentWidget() is widget:
-            if undo_stack.canUndo():
-                self.edit_menu_undo_action.setEnabled(True)
-                self.edit_menu_undo_action.setToolTip(undo_stack.undoText())
-            else:
+            try:
+                if undo_stack.canUndo():
+                    self.edit_menu_undo_action.setEnabled(True)
+                    self.edit_menu_undo_action.setToolTip(undo_stack.undoText())
+                else:
+                    self.edit_menu_undo_action.setEnabled(False)
+                    self.edit_menu_undo_action.setToolTip('')
+            except RuntimeError:
+                # This happens when the undo stack is cleared
                 self.edit_menu_undo_action.setEnabled(False)
                 self.edit_menu_undo_action.setToolTip('')
-            if undo_stack.canRedo():
-                self.edit_menu_redo_action.setEnabled(True)
-                self.edit_menu_redo_action.setToolTip(undo_stack.redoText())
-            else:
+            try:
+                if undo_stack.canRedo():
+                    self.edit_menu_redo_action.setEnabled(True)
+                    self.edit_menu_redo_action.setToolTip(undo_stack.redoText())
+                else:
+                    self.edit_menu_redo_action.setEnabled(False)
+                    self.edit_menu_redo_action.setToolTip('')
+            except RuntimeError:
+                # This happens when the undo stack is cleared
                 self.edit_menu_redo_action.setEnabled(False)
                 self.edit_menu_redo_action.setToolTip('')
 

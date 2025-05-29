@@ -111,18 +111,18 @@ class MapWidget(QWidget):
         self.tabs = MapTabsWidget()
 
         self.blocks_tab = BlocksTab(self)
-        self.tabs.insertTab(MapWidgetTabType.BLOCKS, self.blocks_tab, 'Blocks')
+        self.tabs.insertTab(MapWidgetTabType.BLOCKS, self.blocks_tab, '&Blocks')
         self.levels_tab = LevelsTab(self)
-        self.tabs.insertTab(MapWidgetTabType.LEVELS, self.levels_tab, 'Level')
+        self.tabs.insertTab(MapWidgetTabType.LEVELS, self.levels_tab, '&Level')
         self.smart_shapes_tab = SmartShapesTab(self)
         self.tabs.insertTab(
-            MapWidgetTabType.AUTO_SHAPES, self.smart_shapes_tab, 'Smart Shapes'
+            MapWidgetTabType.AUTO_SHAPES, self.smart_shapes_tab, '&Smart Shapes'
         )
         self.events_tab = EventsTab(self)
-        self.tabs.insertTab(MapWidgetTabType.EVENTS, self.events_tab, 'Events')
+        self.tabs.insertTab(MapWidgetTabType.EVENTS, self.events_tab, '&Events')
         self.connections_tab = ConnectionsTab(self)
         self.tabs.insertTab(
-            MapWidgetTabType.CONNECTIONS, self.connections_tab, 'Connections'
+            MapWidgetTabType.CONNECTIONS, self.connections_tab, '&Connections'
         )
 
         self.tabs.currentChanged.connect(self.tab_changed)
