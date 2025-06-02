@@ -47,37 +47,44 @@ class BitfieldTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         parent_parameter : parameterTypes.Parameter
             The parents of the parameter according to the data model.
         """
-        super().__init__(
-            name, project, datatype_name, value, context, parent_parameter, **kwargs
+        ModelParameterMixin.__init__(
+            self,
+            name,
+            project,
+            datatype_name,
+            value,
+            context,
+            parent_parameter,
+            **kwargs,
         )
         parameterTypes.GroupParameter.__init__(self, name=name, **kwargs)  # type: ignore
         # Add all children
         assert isinstance(self.datatype, BitfieldType)
         assert isinstance(value, dict)
-        for name, constant, _ in self.datatype.structure:
+        for field_name, constant, _ in self.datatype.structure:
             if constant is not None:
                 child = ConstantsTypeParameter(
-                    name,
+                    field_name,
                     list(self.project.constants[constant]),
                     self.project,
                     datatype_name,
-                    value[name],
-                    list(self.context) + [name],
+                    value[field_name],
+                    list(self.context) + [field_name],
                     self,
                     **kwargs,
                 )
-                child.setValue(value[name])  # type: ignore
+                child.setValue(value[field_name])  # type: ignore
             else:
                 child = ScalarTypeParameter(
-                    name,
+                    field_name,
                     self.project,
                     datatype_name,
-                    value[name],
-                    list(self.context) + [name],
+                    value[field_name],
+                    list(self.context) + [field_name],
                     self,
                     **kwargs,
                 )
-            if name not in self.datatype.hidden_members:
+            if field_name not in self.datatype.hidden_members:
                 self.addChild(child)  # type: ignore
 
     @property

@@ -78,3 +78,7 @@ class ModelParameterMixin(Parameter):
             value (ModelValue): The new value.
         """
         raise NotImplementedError
+
+    def children_names_disabled(self) -> list[str]:
+        """Returns the names of the children that are disabled."""
+        return []

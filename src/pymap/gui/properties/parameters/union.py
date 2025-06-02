@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyqtgraph.parametertree.parameterTypes as parameterTypes  # type: ignore
+
 from agb.model.type import ModelContext, ModelValue
 from agb.model.union import UnionType
-
 from pymap.gui.properties.parameters.base import ModelParameterMixin
 
 if TYPE_CHECKING:
@@ -63,25 +63,25 @@ class UnionTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
                 value[name],
                 list(context) + [name],
                 self,
-                title=f'View as <{subtype}>',
+                # title=f'View as <{subtype}>',
             )
             self.addChild(self.values[name])  # type: ignore
         # self.update_value()
 
-    def update_value(self):
-        """Displays the correct union subtype."""
-        # Get the active name
-        assert isinstance(self.datatype, UnionType)
-        active_name = self.datatype.name_get(
-            self.project, self.context, self.model_parents
-        )
-        print(f'Parent changed to {active_name}')
-        for name in self.values:
-            child = self.values[name]
-            if name == active_name and child.parent() is not self:
-                self.addChild(child)  # type: ignore
-            elif name != active_name and child.parent() is self:
-                child.remove()
+    # def update_value(self):
+    #     """Displays the correct union subtype."""
+    #     # Get the active name
+    #     assert isinstance(self.datatype, UnionType)
+    #     active_name = self.datatype.name_get(
+    #         self.project, self.context, self.model_parents
+    #     )
+    #     print(f'Parent changed to {active_name}')
+    #     for name in self.values:
+    #         child = self.values[name]
+    #         if name == active_name and child.parent() is not self:
+    #             self.addChild(child)  # type: ignore
+    #         elif name != active_name and child.parent() is self:
+    #             child.remove()
 
     @property
     def model_value(self) -> ModelValue:
@@ -100,3 +100,15 @@ class UnionTypeParameter(ModelParameterMixin, parameterTypes.GroupParameter):
         assert isinstance(self.datatype, UnionType)
         for name in self.values:
             self.child(self.datatype.subtypes[name]).update(value[name])  # type: ignore
+
+    def children_names_disabled(self) -> list[str]:
+        """Returns the names of the children that are disabled."""
+        assert isinstance(self.datatype, UnionType)
+        active_name = self.datatype.name_get(
+            self.project, self.context, self.model_parents
+        )
+        return [
+            self.datatype.subtypes[name]
+            for name in self.values
+            if name != active_name and self.values[name].parent() is self
+        ]

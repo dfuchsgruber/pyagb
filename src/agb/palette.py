@@ -24,7 +24,7 @@ class Palette:
         if size is None:
             size = len(rgbs)
         self.rgbs = np.zeros((size, 3), dtype=int)
-        self.rgbs[: len(rgbs)] = np.array(rgbs, dtype=int)
+        self.rgbs[: len(rgbs)] = np.array(rgbs, dtype=int)[..., :3]
 
     def __getitem__(self, key: int) -> 'Palette':
         """Returns a new palette with the one color at the given index.
@@ -89,6 +89,30 @@ class Palette:
                 cast(Sequence[Sequence[int]], self.rgbs.astype(int).tolist()),
             )
         )
+
+    def resize(self, size: int, fill_color: Sequence[int] = (0, 0, 0)) -> 'Palette':
+        """Sets the size of the palette and fills it with a given color.
+
+        Parameters:
+        -----------
+        size : int
+            The new size of the palette.
+        fill_color : Sequence[int]
+            The color to fill the palette with.
+
+        Returns:
+        --------
+        palette : Palette
+            A new Palette instance with the given size.
+        """
+        if size < 0:
+            raise ValueError('Size must be a non-negative integer.')
+        new_rgbs = np.full((size, 3), fill_color, dtype=int)
+        if size < len(self):
+            new_rgbs[:size] = self.rgbs[:size]
+        else:
+            new_rgbs[: len(self)] = self.rgbs
+        return Palette(new_rgbs.tolist(), size=size)  # type: ignore
 
 
 def from_data(data: Sequence[int], num_colors: int = 16) -> Palette:
