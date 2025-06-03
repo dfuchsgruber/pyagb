@@ -61,6 +61,7 @@ class MapScene(QGraphicsScene):
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
+        self.setItemIndexMethod(self.ItemIndexMethod.NoIndex)
         self.main_gui = main_gui
         self.visible_layers = self.VisibleLayer(0)
         self.grid_group = None
@@ -184,6 +185,7 @@ class MapScene(QGraphicsScene):
                 ndarray_to_QImage(self.main_gui.block_images[block_idx])
             )
             item = QGraphicsPixmapItem(pixmap)
+            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
             item.setAcceptHoverEvents(True)
             item.setPos(16 * x, 16 * y)
             self.block_images[y, x] = item
@@ -210,7 +212,8 @@ class MapScene(QGraphicsScene):
                 ndarray_to_QImage(self.main_gui.block_images[block_idx])
             )
             item: QGraphicsPixmapItem = self.block_images[y, x]
-            item.setPixmap(pixmap)
+            if item.pixmap().cacheKey() != pixmap.cacheKey():
+                item.setPixmap(pixmap)
 
     def add_level_images(self):
         """Adds all level images to the scene."""
@@ -226,6 +229,7 @@ class MapScene(QGraphicsScene):
                 # Draw the pixmaps
                 pixmap = self.main_gui.map_widget.levels_tab.level_blocks_pixmaps[level]
                 item = QGraphicsPixmapItem(pixmap)
+                item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
                 item.setAcceptHoverEvents(True)
                 item.setPos(16 * x, 16 * y)
                 self.level_images[y, x] = item
@@ -471,6 +475,7 @@ class MapScene(QGraphicsScene):
             event_image = EventImage(*event_image)
             pixmap = QPixmap.fromImage(ndarray_to_QImage(event_image.image))
             item = QGraphicsPixmapItem(pixmap)
+            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
             item.setPos(
                 16 * (x) + event_image.x_offset, 16 * (y) + event_image.y_offset
             )
@@ -661,7 +666,8 @@ class MapScene(QGraphicsScene):
             level: int = self.blocks[y, x, 1]
             pixmap = self.main_gui.map_widget.levels_tab.level_blocks_pixmaps[level]
             item: QGraphicsPixmapItem = self.level_images[y, x]
-            item.setPixmap(pixmap)
+            if item.pixmap().cacheKey() != pixmap.cacheKey():
+                item.setPixmap(pixmap)
 
     def add_border_effect(self):
         """Adds the opacity effect for borders."""

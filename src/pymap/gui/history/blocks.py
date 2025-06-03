@@ -192,11 +192,15 @@ class SetBorder(QUndoCommand):
     def _set_blocks(self, blocks: Tilemap):
         # Helper method for setting a set of blocks
         assert self.main_gui.project is not None
-        footer_blocks = self.main_gui.get_borders()
-        footer_blocks[
+        border_blocks = self.main_gui.get_borders()
+        border_blocks[
             self.y : self.y + blocks.shape[0], self.x : self.x + blocks.shape[1], 0
         ] = blocks[:, :, 0]
-        self.main_gui.map_widget.load_header()
+        self.main_gui.map_widget.update_blocks()
+        for y, x in np.ndindex(blocks.shape[:2]):
+            self.main_gui.map_widget.blocks_tab.update_border_block_at(
+                self.x + x, self.y + y
+            )
 
     def redo(self):
         """Performs the setting of border blocks."""

@@ -202,13 +202,29 @@ class MapWidget(QWidget):
         self.map_scene.update_grid()
 
     def update_blocks(self):
-        """Re-computes all blocks and updates the images."""
+        """Re-computes all blocks and updates the images for blocks that changed."""
         assert self.map_scene.blocks is not None
         blocks_previous = self.map_scene.blocks.copy()
         self.map_scene.compute_blocks()
         self.update_blocks_at_padded_indices(
             np.where(blocks_previous[..., 0] != self.map_scene.blocks[..., 0])
         )
+
+    def update_all_blocks(self):
+        """Updates all blocks in the map."""
+        assert self.map_scene.blocks is not None
+        for y in range(self.map_scene.blocks.shape[0]):
+            for x in range(self.map_scene.blocks.shape[1]):
+                self.map_scene.update_block_image_at_padded_position(x, y)
+
+    def update_block_idx(self, block_idx: int):
+        """Updates all blocks with a certain block index."""
+        assert self.map_scene.blocks is not None, 'Blocks are not loaded'
+        self.update_blocks_at_padded_indices(
+            np.where(self.map_scene.blocks[..., 0] == block_idx)
+        )
+        for idx in range(self.tabs.count()):
+            self.tabs.widget(idx).update_block_idx(block_idx)
 
     def update_blocks_at_padded_indices(
         self, indices_padded: tuple[npt.NDArray[np.int_], ...] | npt.NDArray[np.int_]

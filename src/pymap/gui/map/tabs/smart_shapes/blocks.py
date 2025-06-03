@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsSceneMouseEvent,
@@ -57,6 +58,7 @@ class SmartShapesBlocksScene(QGraphicsScene):
                 zip(template.block_pixmaps, template.block_tooltips)
             ):
                 item = QGraphicsPixmapItem(pixmap)
+                item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
                 x, y = idx % cols, idx // cols
                 item.setPos(16 * x, 16 * y)
                 item.setAcceptHoverEvents(True)

@@ -8,6 +8,7 @@ import numpy as np
 from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGridLayout,
@@ -311,6 +312,8 @@ class SmartShapesTab(BlocksLikeTab):
 
         for (y, x), block in np.ndenumerate(selection[:, :, 0]):
             item = QGraphicsPixmapItem(template.block_pixmaps[block])
+
+            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
             self.selection_scene.addItem(item)
             item.setPos(16 * x, 16 * y)  # 16 pixels per block
 

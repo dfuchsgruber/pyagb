@@ -11,7 +11,13 @@ import numpy.typing as npt
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QImage, QPen, QPixmap
-from PySide6.QtWidgets import QFileDialog, QGraphicsPixmapItem, QMessageBox, QSizePolicy
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QGraphicsItem,
+    QGraphicsPixmapItem,
+    QMessageBox,
+    QSizePolicy,
+)
 
 from agb import image as agbimage
 from agb.model.type import ModelValue
@@ -484,6 +490,8 @@ class TilesetWidget(QtWidgets.QWidget):
             width, height
         )
         item = QGraphicsPixmapItem(pixmap)
+
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.blocks_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         # Add the selection rectangle
@@ -525,6 +533,8 @@ class TilesetWidget(QtWidgets.QWidget):
                 width, height
             )
         )
+
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.tiles_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         # Add the selection rectangle
@@ -577,6 +587,8 @@ class TilesetWidget(QtWidgets.QWidget):
         item = QGraphicsPixmapItem(
             QPixmap.fromImage(QImage(ndarray_to_QImage(image))).scaled(width, height)
         )
+
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.selection_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         self.selection_scene.setSceneRect(0, 0, width, height)

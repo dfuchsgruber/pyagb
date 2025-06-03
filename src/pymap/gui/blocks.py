@@ -6,6 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsPixmapItem,
 )
 
@@ -435,6 +436,7 @@ def block_idxs_to_pixmaps(
     for (y, x), block_idx in np.ndenumerate(block_idxs):
         pixmap = QPixmap.fromImage(ndarray_to_QImage(block_images[block_idx]))
         item = QGraphicsPixmapItem(pixmap)
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         item.setPos(x * 16, y * 16)
         result[y, x] = item
     return result

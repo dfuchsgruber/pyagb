@@ -51,6 +51,11 @@ class MapWidgetTab(QWidget):
         """
         raise NotImplementedError
 
+    def update_block_idx(self, block_idx: int) -> None:
+        """Update the block index."""
+        """This method is a placeholder and should be overridden in subclasses."""
+        pass
+
     @property
     @abstractmethod
     def visible_layers(self) -> MapScene.VisibleLayer:

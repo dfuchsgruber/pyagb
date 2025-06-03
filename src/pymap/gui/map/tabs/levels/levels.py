@@ -10,6 +10,7 @@ from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QSlider,
@@ -83,6 +84,7 @@ class LevelsTab(BlocksLikeTab):
         item = QGraphicsPixmapItem(
             self.level_blocks_pixmap.scaled(4 * 16 * 2, 16 * 16 * 2)
         )
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.level_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         item.hoverLeaveEvent = lambda event: self.map_widget.info_label.setText('')
@@ -135,6 +137,7 @@ class LevelsTab(BlocksLikeTab):
         # Levels selection
         for (y, x), level in np.ndenumerate(selection[:, :, 1]):
             item = QGraphicsPixmapItem(self.level_blocks_pixmaps[level])
+            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
             self.levels_selection_scene.addItem(item)
             item.setPos(16 * x, 16 * y)
         self.levels_selection_scene.setSceneRect(

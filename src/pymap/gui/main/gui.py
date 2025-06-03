@@ -273,10 +273,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
     def tab_changed(self, *args: Any, **kwargs: Any):
         """Callback method for when a tab is changed."""
-        # Update map data and blocks lazily in order to prevent lag
-        # when mapping blocks or tiles
-        if self.central_widget.currentWidget() is self.map_widget:
-            self.map_widget.load_header()
+        ...
 
     def closeEvent(self, event: QCloseEvent):
         """Query to save currently open files on closing."""
@@ -464,7 +461,10 @@ class PymapGui(QMainWindow, PymapGuiModel):
         """
         if not self.header_loaded:
             return False
-        if self.header is not None and (not self.header_widget.undo_stack.isClean()):
+        if self.header is not None and (
+            not self.header_widget.undo_stack.isClean()
+            or not self.map_widget.undo_stack.isClean()
+        ):
             assert self.project is not None
             assert self.header_bank is not None
             assert self.header_map_idx is not None
