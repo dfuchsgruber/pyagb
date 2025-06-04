@@ -113,32 +113,43 @@ class RemoveEvent(QUndoCommand):
 class AppendEvent(QUndoCommand):
     """Append a new event."""
 
-    def __init__(self, events_tab: EventsTab, event_type: PymapEventConfigType):
+    def __init__(
+        self,
+        events_tab: EventsTab,
+        event_type: PymapEventConfigType,
+        event: ModelValue | None = None,
+    ):
         """Initializes the event appending.
 
         Args:
             events_tab (EventsTab): reference to the event widget
             event_type (PymapEventConfigType): the event type
+            event (ModelValue | None): optional event to append.
+                If None a new one is created.
         """
         super().__init__(
             'Append Event',
         )
         self.events_tab = events_tab
         self.event_type = event_type
+        if event is None:
+            assert self.events_tab.map_widget.main_gui is not None
+            assert self.events_tab.map_widget.main_gui.project is not None
+            project = self.events_tab.map_widget.main_gui.project
+            datatype = self.event_type['datatype']
+            events = self.events_tab.map_widget.main_gui.get_events(self.event_type)
+            context = self.event_type['events_path'] + [len(events)]
+            assert self.events_tab.map_widget.main_gui.header is not None
+            parents = properties.get_parents_by_path(
+                self.events_tab.map_widget.main_gui.header, context
+            )
+            event = project.model[datatype](project, context, parents)
+        self.event = event
 
     def redo(self):
         """Appends a new event to the end of the list."""
-        assert self.events_tab.map_widget.main_gui is not None
-        assert self.events_tab.map_widget.main_gui.project is not None
-        project = self.events_tab.map_widget.main_gui.project
-        datatype = self.event_type['datatype']
         events = self.events_tab.map_widget.main_gui.get_events(self.event_type)
-        context = self.event_type['events_path'] + [len(events)]
-        assert self.events_tab.map_widget.main_gui.header is not None
-        parents = properties.get_parents_by_path(
-            self.events_tab.map_widget.main_gui.header, context
-        )
-        events.append(project.model[datatype](project, context, parents))
+        events.append(self.event)
         self.events_tab.map_widget.main_gui.set_number_of_events(
             self.event_type, len(events)
         )

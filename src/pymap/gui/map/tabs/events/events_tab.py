@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 from typing import TYPE_CHECKING, cast
 
 from PySide6 import QtWidgets
@@ -12,11 +13,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
-from pymap.gui.history.event import ChangeEventProperty
+from pymap.gui.history.event import AppendEvent, ChangeEventProperty, RemoveEvent
 from pymap.gui.history.statement import path_to_statement
 from pymap.gui.map_scene import MapScene
-from pymap.gui.properties.utils import get_member_by_path
+from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 
 from ..tab import MapWidgetTab
 from .tab import EventTab
@@ -151,7 +153,7 @@ class EventsTab(MapWidgetTab):
         self,
         x: int,
         y: int,
-    ):
+    ) -> tuple[PymapEventConfigType, int] | None:
         """Selects an event at the given position."""
         target = self._get_event_by_padded_position(x, y)
         if target is not None:
@@ -173,6 +175,7 @@ class EventsTab(MapWidgetTab):
             self.last_dragged_position = None
             self.dragged_event = None
             self.is_dragging = False
+        return target
 
     def map_scene_mouse_pressed(
         self, event: QGraphicsSceneMouseEvent, x: int, y: int
@@ -186,9 +189,80 @@ class EventsTab(MapWidgetTab):
         """
         if not self.map_widget.header_loaded:
             return
-        if not event.button() == Qt.MouseButton.LeftButton:
-            return
-        self._select_event_at_padded_position(x, y)
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._select_event_at_padded_position(x, y)
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.create_map_scene_context_menu_at(event, x, y)
+
+    def create_map_scene_context_menu_at(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ):
+        """Creates a context menu at the given position.
+
+        Args:
+            event (QGraphicsSceneMouseEvent): The event that triggered the context menu.
+            x (int): The x coordinate of the mouse in map coordinates
+                (with border padding).
+            y (int): The y coordinate of the mouse in map coordinates
+                (with border padding).
+        """
+        # Create a context menu
+        context_menu = QtWidgets.QMenu()
+
+        # Get the delete action if there is a target event
+        target = self._get_event_by_padded_position(x, y)
+        if target is not None:
+            event_type, event_idx = target
+            # Add a delete action to the context menu
+            action = context_menu.addAction('Delete Event')  # type: ignore
+            action.triggered.connect(
+                partial(
+                    self.map_widget.undo_stack.push,
+                    RemoveEvent(self, event_type, event_idx),
+                )
+            )
+            context_menu.addSeparator()
+
+        assert self.map_widget.main_gui.project is not None, 'Project is None'
+        assert self.map_widget.main_gui.header is not None, 'Header is None'
+        for event_type in self.map_widget.main_gui.project.config['pymap']['header'][
+            'events'
+        ]:
+            # Create a submenu for each event type
+            submenu = context_menu.addMenu(f'Add {event_type["name"]}')
+
+            # Add a 'default' action to the submenu
+            action = submenu.addAction('Default')  # type: ignore
+            action.triggered.connect(
+                partial(
+                    self._add_default_event_at,
+                    event_type,
+                    x,
+                    y,
+                )
+            )
+
+        # Execute the context menu at the given position
+        context_menu.exec_(event.screenPos())
+
+    def _add_default_event_at(
+        self, event_type: PymapEventConfigType, x: int, y: int
+    ) -> ModelValue:
+        """Adds a new default event at the given position."""
+        item = AppendEvent(self, event_type)
+        padded_x, padded_y = self.map_widget.main_gui.get_border_padding()
+        set_member_by_path(item.event, x - padded_x, event_type['x_path'])
+        set_member_by_path(item.event, y - padded_y, event_type['y_path'])
+        event_idx = self.map_widget.main_gui.get_num_events(event_type)
+        self.map_widget.undo_stack.push(item)
+
+        tab = self.tabs[event_type['datatype']]
+        if self.tab_widget.currentWidget() != tab:
+            self.tab_widget.setCurrentWidget(tab)
+        if tab.idx_combobox.currentIndex() != event_idx:
+            tab.idx_combobox.setCurrentIndex(event_idx)
+
+        return item.event
 
     def map_scene_mouse_pressed_shift(self, x: int, y: int):
         """Event handler for pressing the mouse with the shift key pressed.
