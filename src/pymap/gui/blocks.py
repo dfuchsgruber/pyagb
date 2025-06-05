@@ -6,21 +6,24 @@ import numpy as np
 from numpy.typing import NDArray
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsPixmapItem,
 )
 
 from agb.model.type import ModelValue
+from pymap.gui.properties.utils import delete_member_by_path, set_member_by_path
 from pymap.gui.render import BlockImages, ndarray_to_QImage
 from pymap.gui.types import (
     Block,
     ConnectionType,
     RGBAImage,
     Tilemap,
-    UnpackedConnection,
 )
 from pymap.project import Project
 
 from . import properties
+
+CONNECTION_BLOCKS_PATH = ['blocks']
 
 
 def compute_blocks(footer: ModelValue, project: Project) -> Tilemap:
@@ -77,47 +80,9 @@ def compute_blocks(footer: ModelValue, project: Project) -> Tilemap:
     return blocks
 
 
-def filter_visible_connections(
-    connections: list[UnpackedConnection | None], keep_invisble: bool = False
-) -> list[UnpackedConnection | None]:
-    """Filters connections for visible and uniqueness in direction.
-
-    Only considers connection types 'north', 'south', 'east' and 'west'.
-
-    Parameters:
-    -----------
-    connections : list
-        A list of connections.
-    keep_invisible : bool
-        If True, each invisible connection (may it be to its type or invalid data)
-        is included as None into the array.
-
-    Returns:
-    --------
-    filtered : list
-        Filtered list of connections, only visible ones are included.
-    """
-    processed_directions: set[ConnectionType] = set()
-    filtered: list[UnpackedConnection | None] = []
-    for connection in connections:
-        if connection is not None:
-            if connection.type not in processed_directions and connection.type in (
-                ConnectionType.NORTH,
-                ConnectionType.SOUTH,
-                ConnectionType.EAST,
-                ConnectionType.WEST,
-            ):
-                processed_directions.add(connection.type)
-                filtered.append(connection)
-                continue
-        if keep_invisble:
-            filtered.append(None)
-    return filtered
-
-
 def insert_connection(
     blocks: Tilemap,
-    connection: UnpackedConnection | None,
+    connection: ModelValue,
     footer: ModelValue,
     project: Project,
 ):
@@ -136,8 +101,11 @@ def insert_connection(
     """
     if connection is None:
         return
-    offset = connection.offset
-    connection_blocks = connection.blocks
+    connection_type = connection_get_connection_type(connection, project)
+    if connection_type is None:
+        return
+    connection_offset = offset = connection_get_offset(connection, project)
+    connection_blocks = connection_get_blocks(connection, project)
     padded_width, padded_height = project.config['pymap']['display']['border_padding']
     map_width = properties.get_member_by_path(
         footer, project.config['pymap']['footer']['map_width_path']
@@ -149,25 +117,29 @@ def insert_connection(
     assert isinstance(map_height, int), f'Expected int, got {type(map_height)}'
     # Trim the connection if the displacement causes its origin to be out of
     # the visible borders
+
+    if connection_blocks is None or connection_offset is None or offset is None:
+        # The connection does not have any blocks
+        return
     if (
-        connection.type in (ConnectionType.NORTH, ConnectionType.SOUTH)
-        and padded_width + connection.offset < 0
+        connection_type in (ConnectionType.NORTH, ConnectionType.SOUTH)
+        and padded_width + connection_offset < 0
     ):
-        connection_blocks = connection.blocks[
-            :, -(padded_width + connection.offset) :, :
+        connection_blocks = connection_blocks[
+            :, -(padded_width + connection_offset) :, :
         ]
         offset = -padded_width
     elif (
-        connection.type in (ConnectionType.EAST, ConnectionType.WEST)
-        and padded_height + connection.offset < 0
+        connection_type in (ConnectionType.EAST, ConnectionType.WEST)
+        and padded_height + connection_offset < 0
     ):
-        connection_blocks = connection.blocks[
-            -(padded_height + connection.offset) :, :, :
+        connection_blocks = connection_blocks[
+            -(padded_height + connection_offset) :, :, :
         ]
         offset = -padded_height
 
     # Get the segment
-    match connection.type:
+    match connection_type:
         case ConnectionType.NORTH:
             segment = blocks[:padded_height, padded_width + offset :][::-1]
             visible = connection_blocks[::-1][: segment.shape[0], : segment.shape[1]]
@@ -188,58 +160,174 @@ def insert_connection(
             ...
 
 
-def unpack_connection(
+def connection_get_connection_type(
     connection: ModelValue,
     project: Project,
-    connection_blocks: Tilemap | None,
-) -> UnpackedConnection | None:
-    """Loads a connections data if possible.
+) -> ConnectionType | None:
+    """Returns the connection type of a connection.
+
+    Parameters:
+    -----------
+    connection : ModelValue
+        The connection to get the type from.
+    project : Project
+        The underlying pymap project.
 
     Returns:
     --------
-    connection_type : int
-        The connection type
-    offset : int
-        The connection offset
-    bank : str
-        The target bank
-    map_idx : str
-        The target map_idx
-    blocks : ndarray
-        The blocks of the connection
+    ConnectionType | None
+        The connection type or None if not found.
     """
     connection_type = properties.get_member_by_path(
         connection,
         project.config['pymap']['header']['connections']['connection_type_path'],
     )
-    assert isinstance(connection_type, str), (
-        f'Expected str, got {type(connection_type)}'
-    )
+    if isinstance(connection_type, int):
+        connection_type = str(connection_type)
+    try:
+        connection_type = str(int(str(connection_type), 0))
+    except ValueError:
+        pass
+    if not isinstance(connection_type, str):
+        # The connection type is not a valid string
+        return None
+    try:
+        return ConnectionType(
+            project.config['pymap']['header']['connections']['connection_types'].get(
+                connection_type, None
+            )
+        )
+    except ValueError:
+        # The connection type is not a valid enum value
+        return None
+
+
+def connection_get_offset(
+    connection: ModelValue,
+    project: Project,
+) -> int | None:
+    """Returns the offset of a connection.
+
+    Parameters:
+    -----------
+    connection : ModelValue
+        The connection to get the offset from.
+    project : Project
+        The underlying pymap project.
+
+    Returns:
+    --------
+    int | None
+        The offset or None if not found.
+    """
     offset = properties.get_member_by_path(
-        connection,  # type: ignore
+        connection,
         project.config['pymap']['header']['connections']['connection_offset_path'],
     )
     try:
         offset = int(str(offset), 0)
     except ValueError:
-        return None  # Non-integer offsets can not be rendered
+        return None
+    return offset
+
+
+def connection_get_bank(
+    connection: ModelValue,
+    project: Project,
+) -> str | int | None:
+    """Returns the bank of a connection.
+
+    Parameters:
+    -----------
+    connection : ModelValue
+        The connection to get the bank from.
+    project : Project
+        The underlying pymap project.
+
+    Returns:
+    --------
+    str | int | None
+        The bank or None if not found.
+    """
     bank = properties.get_member_by_path(
         connection,
         project.config['pymap']['header']['connections']['connection_bank_path'],
     )
     assert isinstance(bank, (str, int)), f'Expected str, got {type(bank)}'
+    return bank
+
+
+def connection_get_map_idx(
+    connection: ModelValue,
+    project: Project,
+) -> str | int | None:
+    """Returns the map index of a connection.
+
+    Parameters:
+    -----------
+    connection : ModelValue
+        The connection to get the map index from.
+    project : Project
+        The underlying pymap project.
+
+    Returns:
+    --------
+    str | int | None
+        The map index or None if not found.
+    """
     map_idx = properties.get_member_by_path(
         connection,
         project.config['pymap']['header']['connections']['connection_map_idx_path'],
     )
     assert isinstance(map_idx, (str, int)), f'Expected str, got {type(map_idx)}'
+    return map_idx
+
+
+def connection_get_blocks(
+    connection: ModelValue,
+    project: Project,
+) -> Tilemap | None:
+    """Returns the blocks of a connection.
+
+    Parameters:
+    -----------
+    connection : ModelValue
+        The connection to get the blocks from.
+    project : Project
+        The underlying pymap project.
+
+    Returns:
+    --------
+    Tilemap
+        The blocks.
+    """
     try:
-        connection_type = int(str(connection_type), 0)
-    except ValueError:
-        pass
-    connection_type = project.config['pymap']['header']['connections'][
-        'connection_types'
-    ].get(connection_type, None)
+        blocks = properties.get_member_by_path(
+            connection,
+            CONNECTION_BLOCKS_PATH,
+        )
+    except KeyError:
+        # The connection does not have any blocks
+        return None
+    assert isinstance(blocks, (list, np.ndarray)), (
+        f'Expected list or ndarray, got {type(blocks)}'
+    )
+    return cast(Tilemap, blocks)
+
+
+def unpack_connection(
+    connection: ModelValue,
+    project: Project,
+    connection_blocks: Tilemap | None = None,
+) -> ModelValue:
+    """Loads a connections data if possible.
+
+    Returns:
+    --------
+    connection: ModelValue
+        The connection data
+    """
+    connection_type = connection_get_connection_type(connection, project)
     if connection_type in (
         ConnectionType.NORTH,
         ConnectionType.SOUTH,
@@ -248,47 +336,71 @@ def unpack_connection(
     ):
         # Load the map blocks
         if connection_blocks is None:
-            header, _, _ = project.load_header(bank, map_idx)
-            if header is None:
-                return None
-            footer_label = properties.get_member_by_path(
-                header, project.config['pymap']['header']['footer_path']
-            )
-            assert isinstance(footer_label, str), (
-                f'Expected str, got {type(footer_label)}'
-            )
-            footer, _, _ = project.load_footer(footer_label)
-            connection_blocks_model = properties.get_member_by_path(
-                footer, project.config['pymap']['footer']['map_blocks_path']
-            )
-            assert isinstance(connection_blocks_model, list), (
-                f'Expected list, got {type(connection_blocks_model)}'
-            )
-            connection_blocks = blocks_to_ndarray(
-                cast(Sequence[Sequence[Block]], connection_blocks_model)  # type: ignore
-            )
+            bank = connection_get_bank(connection, project)
+            map_idx = connection_get_map_idx(connection, project)
+            if bank is not None and map_idx is not None:
+                header, _, _ = project.load_header(bank, map_idx)
+                if header is not None:
+                    footer_label = properties.get_member_by_path(
+                        header, project.config['pymap']['header']['footer_path']
+                    )
+                    assert isinstance(footer_label, str), (
+                        f'Expected str, got {type(footer_label)}'
+                    )
+                    footer, _, _ = project.load_footer(footer_label)
+                    connection_blocks_model = properties.get_member_by_path(
+                        footer, project.config['pymap']['footer']['map_blocks_path']
+                    )
+                    assert isinstance(connection_blocks_model, list), (
+                        f'Expected list, got {type(connection_blocks_model)}'
+                    )
+                    connection_blocks = blocks_to_ndarray(
+                        cast(Sequence[Sequence[Block]], connection_blocks_model)  # type: ignore
+                    )
         connection_blocks = cast(Tilemap, connection_blocks)
-        return UnpackedConnection(
-            type=connection_type,  # type: ignore
-            offset=offset,
-            bank=bank,
-            map_idx=map_idx,
-            blocks=connection_blocks,
+        set_member_by_path(
+            connection,
+            connection_blocks,
+            CONNECTION_BLOCKS_PATH,
         )
-    return None
+    return connection
 
 
 def unpack_connections(
     connections: ModelValue,
     project: Project,
     default_blocks: Tilemap | None = None,
-) -> list[UnpackedConnection | None]:
+) -> list[ModelValue]:
     """Unpacks a list of connections."""
     assert isinstance(connections, list), f'Expected list, got {type(connections)}'
     return [
         unpack_connection(connection, project, connection_blocks=default_blocks)
         for connection in connections
     ]
+
+
+def pack_connection(
+    connection: ModelValue,
+    project: Project,
+) -> ModelValue:
+    """Packs a connection into a serializable format."""
+    try:
+        delete_member_by_path(
+            connection,
+            CONNECTION_BLOCKS_PATH,
+        )
+    except KeyError:
+        # The connection does not have any blocks, so we can skip this step
+        pass
+    return connection
+
+
+def pack_connections(
+    connections: list[ModelValue],
+    project: Project,
+) -> list[ModelValue]:
+    """Packs a list of connections into a serializable format."""
+    return [pack_connection(connection, project) for connection in connections]
 
 
 def blocks_to_ndarray(blocks: Sequence[Sequence[Block]]) -> RGBAImage:
@@ -324,6 +436,7 @@ def block_idxs_to_pixmaps(
     for (y, x), block_idx in np.ndenumerate(block_idxs):
         pixmap = QPixmap.fromImage(ndarray_to_QImage(block_images[block_idx]))
         item = QGraphicsPixmapItem(pixmap)
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         item.setPos(x * 16, y * 16)
         result[y, x] = item
     return result

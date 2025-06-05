@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from agb.model.type import ModelContext, ModelValue
 from PySide6.QtWidgets import (
     QWidget,
 )
 
+from agb.model.type import ModelContext, ModelValue
 from pymap.gui.history import (
     ChangeConnectionProperty,
 )
@@ -18,27 +18,25 @@ from pymap.gui.history.statement import (
 from pymap.gui.properties.tree import ModelValueNotAvailableError, PropertiesTree
 
 if TYPE_CHECKING:
-    from .connection_widget import ConnectionWidget
+    from .connections import ConnectionsTab
 
 
 class ConnectionProperties(PropertiesTree):
     """Tree to display connection properties."""
 
-    def __init__(
-        self, connection_widget: ConnectionWidget, parent: QWidget | None = None
-    ):
+    def __init__(self, connections_tab: ConnectionsTab, parent: QWidget | None = None):
         """Initializes the event properties.
 
         Args:
-            connection_widget (ConnectionWidget): The connection widget.
+            connections_tab (ConnectionsTab): The connection widget.
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(
-            'connection_widget',
-            connection_widget.main_gui,
+            'connections_tab',
+            connections_tab.map_widget.main_gui,
             parent=parent,
         )
-        self.connection_widget = connection_widget
+        self.connections_tab = connections_tab
 
     @property
     def datatype(self) -> str:
@@ -47,10 +45,12 @@ class ConnectionProperties(PropertiesTree):
         Returns:
             str: The datatype.
         """
-        assert self.connection_widget.main_gui.project is not None, 'Project is None'
-        return self.connection_widget.main_gui.project.config['pymap']['header'][
-            'connections'
-        ]['datatype']
+        assert self.connections_tab.map_widget.main_gui.project is not None, (
+            'Project is None'
+        )
+        return self.connections_tab.map_widget.main_gui.project.config['pymap'][
+            'header'
+        ]['connections']['datatype']
 
     @property
     def model_value(self) -> ModelValue:
@@ -60,13 +60,13 @@ class ConnectionProperties(PropertiesTree):
             Any: The model value.
         """
         if (
-            not self.connection_widget.connection_loaded
-            or self.connection_widget.idx_combobox.currentIndex() < 0
+            not self.connections_tab.connection_loaded
+            or self.connections_tab.idx_combobox.currentIndex() < 0
         ):
             raise ModelValueNotAvailableError()
         else:
-            return self.connection_widget.main_gui.get_connections()[
-                self.connection_widget.idx_combobox.currentIndex()
+            return self.connections_tab.map_widget.main_gui.get_connections()[
+                self.connections_tab.idx_combobox.currentIndex()
             ]
 
     @property
@@ -76,8 +76,10 @@ class ConnectionProperties(PropertiesTree):
         Returns:
             ModelContext: The model context.
         """
-        assert self.connection_widget.main_gui.project is not None, 'Project is None'
-        return [self.connection_widget.idx_combobox.currentIndex()]
+        assert self.connections_tab.map_widget.main_gui.project is not None, (
+            'Project is None'
+        )
+        return [self.connections_tab.idx_combobox.currentIndex()]
 
     def value_changed(
         self, statements_redo: UndoRedoStatements, statements_undo: UndoRedoStatements
@@ -88,11 +90,11 @@ class ConnectionProperties(PropertiesTree):
             statements_redo (UndoRedoStatements): Redo statements.
             statements_undo (UndoRedoStatements): Undo statements.
         """
-        self.connection_widget.undo_stack.push(
+        self.connections_tab.map_widget.undo_stack.push(
             ChangeConnectionProperty(
-                self.connection_widget,
-                self.connection_widget.idx_combobox.currentIndex(),
-                self.connection_widget.mirror_offset.isChecked(),
+                self.connections_tab,
+                self.connections_tab.idx_combobox.currentIndex(),
+                self.connections_tab.mirror_offset.isChecked(),
                 statements_redo,
                 statements_undo,
             )

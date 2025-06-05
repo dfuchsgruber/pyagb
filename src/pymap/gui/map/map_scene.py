@@ -86,6 +86,17 @@ class MapScene(BaseMapScene):
             event, *map_coordinates
         )
 
+    def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent):
+        """Event handler for double clicking the mouse."""
+        if not self.map_widget.header_loaded:
+            return
+        map_coordinates = self.event_coordinates_to_padded_map_coordinates(event)
+        if map_coordinates is None:
+            return
+        self.map_widget.tabs.currentWidget().map_scene_mouse_double_clicked(
+            event, *map_coordinates
+        )
+
     # @Profile('MapScene:mouseMoveEvent')
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
         """Event handler for moving the mouse."""
@@ -98,14 +109,15 @@ class MapScene(BaseMapScene):
         if not self.map_widget.header_loaded:
             return
         map_coordinates = self.event_coordinates_to_padded_map_coordinates(event)
+        padded_width, padded_height = self.map_widget.main_gui.get_border_padding()
         if map_coordinates is None:
             info_text = ''
         else:
             info_text = self.map_widget.tabs.currentWidget().get_info_text_by_position(
                 *map_coordinates
             )
-        if info_text is not None:
-            self.map_widget.info_label.setText(info_text)
+            info_text = f'({x - padded_width}, {y - padded_height}): {info_text}'
+        self.map_widget.info_label.setText(info_text)
         if map_coordinates is not None:
             self.map_widget.tabs.currentWidget().map_scene_mouse_moved(
                 event, *map_coordinates

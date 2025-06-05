@@ -10,6 +10,7 @@ from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QSlider,
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pymap.gui.map_scene import MapScene
 from pymap.gui.types import Tilemap
 
 from ..blocks_like import BlocksLikeTab
@@ -82,6 +84,7 @@ class LevelsTab(BlocksLikeTab):
         item = QGraphicsPixmapItem(
             self.level_blocks_pixmap.scaled(4 * 16 * 2, 16 * 16 * 2)
         )
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.level_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         item.hoverLeaveEvent = lambda event: self.map_widget.info_label.setText('')
@@ -91,6 +94,16 @@ class LevelsTab(BlocksLikeTab):
     def connectivity_layer(self) -> int:
         """Returns the connectivity level."""
         return 1
+
+    @property
+    def visible_layers(self) -> MapScene.VisibleLayer:
+        """Get the visible layers."""
+        return (
+            MapScene.VisibleLayer.BLOCKS
+            | MapScene.VisibleLayer.CONNECTIONS
+            | MapScene.VisibleLayer.BORDER_EFFECT
+            | MapScene.VisibleLayer.LEVELS
+        )
 
     @property
     def selected_layers(self) -> Tilemap:
@@ -104,7 +117,7 @@ class LevelsTab(BlocksLikeTab):
         assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
         opacity = self.level_opacity_slider.sliderPosition()
         self.map_widget.main_gui.settings.setValue('map_widget/level_opacity', opacity)
-        self.map_widget.load_map()
+        self.map_widget.map_scene.update_level_image_opacity()
 
     def load_project(self) -> None:
         """Loads the project."""
@@ -124,6 +137,7 @@ class LevelsTab(BlocksLikeTab):
         # Levels selection
         for (y, x), level in np.ndenumerate(selection[:, :, 1]):
             item = QGraphicsPixmapItem(self.level_blocks_pixmaps[level])
+            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
             self.levels_selection_scene.addItem(item)
             item.setPos(16 * x, 16 * y)
         self.levels_selection_scene.setSceneRect(
@@ -132,5 +146,3 @@ class LevelsTab(BlocksLikeTab):
 
     def load_map(self):
         """Reloads the map image by using tiles of the map widget."""
-        self.map_widget.add_block_images_to_scene()
-        self.map_widget.add_level_images_to_scene()

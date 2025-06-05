@@ -11,7 +11,13 @@ import numpy.typing as npt
 from PySide6 import QtGui, QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QImage, QPen, QPixmap
-from PySide6.QtWidgets import QFileDialog, QGraphicsPixmapItem, QMessageBox, QSizePolicy
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QGraphicsItem,
+    QGraphicsPixmapItem,
+    QMessageBox,
+    QSizePolicy,
+)
 
 from agb import image as agbimage
 from agb.model.type import ModelValue
@@ -484,6 +490,8 @@ class TilesetWidget(QtWidgets.QWidget):
             width, height
         )
         item = QGraphicsPixmapItem(pixmap)
+
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.blocks_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         # Add the selection rectangle
@@ -525,6 +533,8 @@ class TilesetWidget(QtWidgets.QWidget):
                 width, height
             )
         )
+
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.tiles_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         # Add the selection rectangle
@@ -577,6 +587,8 @@ class TilesetWidget(QtWidgets.QWidget):
         item = QGraphicsPixmapItem(
             QPixmap.fromImage(QImage(ndarray_to_QImage(image))).scaled(width, height)
         )
+
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.selection_scene.addItem(item)
         item.setAcceptHoverEvents(True)
         self.selection_scene.setSceneRect(0, 0, width, height)
@@ -622,8 +634,13 @@ class TilesetWidget(QtWidgets.QWidget):
 
         assert self.main_gui.project is not None
         palette = (
-            render.pack_colors(palettes_primary)
-            + render.pack_colors(palettes_secondary)
+            np.concatenate(
+                (
+                    render.pack_colors(palettes_primary),
+                    render.pack_colors(palettes_secondary),
+                ),
+                axis=0,
+            )
         )[self.tiles_palette_combobox.currentIndex()]
 
         if message_box.clickedButton() == bt_primary:
@@ -690,7 +707,7 @@ class TilesetWidget(QtWidgets.QWidget):
                 tileset, config['behaviours_path'] + [self.selected_block_idx % 0x280]
             ),
         )
-        self.block_properties.set_value(empty)
+        self.block_properties.set_value(empty, block_signals=False)
 
     def import_palette(self):
         """Prompts a dialoge to select an image to import a palette from."""
@@ -715,7 +732,7 @@ class TilesetWidget(QtWidgets.QWidget):
         )
         self.main_gui.settings.setValue('palette/recent', path)
         _, palette = agbimage.from_file(path)
-        palette = palette.to_data()
+        palette = palette.resize(16).to_data()
         pal_idx = self.tiles_palette_combobox.currentIndex()
         palette_old = self.main_gui.get_tileset_palette(pal_idx)
         self.undo_stack.push(history.SetPalette(self, pal_idx, palette, palette_old))  # type: ignore

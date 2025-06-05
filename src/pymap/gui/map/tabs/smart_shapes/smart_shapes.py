@@ -8,6 +8,7 @@ import numpy as np
 from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGridLayout,
@@ -24,6 +25,7 @@ from pymap.gui.map.tabs.blocks_like import BlocksLikeTab
 from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
     smart_shape_get_block_image,
 )
+from pymap.gui.map_scene import MapScene
 from pymap.gui.smart_shape.smart_shape import SmartShape
 from pymap.gui.types import MapLayers, Tilemap
 
@@ -147,6 +149,16 @@ class SmartShapesTab(BlocksLikeTab):
         group_properties.setLayout(self.properties_layout)
         smart_shapes_layout.addWidget(group_properties)
         smart_shapes_layout.addStretch()
+
+    @property
+    def visible_layers(self) -> MapScene.VisibleLayer:
+        """Get the visible layers."""
+        return (
+            MapScene.VisibleLayer.BLOCKS
+            | MapScene.VisibleLayer.CONNECTIONS
+            | MapScene.VisibleLayer.BORDER_EFFECT
+            | MapScene.VisibleLayer.SMART_SHAPE
+        )
 
     @property
     def current_smart_shape_name(self) -> str:
@@ -300,6 +312,8 @@ class SmartShapesTab(BlocksLikeTab):
 
         for (y, x), block in np.ndenumerate(selection[:, :, 0]):
             item = QGraphicsPixmapItem(template.block_pixmaps[block])
+
+            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
             self.selection_scene.addItem(item)
             item.setPos(16 * x, 16 * y)  # 16 pixels per block
 
@@ -430,5 +444,3 @@ class SmartShapesTab(BlocksLikeTab):
 
     def load_map(self):
         """Loads the map image."""
-        self.map_widget.add_block_images_to_scene()
-        self.map_widget.add_smart_shape_images_to_scene()

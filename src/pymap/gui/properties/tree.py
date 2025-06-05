@@ -5,7 +5,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from pyqtgraph.parametertree.ParameterTree import ParameterTree  # type: ignore
+from pyqtgraph.parametertree.ParameterTree import (  # type: ignore
+    ParameterItem,  # type: ignore
+    ParameterTree,  # type: ignore
+)
+from pyqtgraph.widgets.TreeWidget import InvisibleRootItem  # type: ignore
 from PySide6.QtWidgets import (
     QHeaderView,
     QWidget,
@@ -18,6 +22,7 @@ from pymap.gui.history import (
     model_value_difference_to_undo_redo_statements,
 )
 from pymap.gui.history.statement import UndoRedoStatements
+from pymap.gui.properties.parameters.base import ModelParameterMixin
 
 _P = ParamSpec('_P')
 
@@ -108,7 +113,7 @@ class PropertiesTree(ParameterTree):
         raise NotImplementedError
 
     def load(self):
-        """Loads the currently displayed event."""
+        """Loads the currently displayed value."""
         self.clear()
         try:
             value = self.model_value
@@ -129,17 +134,21 @@ class PropertiesTree(ParameterTree):
             )
             self.addParameters(self.root, showTop=False)  # type: ignore
             self.root.sigTreeStateChanged.connect(self.tree_changed)  # type: ignore
+            self.updateItemsHidden()
 
     def update(self):  # type: ignore
         """Updates all values in the tree according to the current event."""
         assert self.root is not None, 'Root is None'
         self.set_value(self.model_value)
+        self.updateItemsHidden()
 
-    def set_value(self, value: ModelValue):
+    def set_value(self, value: ModelValue, block_signals: bool = True):
         """Replaces the entrie properties of the current block if one is selected."""
-        self.root.blockSignals(True)  # type: ignore
+        if block_signals:
+            self.root.blockSignals(True)  # type: ignore
         self.root.update(value)  # type: ignore
-        self.root.blockSignals(False)  # type: ignore
+        if block_signals:
+            self.root.blockSignals(False)  # type: ignore
 
     def tree_changed(self, changes: list[tuple[object, object, object]] | None):
         """Signal handler for when the tree changes.
@@ -149,8 +158,39 @@ class PropertiesTree(ParameterTree):
         """
         assert self.root is not None, 'Root is None'
         root = self.model_value
-        self.value_changed(
-            *model_value_difference_to_undo_redo_statements(
-                root, self.root.model_value
-            ),
+        statements_undo, statements_redo = (
+            model_value_difference_to_undo_redo_statements(root, self.root.model_value)
         )
+        if not statements_undo and not statements_redo:
+            # If there are no changes to the model value, we do not need to update
+            return
+        self.value_changed(statements_undo, statements_redo)
+        self.updateItemsHidden()
+
+    def updateItemsHidden(self, item: ParameterItem | InvisibleRootItem | None = None):
+        """Updates the visibility of items in the tree based on their parameters."""
+        if item is None:
+            item = self.invisibleRootItem()
+        else:
+            item.setDisabled(False)
+
+        disabled_names: list[str] = []
+        # Each parameter can provide some names of children that should be hidden based
+        # on its state.
+        param: ModelParameterMixin | None = getattr(item, 'param', None)
+        if param is not None:
+            disabled_names = param.children_names_disabled()
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child_param: ModelParameterMixin | None = getattr(child, 'param', None)
+            if child_param is not None:
+                if child_param.name() in disabled_names:
+                    child.setDisabled(True)
+                    child.setExpanded(False)
+                    child.setHidden(True)
+                    continue
+            if child.isHidden():
+                child.setExpanded(True)  # Expand previously hidden items
+            child.setDisabled(False)
+            child.setHidden(False)
+            self.updateItemsHidden(item.child(i))  # type: ignore

@@ -217,6 +217,7 @@ class SetTiles(QUndoCommand):
             blocks[self.block_idx % 0x280],
             self.tileset_widget.main_gui.tiles,
         )
+        self.tileset_widget.main_gui.map_widget.update_block_idx(self.block_idx)
         self.tileset_widget.load_blocks()
         if self.layer == 0:
             self.tileset_widget.block_lower_scene.update_block()

@@ -121,6 +121,32 @@ def set_member_by_path(
     target[path[-1]] = value  # type: ignore
 
 
+def delete_member_by_path(
+    _target: ModelValue,
+    path: AttributePathType,
+):
+    """Deletes the value of a structure by its path.
+
+    Parameters:
+    -----------
+    target : dict
+        The structure that holds the requested value
+    path : list
+        A path to access the attribute
+    """
+    target = _target
+    for edge in path[:-1]:
+        match _target:
+            case list() if isinstance(edge, int):
+                target: ModelValue = _target[edge]  # type: ignore
+            case dict() if isinstance(edge, (str)):
+                target: ModelValue = _target[edge]  # type: ignore
+            case _:  # type: ignore
+                raise RuntimeError(f'Unsupported edge type {type(edge)}')
+    assert isinstance(_target, (dict, list))
+    del target[path[-1]]  # type: ignore
+
+
 def get_parents_by_path(value: ModelValue, path: AttributePathType) -> ModelParents:
     """Builds the parents of an instance based on its path.
 

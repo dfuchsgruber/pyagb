@@ -8,6 +8,7 @@ import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsSceneMouseEvent,
@@ -68,6 +69,8 @@ class BlockScene(QGraphicsScene):
         item = QGraphicsPixmapItem(
             QPixmap.fromImage(ndarray_to_QImage(image).scaled(size, size))
         )
+
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.addItem(item)
         item.setAcceptHoverEvents(True)
         self.setSceneRect(0, 0, size, size)

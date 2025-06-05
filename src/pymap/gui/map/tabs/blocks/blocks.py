@@ -9,6 +9,8 @@ from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
+    QGraphicsItem,
+    QGraphicsItemGroup,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QSizePolicy,
@@ -18,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from pymap.gui import render
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
+from pymap.gui.map_scene import MapScene
 from pymap.gui.types import MapLayers, Tilemap
 
 from ..blocks_like import BlocksLikeTab
@@ -132,6 +135,15 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         return 0
 
     @property
+    def visible_layers(self) -> MapScene.VisibleLayer:
+        """Get the visible layers."""
+        return (
+            MapScene.VisibleLayer.BLOCKS
+            | MapScene.VisibleLayer.CONNECTIONS
+            | MapScene.VisibleLayer.BORDER_EFFECT
+        )
+
+    @property
     def selected_layers(self) -> MapLayers:
         """Returns the selected layers."""
         if self.select_levels.isChecked():
@@ -155,13 +167,20 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         map_blocks = self.map_widget.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
 
-        self.blocks_image = QPixmap.fromImage(
-            render.ndarray_to_QImage(render.draw_blocks(map_blocks))
-        )
-        item = QGraphicsPixmapItem(self.blocks_image)
-        self.blocks_scene.addItem(item)
-        item.setAcceptHoverEvents(True)
-        item.hoverLeaveEvent = lambda event: self.set_info_text('')
+        blocks_group = QGraphicsItemGroup()
+        block_pixmap_items: list[QGraphicsPixmapItem] = []
+        for (y, x), block_idx in np.ndenumerate(render.blocks_pool[..., 0]):
+            pixmap = QPixmap.fromImage(render.ndarray_to_QImage(map_blocks[block_idx]))
+            item = QGraphicsPixmapItem(pixmap)
+            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
+            item.setAcceptHoverEvents(True)
+            item.setPos(x * 16, y * 16)
+            blocks_group.addToGroup(item)
+            block_pixmap_items.append(item)
+        self.block_pixmap_items = np.array(block_pixmap_items, dtype=object)
+        self.blocks_scene.addItem(blocks_group)
+        blocks_group.setAcceptHoverEvents(True)
+        blocks_group.hoverLeaveEvent = lambda event: self.set_info_text('')
 
     def load_border(self):
         """Loads the border."""
@@ -171,15 +190,60 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         map_blocks = self.map_widget.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
         border_blocks = self.map_widget.main_gui.get_borders()
-        self.border_image = QPixmap.fromImage(
-            render.ndarray_to_QImage(
-                render.draw_blocks(map_blocks, border_blocks[..., 0])
-            )
-        )
-        self.border_scene.addPixmap(self.border_image)
+
+        border_group = QGraphicsItemGroup()
+        self.border_pixmap_items = np.empty_like(border_blocks[..., 0], dtype=object)
+        for (y, x), block_idx in np.ndenumerate(border_blocks[..., 0]):
+            pixmap = QPixmap.fromImage(render.ndarray_to_QImage(map_blocks[block_idx]))
+            item = QGraphicsPixmapItem(pixmap)
+            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
+            item.setPos(x * 16, y * 16)
+            border_group.addToGroup(item)
+            self.border_pixmap_items[y, x] = item
+        self.border_scene.addItem(border_group)
         self.border_scene.setSceneRect(
             0, 0, border_blocks.shape[1] * 16, border_blocks.shape[0] * 16
         )
+
+    def update_border_block_at(self, x: int, y: int):
+        """Updates the border block at the given position.
+
+        Args:
+            x (int): The x coordinate.
+            y (int): The y coordinate.
+        """
+        if not self.map_widget.main_gui.footer_loaded:
+            return
+        map_blocks = self.map_widget.main_gui.block_images
+        assert map_blocks is not None, 'Blocks are not loaded'
+        border_blocks = self.map_widget.main_gui.get_borders()
+        block_idx = border_blocks[y, x, 0]
+        pixmap = QPixmap.fromImage(render.ndarray_to_QImage(map_blocks[block_idx]))
+        item = self.border_pixmap_items[y, x]
+        if item.pixmap().cacheKey() != pixmap.cacheKey():
+            item.setPixmap(pixmap)
+
+    def update_block_idx(self, block_idx: int):
+        """Updates the block with a given index.
+
+        This redraws the block in the pool and in the border if it is shown.
+
+        Args:
+            block_idx (int): The index of the block to update.
+        """
+        super().update_block_idx(block_idx)
+        if not self.map_widget.main_gui.footer_loaded:
+            return
+        border_blocks = self.map_widget.main_gui.get_borders()
+        for y, x in zip(*np.where(border_blocks[..., 0] == block_idx)):
+            self.update_border_block_at(x, y)
+
+        map_blocks = self.map_widget.main_gui.block_images
+        assert map_blocks is not None, 'Blocks are not loaded'
+        pixmap = QPixmap.fromImage(render.ndarray_to_QImage(map_blocks[block_idx]))
+        item = self.block_pixmap_items[block_idx]
+        if item.pixmap().cacheKey() != pixmap.cacheKey():
+            item.setPixmap(pixmap)
 
     def set_selection(self, selection: Tilemap):
         """Sets the selection.
@@ -201,6 +265,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
             )
         )
         item = QGraphicsPixmapItem(selection_pixmap)
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.selection_scene.addItem(item)
         self.selection_scene.setSceneRect(
             0, 0, selection_pixmap.width(), selection_pixmap.height()
@@ -208,7 +273,6 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
 
     def load_map(self):
         """Reloads the map image by using tiles of the map widget."""
-        self.map_widget.add_block_images_to_scene()
 
     @property
     def main_gui(self) -> PymapGui:

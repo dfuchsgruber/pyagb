@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 import pyqtgraph.parametertree.parameterTypes as parameterTypes  # type: ignore
-from agb.model.type import ModelContext, ModelValue
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeyEvent, QKeySequence
 from PySide6.QtWidgets import QComboBox, QWidget
 
+from agb.model.type import ModelContext, ModelValue
 from pymap.gui.properties.parameters.base import ModelParameterMixin
 from pymap.project import Project
 
@@ -84,7 +84,7 @@ class ConstantParameterItem(parameterTypes.WidgetParameterItem):
 class ConstantsTypeParameter(ModelParameterMixin, parameterTypes.ListParameter):
     """Parameter for a field that is associated with constants."""
 
-    itemClass = ConstantParameterItem
+    itemClass = ConstantParameterItem  # type: ignore
 
     def __init__(
         self,

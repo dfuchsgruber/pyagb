@@ -201,7 +201,7 @@ class BlocksLikeTab(MapWidgetTab):
     @property
     def blocks(self) -> Tilemap | None:
         """The blocks."""
-        return self.map_widget.blocks
+        return self.map_widget.map_scene.blocks
 
     def set_blocks_at(self, x: int, y: int, layers: MapLayers, blocks: Tilemap):
         """Sets the blocks at the given position.

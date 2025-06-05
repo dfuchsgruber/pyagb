@@ -9,6 +9,7 @@ from PySide6.QtGui import QKeyEvent, QKeySequence, QPixmap
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import (
     QDialog,
+    QGraphicsItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsView,
@@ -118,6 +119,7 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
             render.ndarray_to_QImage(render.draw_blocks(map_blocks, self.selection))
         )
         item = QGraphicsPixmapItem(selection_pixmap)
+        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.selection_scene.addItem(item)
         self.selection_scene.setSceneRect(
             0, 0, selection_pixmap.width(), selection_pixmap.height()
@@ -157,7 +159,9 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
             pixmap = QPixmap.fromImage(
                 render.ndarray_to_QImage(self.main_gui.block_images[block_idx])
             )
-            self.shape_block_images[yy + y, xx + x].setPixmap(pixmap)
+            item = self.shape_block_images[yy + y, xx + x]
+            if item.pixmap().cacheKey() != pixmap.cacheKey():
+                item.setPixmap(pixmap)
 
     def set_shape_blocks(self, x: int, y: int, blocks: Tilemap) -> None:
         """Sets the blocks of the shape.

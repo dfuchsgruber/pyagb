@@ -7,10 +7,11 @@ import json
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict, cast
 
 import agb.string.agbstring
 from agb import image
+from pymap.backend import ProjectBackend
 from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 from pymap.gui.smart_shape.smart_shape import SerializedSmartShape
 from pymap.gui.smart_shape.template.default_templates import (
@@ -79,9 +80,10 @@ class Project:
             self.constants = constants.Constants({})
             self.config: ConfigType = configuration.default_configuration.copy()
             self.smart_shape_templates = get_default_smart_shape_templates()
+            self.backend: ProjectBackend = ProjectBackend(self)
         else:
-            self.from_file(file_path)
             self.path = file_path
+            self.from_file(file_path)
 
         # Initialize models
         import pymap.model.model
@@ -116,8 +118,9 @@ class Project:
         """Changes the working directory to the project directory."""
         assert self.path is not None, 'Project path is not initialized'
         assert self._project_dir is not None, 'Project directory is not initialized'
-        with working_dir(self._project_dir) as path:
-            yield path
+        yield self._project_dir
+        # with working_dir(self._project_dir) as path:
+        #     yield path
 
     def from_file(self, file_path: str | Path):
         """Initializes the project from a json file.
@@ -157,6 +160,20 @@ class Project:
         self.config = configuration.get_configuration(str(file_path) + '.config')
         self.smart_shape_templates = get_default_smart_shape_templates()
 
+        # Load backend
+        backend_path = self.config['backend']
+        if backend_path is None:
+            self.backend = ProjectBackend(self)
+        else:
+            with self.project_dir():
+                with open(Path(backend_path)) as f:
+                    namespace: dict[str, object] = {}
+                    exec(f.read(), namespace)
+                    self.backend = cast(
+                        ProjectBackend,
+                        namespace['backend_cls'](self),  # type: ignore
+                    )
+
     def autosave(self):
         """Saves the project if it is stated in the configuration."""
         if self.config['pymap']['project']['autosave']:
@@ -184,7 +201,7 @@ class Project:
         self.path = file_path
 
     def load_header(
-        self, bank: int | str, map_idx: int | str
+        self, bank: int | str, map_idx: int | str, unpack_connections: bool = False
     ) -> tuple[ModelValue, str | None, str | None]:
         """Opens a header by its location in the table and verifies label and type.
 
@@ -196,6 +213,9 @@ class Project:
         map_idx : int or str
             The map index in the bank. If it is an integer or integer string, it is
             converted into its "canonical" form.
+        unpack_connections : bool
+            If the connections should be unpacked, i.e. if the blocks of
+            connections should also be loaded.
 
         Returns:
         --------
@@ -239,7 +259,28 @@ class Project:
                     f'Header {bank}.{map_idx} namespace mismatches '
                     'the namespaces stored in the project file'
                 )
-                return header['data'], label, namespace
+                data = header['data']
+                if unpack_connections:
+                    from pymap.gui.blocks import (
+                        unpack_connections as _unpack_connections,
+                    )
+
+                    connections = get_member_by_path(
+                        data,
+                        self.config['pymap']['header']['connections'][
+                            'connections_path'
+                        ],
+                    )
+                    unpacked_connections = _unpack_connections(connections, self)
+                    set_member_by_path(
+                        data,
+                        unpacked_connections,
+                        self.config['pymap']['header']['connections'][
+                            'connections_path'
+                        ],
+                    )
+
+                return data, label, namespace
             else:
                 return None, None, None
 
@@ -388,7 +429,13 @@ class Project:
         else:
             raise RuntimeError(f'Header [{bank}, {map_idx.zfill(2)}] not existent.')
 
-    def save_header(self, header: ModelValue, bank: str | int, map_idx: str | int):
+    def save_header(
+        self,
+        header: ModelValue,
+        bank: str | int,
+        map_idx: str | int,
+        pack_connections: bool = False,
+    ):
         """Saves a header.
 
         Parameters:
@@ -410,6 +457,29 @@ class Project:
                 assert path is not None, (
                     f'Path to header [{bank}, {map_idx.zfill(2)}] is not initialized'
                 )
+                if pack_connections:
+                    from pymap.gui.blocks import (
+                        pack_connections as _pack_connections,
+                    )
+
+                    header = deepcopy(header)
+                    connections = get_member_by_path(
+                        header,
+                        self.config['pymap']['header']['connections'][
+                            'connections_path'
+                        ],
+                    )
+                    assert isinstance(connections, list), (
+                        'Connections are not a list, cannot pack them'
+                    )
+                    set_member_by_path(
+                        header,
+                        _pack_connections(connections, self),
+                        self.config['pymap']['header']['connections'][
+                            'connections_path'
+                        ],
+                    )
+
                 with open(
                     Path(path), 'w+', encoding=self.config['json']['encoding']
                 ) as f:

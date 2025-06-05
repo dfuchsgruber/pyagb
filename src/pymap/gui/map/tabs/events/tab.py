@@ -2,29 +2,26 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, SupportsInt
+from typing import TYPE_CHECKING, SupportsInt
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QComboBox,
-    QGraphicsItemGroup,
     QGridLayout,
     QMessageBox,
     QPushButton,
     QWidget,
 )
 
-from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
 from pymap.gui import properties
 from pymap.gui.icon import Icon, icon_paths
 
-from ..history import AppendEvent, RemoveEvent
-from .group import EventGroupImage, EventGroupRectangular
+from ....history import AppendEvent, RemoveEvent
 from .properties import EventProperties
 
 if TYPE_CHECKING:
-    from .event_widget import EventWidget
+    from .events_tab import EventsTab
 
 
 class EventTab(QWidget):
@@ -32,19 +29,21 @@ class EventTab(QWidget):
 
     def __init__(
         self,
-        event_widget: EventWidget,
+        events_tab: EventsTab,
+        event_name: str,
         event_type: PymapEventConfigType,
         parent: QWidget | None = None,
     ):
         """Initializes the event tab.
 
         Args:
-            event_widget (EventWidget): The event widget.
+            events_tab (EventWidget): The event widget.
+            event_name (str): The name of the event.
             event_type (PymapEventConfigType): The event type.
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
-        self.event_widget = event_widget
+        self.events_tab = events_tab
         self.event_type = event_type
 
         layout = QGridLayout()
@@ -62,7 +61,7 @@ class EventTab(QWidget):
         self.remove_button.clicked.connect(self.remove_current_event)
 
         layout.addWidget(self.remove_button, 1, 3)
-        self.event_properties = EventProperties(self)
+        self.event_properties = EventProperties(self, event_name)
         layout.addWidget(self.event_properties, 2, 1, 1, 3)
         if event_type.get('goto_header_button_button_enabled', False):
             self.goto_header_button = QPushButton('Go to target header')
@@ -74,44 +73,57 @@ class EventTab(QWidget):
         layout.setColumnStretch(3, 0)
         self.idx_combobox.currentIndexChanged.connect(self.select_event)
 
+    def _sanitize_event_idx(self, event_idx: int) -> int:
+        """Sanitizes an event index.
+
+        Args:
+            event_idx (int): The event index.
+
+        Returns:
+            int: The sanitized event index.
+        """
+        if (
+            self.events_tab.map_widget.main_gui.project is None
+            or self.events_tab.map_widget.main_gui.header is None
+        ):
+            return -1
+        number_events = properties.get_member_by_path(
+            self.events_tab.map_widget.main_gui.header, self.event_type['size_path']
+        )
+        assert isinstance(number_events, SupportsInt)
+        number_events = int(number_events)
+
+        # If -1 is selcted, select first, but never select a no more present event
+        return min(number_events - 1, max(0, event_idx))
+
     def select_event(self):
         """Selects the event of the current index."""
-        self.event_widget.map_scene.update_selection()
         self.event_properties.load()
+        self.events_tab.map_widget.map_scene.update_selected_event_image(
+            self.event_type, self._sanitize_event_idx(self.idx_combobox.currentIndex())
+        )
 
     def load_events(self):
         """Updates the events according to the model."""
         self.event_properties.clear()
         if (
-            self.event_widget.main_gui.project is None
-            or self.event_widget.main_gui.header is None
+            self.events_tab.map_widget.main_gui.project is None
+            or self.events_tab.map_widget.main_gui.header is None
         ):
             self.idx_combobox.blockSignals(True)
             self.idx_combobox.clear()
             self.idx_combobox.blockSignals(False)
         else:
             # Load events
-            events = self.event_widget.main_gui.get_events(self.event_type)
+            events = self.events_tab.map_widget.main_gui.get_events(self.event_type)
             assert isinstance(events, list)
-            for event in events:
-                group = self.event_to_group(event)
-
-                self.event_widget.map_scene.event_groups[
-                    self.event_type['datatype']
-                ].append(group)
-
-                self.event_widget.map_scene.addItem(group)
 
             number_events = properties.get_member_by_path(
-                self.event_widget.main_gui.header, self.event_type['size_path']
+                self.events_tab.map_widget.main_gui.header, self.event_type['size_path']
             )
             assert isinstance(number_events, SupportsInt)
             number_events = int(number_events)
-
-            # If -1 is selcted, select first, but never select a no more present event
-            current_idx = min(
-                number_events - 1, max(0, self.idx_combobox.currentIndex())
-            )
+            current_idx = self._sanitize_event_idx(self.idx_combobox.currentIndex())
 
             self.idx_combobox.blockSignals(True)
             self.idx_combobox.clear()
@@ -129,27 +141,27 @@ class EventTab(QWidget):
     def remove_event(self, event_idx: int):
         """Removes an event."""
         if (
-            self.event_widget.main_gui.project is None
-            or self.event_widget.main_gui.header is None
+            self.events_tab.map_widget.main_gui.project is None
+            or self.events_tab.map_widget.main_gui.header is None
         ):
             return
 
         if event_idx < 0:
             return
 
-        self.event_widget.undo_stack.push(
-            RemoveEvent(self.event_widget, self.event_type, event_idx)
+        self.events_tab.map_widget.undo_stack.push(
+            RemoveEvent(self.events_tab, self.event_type, event_idx)
         )
 
     def append_event(self):
         """Appends a new event."""
         if (
-            self.event_widget.main_gui.project is None
-            or self.event_widget.main_gui.header is None
+            self.events_tab.map_widget.main_gui.project is None
+            or self.events_tab.map_widget.main_gui.header is None
         ):
             return
-        self.event_widget.undo_stack.push(
-            AppendEvent(self.event_widget, self.event_type)
+        self.events_tab.map_widget.undo_stack.push(
+            AppendEvent(self.events_tab, self.event_type)
         )
 
     def goto_current_header(self):
@@ -159,13 +171,15 @@ class EventTab(QWidget):
     def goto_header(self, event_idx: int):
         """Goes to a new header associated with an event."""
         if (
-            self.event_widget.main_gui.project is None
-            or self.event_widget.main_gui.header is None
+            self.events_tab.map_widget.main_gui.project is None
+            or self.events_tab.map_widget.main_gui.header is None
             or event_idx < 0
         ):
             return
 
-        event = self.event_widget.main_gui.get_event(self.event_type, event_idx)
+        event = self.events_tab.map_widget.main_gui.get_event(
+            self.event_type, event_idx
+        )
         assert 'target_bank_path' in self.event_type, (
             'target_bank_path not found in event_type'
         )
@@ -189,7 +203,7 @@ class EventTab(QWidget):
             0,
         )
         try:
-            self.event_widget.main_gui.open_header(
+            self.events_tab.map_widget.main_gui.open_header(
                 str(target_bank), str(target_map_idx)
             )
 
@@ -201,70 +215,19 @@ class EventTab(QWidget):
                 f'Key {e.args[0]} was not found.',
             )
 
-        # If possible, navigate to the appropriate warp
-        # AT this point, the current widget should have updated all its
-        # values to fit the new open header
-
+        # If possible, we also want to select the appropriate warp.#
+        # TODO: this is probably only a semi-good idea, it assumes that again
+        # we are directed to the warps tab
         number_events = properties.get_member_by_path(
-            self.event_widget.main_gui.header, self.event_type['size_path']
+            self.events_tab.map_widget.main_gui.header, self.event_type['size_path']
         )
         assert isinstance(number_events, SupportsInt)
         number_events = int(number_events)
 
-        current_idx = min(
-            number_events - 1, max(0, target_warp_idx)
-        )  # If -1 is selcted, select first, but never select a no more present event
-
+        current_idx = self._sanitize_event_idx(target_warp_idx)
         self.idx_combobox.blockSignals(True)
         self.idx_combobox.setCurrentIndex(current_idx)
         # We want select event to be triggered even if the current idx is -1 in
         # order to clear the properties
         self.select_event()
         self.idx_combobox.blockSignals(False)
-
-    def event_to_group(self, event: ModelValue) -> QGraphicsItemGroup:
-        """Converts an event to a group.
-
-        Args:
-            event (ModelValue): The event.
-
-        Returns:
-            QGraphicsItemGroup: The group.
-        """
-        padded_x, padded_y = self.event_widget.main_gui.get_border_padding()
-        x, y = pad_coordinates(
-            properties.get_member_by_path(event, self.event_type['x_path']),
-            properties.get_member_by_path(event, self.event_type['y_path']),
-            padded_x,
-            padded_y,
-        )
-
-        # Try to get an image
-        assert self.event_widget.main_gui.project is not None
-        image = self.event_widget.event_to_image.event_to_image(
-            event, self.event_type, self.event_widget.main_gui.project
-        )
-        if image is None or not self.event_widget.main_gui.settings.value(
-            'event_widget/show_pictures', True, bool
-        ):
-            # Per default, use a rectangular group
-            group = EventGroupRectangular(self.event_widget.map_scene, self.event_type)
-            group.alignWithPosition(x, y)
-        else:
-            group = EventGroupImage(self.event_widget.map_scene, *image)
-            group.alignWithPosition(x, y)
-        return group
-
-
-def pad_coordinates(x: Any, y: Any, padded_x: int, padded_y: int) -> tuple[int, int]:
-    """Tries to transform the text string of an event to integer coordinates."""
-    x, y = str(x), str(y)  # This enables arbitrary bases
-    try:
-        x = int(x, 0)
-        y = int(y, 0)
-    except ValueError:
-        return (
-            -10000,
-            -10000,
-        )  # This is hacky but prevents the events from being rendered
-    return 16 * (x + padded_x), 16 * (y + padded_y)

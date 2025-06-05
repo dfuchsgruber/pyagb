@@ -15,6 +15,7 @@ from pymap.gui.types import MapLayers, Tilemap
 from ..level import level_to_info
 
 if TYPE_CHECKING:
+    from ..map_scene import MapScene
     from ..map_widget import MapWidget
 
 
@@ -50,6 +51,17 @@ class MapWidgetTab(QWidget):
         """
         raise NotImplementedError
 
+    def update_block_idx(self, block_idx: int) -> None:
+        """Update the block index."""
+        """This method is a placeholder and should be overridden in subclasses."""
+        pass
+
+    @property
+    @abstractmethod
+    def visible_layers(self) -> MapScene.VisibleLayer:
+        """Get the visible layers."""
+        raise NotImplementedError
+
     @abstractmethod
     def set_selection(self, selection: Tilemap) -> None:
         """Set the selection."""
@@ -76,10 +88,16 @@ class MapWidgetTab(QWidget):
         """Event handler for releasing the mouse."""
         raise NotImplementedError
 
+    def map_scene_mouse_double_clicked(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
+        """Event handler for double clicking the mouse."""
+        ...
+
     def get_info_text_by_position(self, x: int, y: int) -> str | None:
         """Get the information text for the position."""
         if not self.map_widget.header_loaded:
             return None
-        assert self.map_widget.blocks is not None, 'Blocks are not loaded'
-        block, level = self.map_widget.blocks[y, x]
-        return f'Block: {hex(block)}, Level: {hex(block)}({level_to_info(level)})'
+        assert self.map_widget.map_scene.blocks is not None, 'Blocks are not loaded'
+        block, level = self.map_widget.map_scene.blocks[y, x]
+        return f'Block: {hex(block)}, Level: {hex(level)}({level_to_info(level)})'
