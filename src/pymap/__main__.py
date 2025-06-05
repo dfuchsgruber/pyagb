@@ -81,7 +81,7 @@ def pymap_export_constants_cli():
         '-t',
         '--filetype',
         dest='file_type',
-        help='Filetype,' ' either c or asm. Default: infered',
+        help='Filetype, either c or asm. Default: infered',
         default=None,
     )
     args = parser.parse_args()
@@ -131,7 +131,7 @@ def bin2s_cli():
     from pathlib import Path
 
     parser = argparse.ArgumentParser(
-        description='Converts a binary file to an ' 'assembly file.'
+        description='Converts a binary file to an assembly file.'
     )
     parser.add_argument('input', help='Path to the input file.')
     parser.add_argument('-o', dest='output', help='Path to the output file.')
@@ -155,11 +155,10 @@ def bin2s_cli():
 def pypreproc_cli():
     """Entry point for the pypreproc script."""
     import agb.string.compile
-
     import pymap.project
 
     parser = argparse.ArgumentParser(
-        description='Preprocesses an assembly or ' 'C(++) file.'
+        description='Preprocesses an assembly or C(++) file.'
     )
     parser.add_argument('input', help='Path to the input file.')
     parser.add_argument('project', help='Path to the project file.')
@@ -167,7 +166,7 @@ def pypreproc_cli():
     parser.add_argument(
         '--filetype',
         dest='file_type',
-        help='Filetype, either ' 'c or asm. Default: infered',
+        help='Filetype, either c or asm. Default: infered',
         default=None,
     )
     args = parser.parse_args()
