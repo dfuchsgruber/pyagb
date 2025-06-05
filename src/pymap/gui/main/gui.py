@@ -332,7 +332,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
         os.chdir(path.parent)
         self.project_path: Path | None = path
         self.settings.setValue('project/recent', str(path.absolute()))
-        self.project = Project(path)
+        self.project = Project(path, with_gui=True)
         self.resource_tree.load_project()
         self.map_widget.load_project()
         self.footer_widget.load()

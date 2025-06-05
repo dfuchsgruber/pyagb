@@ -60,13 +60,15 @@ GfxsType = dict[str, str]
 class Project:
     """Represents the central project structure and handles maps, tilesets, gfx..."""
 
-    def __init__(self, file_path: str | None | Path):
+    def __init__(self, file_path: str | None | Path, with_gui: bool = False):
         """Initializes the project.
 
         Parameters:
         -----------
         file_path : string or None
             The project file path or None (empty project).
+        with_gui : bool
+            If a GUI is present and the project needs to load UI elements.
         """
         if file_path is None:
             # Initialize empty project
@@ -79,7 +81,10 @@ class Project:
             self.gfxs_secondary: GfxsType = {}
             self.constants = constants.Constants({})
             self.config: ConfigType = configuration.default_configuration.copy()
-            self.smart_shape_templates = get_default_smart_shape_templates()
+            if with_gui:
+                self.smart_shape_templates = get_default_smart_shape_templates()
+            else:
+                self.smart_shape_templates = {}
             self.backend: ProjectBackend = ProjectBackend(self)
         else:
             self.path = file_path
