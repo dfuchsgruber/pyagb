@@ -4,32 +4,73 @@ import json
 from pathlib import Path
 from typing import Any, NamedTuple, Sequence, TypeAlias, TypedDict
 
+from agb.model.type import ModelContext, ModelValue
 from pymap.gui.types import ConnectionType
 
 AttributePathType: TypeAlias = Sequence[str | int]
-Pymap2sIncludeConfigType = TypedDict('Pymap2sIncludeConfigType', directive=str)
-Pymap2sConfigType = TypedDict('Pymap2sConfigType', include=Pymap2sIncludeConfigType)
-JsonConfigType = TypedDict('JsonConfigType', indent=str, encoding=str)
-RomConfigType = TypedDict('RomConfigType', offset=int)
-StringAsDirectivesConfigType = TypedDict(
-    'StringAsDirectivesConfigType', std=str, auto=str, padded=str
-)
-StringAsConfigType = TypedDict(
-    'StringAsConfigType', directives=StringAsDirectivesConfigType
-)
-StringCConfigType = TypedDict('StringCConfigType', macro=str)
+
+
+class Pymap2sIncludeConfigType(TypedDict):
+    """Configuration for pymap2s include directive."""
+
+    directive: str
+
+
+class Pymap2sConfigType(TypedDict):
+    """Configuration for pymap2s assembler."""
+
+    include: Pymap2sIncludeConfigType
+
+
+class JsonConfigType(TypedDict):
+    """Configuration for json files."""
+
+    indent: str
+    encoding: str
+
+
+class RomConfigType(TypedDict):
+    """Configuration for rom files."""
+
+    offset: int
+
+
+class StringAsDirectivesConfigType(TypedDict):
+    """Configuration for string assembly directives."""
+
+    std: str
+    auto: str
+    padded: str
+
+
+class StringAsConfigType(TypedDict):
+    """Configuration for string assembly."""
+
+    directives: StringAsDirectivesConfigType
+
+
+class StringCConfigType(TypedDict):
+    """Configuration for string C macro."""
+
+    macro: str
+
+
 # for each parameter, how many bytes it consumes
 StringCharactersControlCodeType: TypeAlias = dict[int, int]
-StringCharactersConfigType = TypedDict(
-    'StringCharactersConfigType',
-    newline=int,
-    scroll=int,
-    paragraph=int,
-    buffers=list[int],
-    control_codes=dict[int, StringCharactersControlCodeType],
-    delimiters=list[int],
-    max_buffer_size=int,
-)
+
+
+class StringCharactersConfigType(TypedDict):
+    """Configuration for string characters."""
+
+    newline: int
+    scroll: int
+    paragraph: int
+    buffers: list[int]
+    control_codes: dict[int, StringCharactersControlCodeType]
+    delimiters: list[int]
+    max_buffer_size: int
+
+
 StringConfigType = TypedDict(
     'StringConfigType',
     {
@@ -40,59 +81,73 @@ StringConfigType = TypedDict(
         'characters': StringCharactersConfigType,
     },
 )
-PymapTilesetPrimaryConfigType = TypedDict(
-    'PymapTilesetPrimaryConfigType',
-    palettes_path=list[str],
-    gfx_path=AttributePathType,
-    blocks_path=list[str],
-    block_datatype=str,
-    datatype=str,
-    behaviours_path=list[str],
-    behaviour_datatype=str,
-    gfx_compressed_path=AttributePathType,
-    animation_path=list[str],
-)
-PymapTilesetSecondaryConfigType = TypedDict(
-    'PymapTilesetSecondaryConfigType',
-    palettes_path=list[str],
-    gfx_path=AttributePathType,
-    blocks_path=list[str],
-    block_datatype=str,
-    datatype=str,
-    behaviours_path=list[str],
-    behaviour_datatype=str,
-    gfx_compressed_path=AttributePathType,
-    animation_path=list[str],
-)
-PymapFooterConfigType = TypedDict(
-    'PymapFooterConfigType',
-    map_width_path=list[str],
-    map_height_path=list[str],
-    map_blocks_path=list[str],
-    border_width_path=list[str],
-    border_height_path=list[str],
-    border_path=list[str],
-    tileset_primary_path=AttributePathType,
-    tileset_secondary_path=AttributePathType,
-    datatype=str,
-    map_width_max=int,
-    map_height_max=int,
-    border_width_max=int,
-    border_height_max=int,
-)
+
+
+class PymapTilesetPrimaryConfigType(TypedDict):
+    """Configuration for primary tileset in pymap."""
+
+    palettes_path: ModelContext
+    gfx_path: AttributePathType
+    blocks_path: ModelContext
+    block_datatype: str
+    datatype: str
+    behaviours_path: ModelContext
+    behaviour_datatype: str
+    gfx_compressed_path: AttributePathType
+    animation_path: ModelContext
+
+
+class PymapTilesetSecondaryConfigType(TypedDict):
+    """Configuration for secondary tileset in pymap."""
+
+    palettes_path: ModelContext
+    gfx_path: AttributePathType
+    blocks_path: ModelContext
+    block_datatype: str
+    datatype: str
+    behaviours_path: ModelContext
+    behaviour_datatype: str
+    gfx_compressed_path: AttributePathType
+    animation_path: ModelContext
+
+
+class PymapFooterConfigType(TypedDict):
+    """Configuration for pymap footer."""
+
+    map_width_path: ModelContext
+    map_height_path: ModelContext
+    map_blocks_path: ModelContext
+    border_width_path: ModelContext
+    border_height_path: ModelContext
+    border_path: ModelContext
+    tileset_primary_path: AttributePathType
+    tileset_secondary_path: AttributePathType
+    datatype: str
+    map_width_max: int
+    map_height_max: int
+    border_width_max: int
+    border_height_max: int
+
+
+class PymapEventTemplateConfigType(TypedDict):
+    """Configuration for templates for an event type."""
+
+
+EventTemplateType: TypeAlias = Sequence[tuple[ModelContext, ModelValue]]
 
 
 class PymapEventConfigType(TypedDict):
     """Configuration for an event type."""
 
-    name: str
     datatype: str
-    size_path: list[str]
-    events_path: list[str]
+    display_letter: str
+    size_path: ModelContext
+    events_path: ModelContext
     box_color: list[float]
     text_color: list[float]
-    x_path: list[str]
-    y_path: list[str]
+    x_path: ModelContext
+    y_path: ModelContext
+    templates: dict[str, EventTemplateType]
 
 
 class PymapEventPersonConfigType(PymapEventConfigType):
@@ -116,60 +171,80 @@ class PymapEventTriggerConfigType(PymapEventConfigType):
     """Trigger event type configuration."""
 
 
-PymapConnectionConnectionConfigType = TypedDict(
-    'PymapConnectionConnectionConfigType',
-    connections_path=list[str],
-    connections_size_path=list[str],
-    connection_types=dict[int | str, str],
-    connection_type_path=list[str],
-    connection_offset_path=list[str],
-    connection_bank_path=list[str],
-    connection_map_idx_path=list[str],
-    datatype=str,
-)
-PymapHeaderConfigType = TypedDict(
-    'PymapHeaderConfigType',
-    namespace_constants=None | str,
-    datatype=str,
-    namespace_path=AttributePathType,
-    footer_path=AttributePathType,
-    footer_idx_path=list[str | int],
-    events=list[PymapEventConfigType],
-    connections=PymapConnectionConnectionConfigType,
-)
-PymapProjectConfigType = TypedDict('PymapProjectConfigType', autosave=bool)
-PymapColorType = NamedTuple(
-    'PymapColorType', [('r', float), ('g', float), ('b', float), ('a', float)]
-)
-PymapDisplayConfigType = TypedDict(
-    'PymapDisplayConfigType',
-    border_padding=list[int],
-    border_color=list[float],
-    event_to_image_backend=None,
-    connection_color=PymapColorType,
-    connection_active_color=PymapColorType,
-    connection_border_color=PymapColorType,
-    connection_active_border_color=PymapColorType,
-    smart_shape_blocks_per_row=int,
-)
-PymapConfigType = TypedDict(
-    'PymapConfigType',
-    tileset_primary=PymapTilesetPrimaryConfigType,
-    tileset_secondary=PymapTilesetSecondaryConfigType,
-    footer=PymapFooterConfigType,
-    header=PymapHeaderConfigType,
-    project=PymapProjectConfigType,
-    display=PymapDisplayConfigType,
-)
-ConfigType = TypedDict(
-    'ConfigType',
-    pymap2s=Pymap2sConfigType,
-    model=list[str],
-    json=JsonConfigType,
-    rom=RomConfigType,
-    string=StringConfigType,
-    pymap=PymapConfigType,
-)
+class PymapConnectionConnectionConfigType(TypedDict):
+    """Configuration for connections in pymap."""
+
+    connections_path: ModelContext
+    connections_size_path: ModelContext
+    connection_types: dict[int | str, str]
+    connection_type_path: ModelContext
+    connection_offset_path: ModelContext
+    connection_bank_path: ModelContext
+    connection_map_idx_path: ModelContext
+    datatype: str
+
+
+class PymapHeaderConfigType(TypedDict):
+    """Configuration for pymap header."""
+
+    namespace_constants: None | str
+    datatype: str
+    namespace_path: AttributePathType
+    footer_path: AttributePathType
+    footer_idx_path: list[str | int]
+    events: dict[str, PymapEventConfigType]
+    connections: PymapConnectionConnectionConfigType
+
+
+class PymapProjectConfigType(TypedDict):
+    """Configuration for pymap project."""
+
+    autosave: bool
+
+
+class PymapColorType(NamedTuple):
+    """RGBA color type for pymap."""
+
+    r: float
+    g: float
+    b: float
+    a: float
+
+
+class PymapDisplayConfigType(TypedDict):
+    """Configuration for pymap display."""
+
+    border_padding: list[int]
+    border_color: list[float]
+    connection_color: PymapColorType
+    connection_active_color: PymapColorType
+    connection_border_color: PymapColorType
+    connection_active_border_color: PymapColorType
+    smart_shape_blocks_per_row: int
+
+
+class PymapConfigType(TypedDict):
+    """Configuration for pymap."""
+
+    tileset_primary: PymapTilesetPrimaryConfigType
+    tileset_secondary: PymapTilesetSecondaryConfigType
+    footer: PymapFooterConfigType
+    header: PymapHeaderConfigType
+    project: PymapProjectConfigType
+    display: PymapDisplayConfigType
+
+
+class ConfigType(TypedDict):
+    """Configuration for pymap."""
+
+    pymap2s: Pymap2sConfigType
+    model: list[str]
+    json: JsonConfigType
+    rom: RomConfigType
+    string: StringConfigType
+    pymap: PymapConfigType
+    backend: None | str
+
 
 # Define a default configuration for pymap
 default_configuration = ConfigType(
@@ -305,10 +380,9 @@ default_configuration = ConfigType(
                         'footer_path': ['footer'],
                         'footer_idx_path': ['footer_idx'],
                         # Define different event types
-                        'events': [
-                            PymapEventPersonConfigType(
+                        'events': {
+                            'Person': PymapEventPersonConfigType(
                                 {
-                                    'name': 'Person',
                                     'datatype': 'event.person',
                                     'size_path': ['events', 'person_cnt'],
                                     'events_path': ['events', 'persons'],
@@ -317,11 +391,12 @@ default_configuration = ConfigType(
                                     # Define the path for the position of an event
                                     'x_path': ['x'],
                                     'y_path': ['y'],
+                                    'templates': {},
+                                    'display_letter': 'P',
                                 }
                             ),
-                            PymapEventWarpConfigType(
+                            'Warp': PymapEventWarpConfigType(
                                 {
-                                    'name': 'Warp',
                                     'datatype': 'event.warp',
                                     'size_path': ['events', 'warp_cnt'],
                                     'events_path': ['events', 'warps'],
@@ -336,11 +411,12 @@ default_configuration = ConfigType(
                                     'target_bank_path': ['target_bank'],
                                     'target_map_idx_path': ['target_map'],
                                     'target_warp_idx_path': ['target_warp_idx'],
+                                    'templates': {},
+                                    'display_letter': 'W',
                                 }
                             ),
-                            PymapEventSignConfigType(
+                            'Sign': PymapEventSignConfigType(
                                 {
-                                    'name': 'Sign',
                                     'datatype': 'event.signpost',
                                     'size_path': ['events', 'signpost_cnt'],
                                     'events_path': ['events', 'signposts'],
@@ -349,11 +425,12 @@ default_configuration = ConfigType(
                                     # Define the path for the position of an event
                                     'x_path': ['x'],
                                     'y_path': ['y'],
+                                    'templates': {},
+                                    'display_letter': 'S',
                                 }
                             ),
-                            PymapEventTriggerConfigType(
+                            'Trigger': PymapEventTriggerConfigType(
                                 {
-                                    'name': 'Trigger',
                                     'datatype': 'event.trigger',
                                     'size_path': ['events', 'trigger_cnt'],
                                     'events_path': ['events', 'triggers'],
@@ -362,9 +439,11 @@ default_configuration = ConfigType(
                                     # Define the path for the position of an event
                                     'x_path': ['x'],
                                     'y_path': ['y'],
+                                    'templates': {},
+                                    'display_letter': 'T',
                                 }
                             ),
-                        ],
+                        },
                         'connections': PymapConnectionConnectionConfigType(
                             {
                                 'connections_path': ['connections', 'connections'],
@@ -403,21 +482,6 @@ default_configuration = ConfigType(
                         'border_padding': [7, 5],
                         # R,G,B,Alpha value of the borders
                         'border_color': [0.0, 0.0, 0.0, 0.4],
-                        # Define a python script that provides a function to associate
-                        # events
-                        # with an Pilow image
-                        # The event image backend should contain a function:
-                        # def get_event_to_image() that returns an object that can
-                        # provide images from events.
-                        # This object must have a method that fulfils the following
-                        # interface:
-                        # def event_to_image(self, event, event_type, project)
-                        # that either returns None if no association was found or a
-                        # triplet
-                        # (PilImage, horizontal_displacement, vertical_displacement)
-                        # that indicates which image to use and how it is displaced
-                        # w.r.t. to the upper left corner of its block
-                        'event_to_image_backend': None,
                         # R,G,B,Alpha value of the connection maps
                         'connection_color': PymapColorType(1.0, 1.0, 1.0, 0.2),
                         # R,G,B,Alpha value of the currently active connection map
@@ -435,7 +499,9 @@ default_configuration = ConfigType(
                 ),
             }
         ),
-    }
+        # Path to a project-specific backend.
+        'backend': None,
+    },
 )
 
 

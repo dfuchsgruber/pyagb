@@ -30,6 +30,7 @@ class EventTab(QWidget):
     def __init__(
         self,
         events_tab: EventsTab,
+        event_name: str,
         event_type: PymapEventConfigType,
         parent: QWidget | None = None,
     ):
@@ -37,6 +38,7 @@ class EventTab(QWidget):
 
         Args:
             events_tab (EventWidget): The event widget.
+            event_name (str): The name of the event.
             event_type (PymapEventConfigType): The event type.
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
@@ -59,7 +61,7 @@ class EventTab(QWidget):
         self.remove_button.clicked.connect(self.remove_current_event)
 
         layout.addWidget(self.remove_button, 1, 3)
-        self.event_properties = EventProperties(self)
+        self.event_properties = EventProperties(self, event_name)
         layout.addWidget(self.event_properties, 2, 1, 1, 3)
         if event_type.get('goto_header_button_button_enabled', False):
             self.goto_header_button = QPushButton('Go to target header')

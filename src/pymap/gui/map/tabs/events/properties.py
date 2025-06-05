@@ -21,16 +21,19 @@ if TYPE_CHECKING:
 class EventProperties(PropertiesTree):
     """Tree to display event properties."""
 
-    def __init__(self, event_tab: EventTab, parent: QWidget | None = None):
+    def __init__(
+        self, event_tab: EventTab, event_name: str, parent: QWidget | None = None
+    ):
         """Initializes the event properties.
 
         Args:
             event_tab (EventTab): The event tab.
+            event_name (str): The name of the event.
             parent (QWidget | None, optional): Parent. Defaults to None.
         """
         self.event_tab = event_tab
         super().__init__(
-            f'event_{self.event_tab.event_type["name"]}',
+            f'event_{event_name}',
             self.event_tab.events_tab.map_widget.main_gui,
             parent=parent,
         )
@@ -74,7 +77,7 @@ class EventProperties(PropertiesTree):
         Returns:
             list[ModelValue]: The model context.
         """
-        return self.event_tab.event_type['events_path'] + [
+        return list(self.event_tab.event_type['events_path']) + [
             self.event_tab.idx_combobox.currentIndex()
         ]
 

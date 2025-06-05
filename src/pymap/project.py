@@ -7,10 +7,11 @@ import json
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict, cast
 
 import agb.string.agbstring
 from agb import image
+from pymap.backend import ProjectBackend
 from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 from pymap.gui.smart_shape.smart_shape import SerializedSmartShape
 from pymap.gui.smart_shape.template.default_templates import (
@@ -79,9 +80,10 @@ class Project:
             self.constants = constants.Constants({})
             self.config: ConfigType = configuration.default_configuration.copy()
             self.smart_shape_templates = get_default_smart_shape_templates()
+            self.backend: ProjectBackend = ProjectBackend(self)
         else:
-            self.from_file(file_path)
             self.path = file_path
+            self.from_file(file_path)
 
         # Initialize models
         import pymap.model.model
@@ -157,6 +159,20 @@ class Project:
         # Initialize the configuration
         self.config = configuration.get_configuration(str(file_path) + '.config')
         self.smart_shape_templates = get_default_smart_shape_templates()
+
+        # Load backend
+        backend_path = self.config['backend']
+        if backend_path is None:
+            self.backend = ProjectBackend(self)
+        else:
+            with self.project_dir():
+                with open(Path(backend_path)) as f:
+                    namespace: dict[str, object] = {}
+                    exec(f.read(), namespace)
+                    self.backend = cast(
+                        ProjectBackend,
+                        namespace['backend_cls'](self),  # type: ignore
+                    )
 
     def autosave(self):
         """Saves the project if it is stated in the configuration."""

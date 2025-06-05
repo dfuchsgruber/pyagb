@@ -1,6 +1,6 @@
 """Tab for modifying events."""
 
-from .event_to_image import EventToImage, NullEventToImage
+from .event_image import EventImage
 from .events_tab import EventsTab
 
-__all__ = ['EventsTab', 'EventToImage', 'NullEventToImage']
+__all__ = ['EventsTab', 'EventImage']

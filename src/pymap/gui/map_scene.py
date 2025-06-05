@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from enum import IntFlag, auto, unique
-from pathlib import Path
-from typing import TYPE_CHECKING, Callable, cast
+from typing import TYPE_CHECKING, cast
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QPen, QPixmap
@@ -28,6 +27,7 @@ from pymap.gui.blocks import (
     connection_get_connection_type,
     connection_get_offset,
 )
+from pymap.gui.map.tabs.events.event_image import EventImage
 from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.types import ConnectionType, Tilemap, visible_connection_directions
 
@@ -101,34 +101,9 @@ class MapScene(QGraphicsScene):
         else:
             self.grid_group = None
 
-    def _load_event_to_image_backend(self):
-        """Loads the event to image backend."""
-        from pymap.gui.map.tabs.events.event_to_image import (
-            EventToImage,
-            NullEventToImage,
-        )
-
-        project = self.main_gui.project
-        event_to_image: None | EventToImage = None
-        if project is not None:
-            backend = project.config['pymap']['display']['event_to_image_backend']
-
-            if backend is not None:
-                with project.project_dir():
-                    with open(Path(backend)) as f:
-                        namespace: dict[str, object] = {}
-                        exec(f.read(), namespace)
-                        get_event_to_image = namespace['get_event_to_image']
-                        assert isinstance(get_event_to_image, Callable)
-                        event_to_image = cast(EventToImage, get_event_to_image())
-        if event_to_image is None:
-            self.event_to_image = NullEventToImage()
-        else:
-            self.event_to_image = event_to_image
-
     def load_project(self):
         """Loads the project."""
-        self._load_event_to_image_backend()
+        ...
 
     def load_map(self):
         """(Re-)Loads the entire map scene.
@@ -458,11 +433,10 @@ class MapScene(QGraphicsScene):
         Returns:
             QGraphicsItem | None: The QGraphicsItem or None if no image is available.
         """
-        from pymap.gui.map.tabs.events.event_to_image import EventImage
-
         assert self.main_gui.project is not None
-        event_image = self.event_to_image.event_to_image(
-            event, event_type, self.main_gui.project
+        event_image = self.main_gui.project.backend.event_to_image(
+            event,
+            event_type,
         )
         padded_x, padded_y = self.main_gui.get_border_padding()
         x, y = self.pad_coordinates(
@@ -494,7 +468,7 @@ class MapScene(QGraphicsScene):
         assert self.main_gui.project is not None
         if self.events_group is None:
             return
-        item_old = self.event_images[event_type['name']][event_idx]
+        item_old = self.event_images[event_type['datatype']][event_idx]
         if item_old in self.events_group.childItems():
             # Remove the item from the group and the scene
             self.events_group.removeFromGroup(item_old)
@@ -505,7 +479,7 @@ class MapScene(QGraphicsScene):
         item = self._event_to_qgraphics_item(event, event_type)
         item.setAcceptHoverEvents(True)
         self.events_group.addToGroup(item)
-        self.event_images[event_type['name']][event_idx] = item
+        self.event_images[event_type['datatype']][event_idx] = item
 
     def remove_event_image(self, event_type: PymapEventConfigType, event_idx: int):
         """Removes a certain event image.
@@ -517,14 +491,14 @@ class MapScene(QGraphicsScene):
         assert self.main_gui.project is not None
         if self.events_group is None:
             return
-        item = self.event_images[event_type['name']][event_idx]
+        item = self.event_images[event_type['datatype']][event_idx]
         if item in self.events_group.childItems():
             # Remove the item from the group and the scene
             self.events_group.removeFromGroup(item)
             self.removeItem(item)
             del item
         # Remove the item from the list
-        self.event_images[event_type['name']].pop(event_idx)
+        self.event_images[event_type['datatype']].pop(event_idx)
 
     def insert_event_image(
         self, event_type: PymapEventConfigType, event_idx: int, event: ModelValue
@@ -542,21 +516,23 @@ class MapScene(QGraphicsScene):
         item = self._event_to_qgraphics_item(event, event_type)
         item.setAcceptHoverEvents(True)
         self.events_group.addToGroup(item)
-        self.event_images[event_type['name']].insert(event_idx, item)
+        self.event_images[event_type['datatype']].insert(event_idx, item)
 
     def add_event_images(self):
         """Adds all event images to the scene."""
         assert self.main_gui.project is not None
         self.events_group = QGraphicsItemGroup()
         self.event_images: dict[str, list[QGraphicsItem]] = {}
-        for event_type in self.main_gui.project.config['pymap']['header']['events']:
-            self.event_images[event_type['name']] = []
+        for event_type in self.main_gui.project.config['pymap']['header'][
+            'events'
+        ].values():
+            self.event_images[event_type['datatype']] = []
             events = self.main_gui.get_events(event_type)
             for event in events:
                 item = self._event_to_qgraphics_item(event, event_type)
                 item.setAcceptHoverEvents(True)
                 self.events_group.addToGroup(item)
-                self.event_images[event_type['name']].append(item)
+                self.event_images[event_type['datatype']].append(item)
         self.addItem(self.events_group)
         self.events_group.setVisible(
             (self.visible_layers & MapScene.VisibleLayer.EVENTS) > 0
@@ -597,7 +573,7 @@ class MapScene(QGraphicsScene):
         rect = QGraphicsRectItem(0, 0, 16, 16)
         rect.setBrush(QBrush(color))
         rect.setPen(QPen(0))
-        text = QGraphicsTextItem(event_type['name'][0])
+        text = QGraphicsTextItem(event_type['display_letter'][0])
         text.setPos(
             6 - text.sceneBoundingRect().width() / 2,
             6 - text.sceneBoundingRect().height() / 2,

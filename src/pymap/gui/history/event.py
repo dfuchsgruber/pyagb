@@ -138,7 +138,7 @@ class AppendEvent(QUndoCommand):
             project = self.events_tab.map_widget.main_gui.project
             datatype = self.event_type['datatype']
             events = self.events_tab.map_widget.main_gui.get_events(self.event_type)
-            context = self.event_type['events_path'] + [len(events)]
+            context = list(self.event_type['events_path']) + [len(events)]
             assert self.events_tab.map_widget.main_gui.header is not None
             parents = properties.get_parents_by_path(
                 self.events_tab.map_widget.main_gui.header, context

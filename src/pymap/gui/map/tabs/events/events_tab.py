@@ -14,16 +14,17 @@ from PySide6.QtWidgets import (
 )
 
 from agb.model.type import ModelValue
-from pymap.configuration import PymapEventConfigType
+from pymap.configuration import EventTemplateType, PymapEventConfigType
 from pymap.gui.history.event import AppendEvent, ChangeEventProperty, RemoveEvent
 from pymap.gui.history.statement import path_to_statement
-from pymap.gui.map_scene import MapScene
 from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 
 from ..tab import MapWidgetTab
 from .tab import EventTab
 
 if TYPE_CHECKING:
+    from pymap.gui.map_scene import MapScene
+
     from ...map_widget import MapWidget
 
 
@@ -69,15 +70,11 @@ class EventsTab(MapWidgetTab):
         self.tab_widget.clear()
         self.tabs: dict[str, EventTab] = {}
 
-        for event_type in self.map_widget.main_gui.project.config['pymap']['header'][
-            'events'
-        ]:
-            self.tabs[event_type['datatype']] = EventTab(self, event_type)
-            self.tab_widget.addTab(
-                self.tabs[event_type['datatype']], event_type['name']
-            )
-
-        # Load backend for event_to_image
+        for name, event_type in self.map_widget.main_gui.project.config['pymap'][
+            'header'
+        ]['events'].items():
+            self.tabs[event_type['datatype']] = EventTab(self, name, event_type)
+            self.tab_widget.addTab(self.tabs[event_type['datatype']], name)
 
     def load_header(self):
         """Loads the tab."""
@@ -109,6 +106,8 @@ class EventsTab(MapWidgetTab):
     @property
     def visible_layers(self) -> MapScene.VisibleLayer:
         """Get the visible layers."""
+        from pymap.gui.map_scene import MapScene
+
         return (
             MapScene.VisibleLayer.BLOCKS
             | MapScene.VisibleLayer.EVENTS
@@ -133,9 +132,9 @@ class EventsTab(MapWidgetTab):
 
         if x - padded_x in range(map_width) and y - padded_y in range(map_height):
             # Check if there is any event that can be picked up
-            for event_type in self.map_widget.main_gui.project.config['pymap'][
+            for _, event_type in self.map_widget.main_gui.project.config['pymap'][
                 'header'
-            ]['events']:
+            ]['events'].items():
                 events = self.map_widget.main_gui.get_events(event_type)
                 for event_idx, event in enumerate(events):
                     event_x, event_y = self.map_widget.map_scene.pad_coordinates(
@@ -225,11 +224,11 @@ class EventsTab(MapWidgetTab):
 
         assert self.map_widget.main_gui.project is not None, 'Project is None'
         assert self.map_widget.main_gui.header is not None, 'Header is None'
-        for event_type in self.map_widget.main_gui.project.config['pymap']['header'][
-            'events'
-        ]:
+        for name, event_type in self.map_widget.main_gui.project.config['pymap'][
+            'header'
+        ]['events'].items():
             # Create a submenu for each event type
-            submenu = context_menu.addMenu(f'Add {event_type["name"]}')
+            submenu = context_menu.addMenu(f'Add {name}')
 
             # Add a 'default' action to the submenu
             action = submenu.addAction('Default')  # type: ignore
@@ -241,16 +240,37 @@ class EventsTab(MapWidgetTab):
                     y,
                 )
             )
+            templates = event_type['templates']
+            if templates:
+                submenu.addSeparator()
+                # Add all templates as actions to the submenu
+                for name, template in templates.items():
+                    action = submenu.addAction(name)  # type: ignore
+                    action.triggered.connect(
+                        partial(
+                            self._add_default_event_at,
+                            event_type,
+                            x,
+                            y,
+                            template,
+                        )
+                    )
 
         # Execute the context menu at the given position
         context_menu.exec_(event.screenPos())
 
     def _add_default_event_at(
-        self, event_type: PymapEventConfigType, x: int, y: int
+        self,
+        event_type: PymapEventConfigType,
+        x: int,
+        y: int,
+        template: EventTemplateType = [],
     ) -> ModelValue:
         """Adds a new default event at the given position."""
         item = AppendEvent(self, event_type)
         padded_x, padded_y = self.map_widget.main_gui.get_border_padding()
+        for path, value in template:
+            set_member_by_path(item.event, value, path)
         set_member_by_path(item.event, x - padded_x, event_type['x_path'])
         set_member_by_path(item.event, y - padded_y, event_type['y_path'])
         event_idx = self.map_widget.main_gui.get_num_events(event_type)
@@ -314,7 +334,7 @@ class EventsTab(MapWidgetTab):
             if not self.is_dragging:
                 self.is_dragging = True
                 self.map_widget.undo_stack.beginMacro(
-                    f'Drag event {event_type["name"]} {event_idx}'
+                    f'Drag event {event_type["datatype"]} {event_idx}'
                 )
 
             # Drag the current event to this position
@@ -379,9 +399,9 @@ class EventsTab(MapWidgetTab):
             return
         self.map_widget.undo_stack.beginMacro('ShiftEvents')
         assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
-        for event_type in self.map_widget.main_gui.project.config['pymap']['header'][
+        for _, event_type in self.map_widget.main_gui.project.config['pymap']['header'][
             'events'
-        ]:
+        ].items():
             for event_idx in range(self.map_widget.main_gui.get_num_events(event_type)):
                 event = self.map_widget.main_gui.get_event(event_type, event_idx)
 
