@@ -152,11 +152,11 @@ class BlockScene(QGraphicsScene):
                 self.tileset_widget.tiles_palette_combobox.setCurrentIndex(pal_idx)
                 # Select the tile in the tiles widget
                 tile_idx = self.tileset_widget.selection[0, 0]['tile_idx']
+                hflip = self.tileset_widget.selection[0, 0]['horizontal_flip']
+                self.tileset_widget.tiles_mirror_horizontal_checkbox.setChecked(hflip)
+                vflip = self.tileset_widget.selection[0, 0]['vertical_flip']
+                self.tileset_widget.tiles_mirror_vertical_checkbox.setChecked(vflip)
                 x, y = tile_idx % 16, tile_idx // 16
-                hflip, vflip = (
-                    self.tileset_widget.tiles_mirror_horizontal_checkbox.isChecked(),
-                    self.tileset_widget.tiles_mirror_vertical_checkbox.isChecked(),
-                )
                 if hflip:
                     x = 15 - x
                 if vflip:

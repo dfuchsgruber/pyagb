@@ -371,9 +371,10 @@ class TilesetWidget(QtWidgets.QWidget):
         # Create a new "empty" instance
         return datatype(
             self.main_gui.project,
-            config['blocks_path'] + [self.selected_block_idx % 0x280, 0],
+            list(config['blocks_path']) + [self.selected_block_idx % 0x280, 0],
             properties.get_parents_by_path(
-                tileset, config['blocks_path'] + [self.selected_block_idx % 0x280, 0]
+                tileset,
+                list(config['blocks_path']) + [self.selected_block_idx % 0x280, 0],
             ),
         )
 
@@ -702,9 +703,10 @@ class TilesetWidget(QtWidgets.QWidget):
         # Create a new "empty" instance
         empty = datatype(
             self.main_gui.project,
-            config['behaviours_path'] + [self.selected_block_idx % 0x280],
+            list(config['behaviours_path']) + [self.selected_block_idx % 0x280],
             properties.get_parents_by_path(
-                tileset, config['behaviours_path'] + [self.selected_block_idx % 0x280]
+                tileset,
+                list(config['behaviours_path']) + [self.selected_block_idx % 0x280],
             ),
         )
         self.block_properties.set_value(empty, block_signals=False)

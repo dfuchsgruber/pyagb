@@ -194,26 +194,22 @@ class MapScene(QGraphicsScene):
         """Adds all level images to the scene."""
         assert self.blocks is not None, 'Blocks are not loaded'
         self.level_images = np.empty_like(self.blocks[:, :, 0], dtype=object)
-        padded_width, padded_height = self.main_gui.get_border_padding()
-        map_width, map_height = self.main_gui.get_map_dimensions()
         self.levels_group = QGraphicsItemGroup()
         for (y, x), level in np.ndenumerate(self.blocks[:, :, 1]):
-            if x in range(padded_width, padded_width + map_width) and y in range(
-                padded_height, padded_height + map_height
-            ):
-                # Draw the pixmaps
-                pixmap = self.main_gui.map_widget.levels_tab.level_blocks_pixmaps[level]
-                item = QGraphicsPixmapItem(pixmap)
-                item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
-                item.setAcceptHoverEvents(True)
-                item.setPos(16 * x, 16 * y)
-                self.level_images[y, x] = item
-                self.levels_group.addToGroup(item)
+            # Draw the pixmaps
+            pixmap = self.main_gui.map_widget.levels_tab.level_blocks_pixmaps[level]
+            item = QGraphicsPixmapItem(pixmap)
+            item.setCacheMode(QGraphicsItem.CacheMode.NoCache)
+            item.setAcceptHoverEvents(True)
+            item.setPos(16 * x, 16 * y)
+            self.level_images[y, x] = item
+            self.levels_group.addToGroup(item)
 
         self.level_image_opacity_effect = QGraphicsOpacityEffect()
         self.levels_group.setGraphicsEffect(self.level_image_opacity_effect)
         self.update_level_image_opacity()
         self.addItem(self.levels_group)
+        # Pirnt how many items are in the levels group
 
     @property
     def visible_connection_idxs(self) -> dict[ConnectionType, int]:
