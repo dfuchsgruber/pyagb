@@ -205,18 +205,16 @@ def split_image_into_tiles(image: RGBAImage) -> RGBAImage:
     """Splits an image into 8x8 tiles that are cropped from the image.
 
     Args:
-        image (np.ndarray, shape [h, w, 4]): The image to split.
+        image (np.ndarray, shape [h, w, ...]): The image to split.
 
     Returns:
-        np.ndarray, shape [h // 8, w // 8, 8, 8, 4]: The tiles.
+        np.ndarray, shape [h // 8, w // 8, 8, 8, ...]: The tiles.
     """
     assert isinstance(image, np.ndarray)
-    assert image.ndim == 3
-    assert image.shape[2] == 4
-    h, w, _ = image.shape
+    h, w = image.shape[:2]
     assert h % 8 == 0
     assert w % 8 == 0
-    tiles = np.zeros((h // 8, w // 8, 8, 8, 4), dtype=np.uint8)
+    tiles = np.zeros((h // 8, w // 8, 8, 8, *image.shape[2:]), dtype=np.uint8)
     # TODO: efficiency, can we improve the tiling runtime?
     for i in range(h // 8):
         for j in range(w // 8):

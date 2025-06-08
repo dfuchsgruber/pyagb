@@ -7,10 +7,20 @@ import json
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Sequence, TypedDict, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    NamedTuple,
+    Sequence,
+    TypedDict,
+    cast,
+    overload,
+)
 
 import agb.string.agbstring
 from agb import image
+from agb.palette import Palette
 from pymap.backend import ProjectBackend
 from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 from pymap.gui.smart_shape.smart_shape import SerializedSmartShape
@@ -1024,7 +1034,72 @@ class Project:
             self.save_tileset(primary, tileset['data'], label)
             self.autosave()
 
-    def load_gfx(self, primary: bool, label: str) -> image.Image:
+    def get_cooccuring_tilesets(
+        self, tileset_label: str, is_primary: bool
+    ) -> tuple[set[str], set[str]]:
+        """Returns all tilesets that co-occur with a given tileset label.
+
+        Args:
+            tileset_label (str): The label of the tileset to check for co-occurrence.
+            is_primary (bool): If the tileset is a primary tileset.
+
+        Returns:
+            tuple[set[str], set[str]]: A tuple containing the primary and secondary
+                co-occurring tilesets.
+        """
+        tilesets_primary: set[str] = set()
+
+        tilesets_secondary: set[str] = set()
+        for footer_label in self.footers.keys():
+            footer, footer_idx, _ = self.load_footer(footer_label)
+            assert footer_idx != -1, f'Footer {footer_label} not found in project.'
+            if (
+                get_member_by_path(
+                    footer,
+                    self.config['pymap']['footer'][
+                        'tileset_primary_path'
+                        if is_primary
+                        else 'tileset_secondary_path'
+                    ],
+                )
+                == tileset_label
+            ):
+                tilesets_primary.add(
+                    cast(
+                        str,
+                        get_member_by_path(
+                            footer,
+                            self.config['pymap']['footer']['tileset_primary_path'],
+                        ),
+                    )
+                )
+                tilesets_secondary.add(
+                    cast(
+                        str,
+                        get_member_by_path(
+                            footer,
+                            self.config['pymap']['footer']['tileset_secondary_path'],
+                        ),
+                    )
+                )
+        return tilesets_primary, tilesets_secondary
+
+    @overload
+    def load_gfx(
+        self, primary: bool, label: str, return_palette: Literal[False]
+    ) -> image.Image: ...
+
+    @overload
+    def load_gfx(
+        self, primary: bool, label: str, return_palette: Literal[True]
+    ) -> tuple[image.Image, Palette]: ...
+
+    @overload
+    def load_gfx(self, primary: bool, label: str) -> image.Image: ...
+
+    def load_gfx(
+        self, primary: bool, label: str, return_palette: bool = False
+    ) -> image.Image | tuple[image.Image, Palette]:
         """Loads a gfx and instanciates an agb image.
 
         Parameters:
@@ -1033,6 +1108,8 @@ class Project:
             If the image is a gfx for a primary or secondary tileset.
         label : str
             The label the gfx is associated with.
+        return_palette : bool
+            If the palette of the image should be returned as well.
 
         Returns:
         --------
@@ -1046,8 +1123,11 @@ class Project:
                 raise RuntimeError(f'No gfx associated with label {gfx}')
             else:
                 path = gfx[label]
-                img, _ = image.from_file(path)
-                return img
+                img, palette = image.from_file(path)
+                if return_palette:
+                    return img, palette
+                else:
+                    return img
 
     def save_gfx(
         self, primary: bool, image: image.Image, palette: Sequence[int], label: str

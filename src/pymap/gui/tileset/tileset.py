@@ -23,6 +23,7 @@ from agb import image as agbimage
 from agb.model.type import ModelValue
 from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.tileset.block_properties import BlockProperties
+from pymap.gui.tileset.compression import tileset_remove_redundant_tiles
 from pymap.gui.tileset.tileset_properties import TilesetProperties
 
 from .. import history, properties, render
@@ -189,6 +190,7 @@ class TilesetWidget(QtWidgets.QWidget):
         tiles_palette_group = QtWidgets.QGroupBox('Palette')
         tiles_palette_group_layout = QtWidgets.QGridLayout()
         tiles_palette_group.setLayout(tiles_palette_group_layout)
+
         self.tiles_palette_combobox = QtWidgets.QComboBox()
         self.tiles_palette_combobox.addItems(list(map(str, range(13))))
         self.tiles_palette_combobox.currentIndexChanged.connect(self.update_tiles)
@@ -199,9 +201,14 @@ class TilesetWidget(QtWidgets.QWidget):
         tiles_export_button = QtWidgets.QPushButton('Export')
         tiles_export_button.clicked.connect(self.export_gfx)
         tiles_palette_group_layout.addWidget(tiles_export_button, 1, 3, 1, 1)
+        self.tiles_compress_button = QtWidgets.QPushButton('Compress')
+        self.tiles_compress_button.clicked.connect(self.remove_redundant_tiles)
+        tiles_palette_group_layout.addWidget(self.tiles_compress_button, 1, 4, 1, 1)
+
         tiles_palette_group_layout.setColumnStretch(1, 0)
-        tiles_palette_group_layout.setColumnStretch(2, 0)
-        tiles_palette_group_layout.setColumnStretch(3, 0)
+        tiles_palette_group_layout.setColumnStretch(2, 1)
+        tiles_palette_group_layout.setColumnStretch(3, 1)
+        tiles_palette_group_layout.setColumnStretch(4, 1)
 
         tiles_layout.addWidget(tiles_palette_group, 1, 1, 1, 1)
         self.tiles_scene = TilesScene(self)
@@ -317,6 +324,7 @@ class TilesetWidget(QtWidgets.QWidget):
             self.gfx_secondary_combobox.setEnabled(False)
             self.properties_tree_tsp.setEnabled(False)  # type: ignore
             self.properties_tree_tss.setEnabled(False)  # type: ignore
+            self.tiles_compress_button.setEnabled(False)
         else:
             self.behaviour_clipboard_copy.setEnabled(True)
             self.behaviour_clipboard_clear.setEnabled(True)
@@ -332,6 +340,7 @@ class TilesetWidget(QtWidgets.QWidget):
             self.gfx_secondary_combobox.blockSignals(True)
             self.gfx_secondary_combobox.setCurrentText(gfx_secondary_label)
             self.gfx_secondary_combobox.blockSignals(False)
+            self.tiles_compress_button.setEnabled(True)
 
             self.properties_tree_tsp.setEnabled(True)  # type: ignore
             self.properties_tree_tss.setEnabled(True)  # type: ignore
@@ -738,3 +747,58 @@ class TilesetWidget(QtWidgets.QWidget):
         pal_idx = self.tiles_palette_combobox.currentIndex()
         palette_old = self.main_gui.get_tileset_palette(pal_idx)
         self.undo_stack.push(history.SetPalette(self, pal_idx, palette, palette_old))  # type: ignore
+
+    def remove_redundant_tiles(self):
+        """Removes redundant tiles from the current tileset."""
+        if (
+            self.main_gui.project is None
+            or self.main_gui.header is None
+            or self.main_gui.footer is None
+            or self.main_gui.tileset_primary is None
+            or self.main_gui.tileset_secondary is None
+        ):
+            return
+        if self.main_gui.prompt_save_tilesets():
+            return
+        # Dialog to query primary or secondary tileset
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle('Remove Redundant Tiles')
+        message_box.setText('Select which tileset to remove redundant tiles from.')
+        bt_primary = message_box.addButton(
+            f'{self.main_gui.tileset_primary_label}', QMessageBox.ButtonRole.AcceptRole
+        )
+        bt_secondary = message_box.addButton(
+            f'{self.main_gui.tileset_secondary_label}',
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        message_box.setStandardButtons(
+            QMessageBox.StandardButton.Close | QMessageBox.StandardButton.NoButton
+        )
+        message_box.exec()
+        if message_box.clickedButton() == bt_primary:
+            is_primary = True
+        elif message_box.clickedButton() == bt_secondary:
+            is_primary = False
+        else:
+            return
+        remapping, num_updated_blocks = tileset_remove_redundant_tiles(
+            self.main_gui.project,
+            self.main_gui.tileset_primary_label
+            if is_primary
+            else self.main_gui.tileset_secondary_label,
+            is_primary,
+        )
+        if len(remapping) > 0:
+            self.main_gui.open_tilesets(
+                label_primary=self.main_gui.tileset_primary_label,
+                label_secondary=self.main_gui.tileset_secondary_label,
+            )
+        # Message box to show the result
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle('Removed Redundant Tiles')
+        message_box.setText(
+            f'Removed {len(remapping)} redundant tiles. '
+            f'Updated {len(num_updated_blocks)} tilesets: '
+            f'{(", ".join(num_updated_blocks.keys()))}.'
+        )
+        message_box.exec()
