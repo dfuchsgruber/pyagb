@@ -42,6 +42,7 @@ class ResourceParameterTreeItemTilesetRoot(ResourceParameterTreeItem):
         action = menu.addAction('Import Tileset')  # type: ignore
         action.triggered.connect(partial(tree.import_tileset, primary=self.primary))
         action.setIcon(QIcon(icon_paths[Icon.IMPORT]))
+        return menu
 
 
 class ResourceParameterTreeItemTileset(ResourceParameterTreeItem):

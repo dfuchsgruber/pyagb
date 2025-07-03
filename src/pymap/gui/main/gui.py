@@ -103,9 +103,18 @@ class PymapGui(QMainWindow, PymapGuiModel):
         file_menu_new_header_action.triggered.connect(self.resource_tree.create_header)
         file_menu_new_footer_action = file_menu_new_menu.addAction('Footer')  # type: ignore
         file_menu_new_footer_action.triggered.connect(self.resource_tree.create_footer)
-        file_menu_new_tileset_action = file_menu_new_menu.addAction('Tileset')  # type: ignore
-        file_menu_new_tileset_action.triggered.connect(
-            self.resource_tree.create_tileset
+        file_menu_new_tileset_menu = file_menu_new_menu.addMenu('Tileset')  # type: ignore
+        file_menu_new_tileset_primary_action = (
+            file_menu_new_tileset_menu.addAction('Primary')  # type: ignore
+        )
+        file_menu_new_tileset_primary_action.triggered.connect(
+            partial(self.resource_tree.create_tileset, primary=True)
+        )
+        file_menu_new_tileset_secondary_action = (
+            file_menu_new_tileset_menu.addAction('Secondary')  # type: ignore
+        )
+        file_menu_new_tileset_secondary_action.triggered.connect(
+            partial(self.resource_tree.create_tileset, primary=False)
         )
         # Flat actions
         file_menu_open_action = file_menu.addAction('&Open Project')  # type: ignore
