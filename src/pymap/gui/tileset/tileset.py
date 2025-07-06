@@ -308,7 +308,6 @@ class TilesetWidget(QtWidgets.QWidget):
         self.tiles_scene.clear()
         self.blocks_scene.clear()
         self.selection_scene.clear()
-        self.blocks_scene.clear()
         self.selected_block_idx = 0
         if (
             self.main_gui.project is None
@@ -492,12 +491,16 @@ class TilesetWidget(QtWidgets.QWidget):
         ):
             return
         height, width = self.blocks_image.shape[:2]
-        width, height = (
+        self.blocks_scene.add_transparent_background(
+            width,
+            height,
             int(width * self.zoom_slider.value() / 10),
             int(height * self.zoom_slider.value() / 10),
         )
+
         pixmap = QPixmap.fromImage(ndarray_to_QImage(self.blocks_image)).scaled(
-            width, height
+            int(width * self.zoom_slider.value() / 10),
+            int(height * self.zoom_slider.value() / 10),
         )
         item = QGraphicsPixmapItem(pixmap)
 
@@ -530,6 +533,9 @@ class TilesetWidget(QtWidgets.QWidget):
         width, height = (
             int(128 * self.zoom_slider.value() / 10),
             int(512 * self.zoom_slider.value() / 10),
+        )
+        self.tiles_scene.add_transparent_background(
+            128, 512, scaled_width=width, scaled_height=height
         )
         flip = (
             TileFlip.HORIZONTAL
@@ -576,6 +582,9 @@ class TilesetWidget(QtWidgets.QWidget):
         assert self.main_gui.tiles is not None
         self.selection = selection
         self.selection_scene.clear()
+        self.selection_scene.add_transparent_background(
+            8 * selection.shape[1], 8 * selection.shape[0]
+        )
         image = np.zeros(
             (8 * selection.shape[0], 8 * selection.shape[1], 4), dtype=np.uint8
         )

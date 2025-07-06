@@ -6,11 +6,13 @@ from typing import TYPE_CHECKING
 
 from PySide6 import QtWidgets
 
+from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
+
 if TYPE_CHECKING:
     from .tileset import TilesetWidget
 
 
-class SelectionScene(QtWidgets.QGraphicsScene):
+class SelectionScene(QGraphicsSceneWithTransparentBackground):
     """Scene for the selected tiles."""
 
     def __init__(

@@ -6,16 +6,17 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QGraphicsScene,
     QGraphicsSceneMouseEvent,
     QWidget,
 )
+
+from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
 
 if TYPE_CHECKING:
     from . import BlocksTab
 
 
-class BorderScene(QGraphicsScene):
+class BorderScene(QGraphicsSceneWithTransparentBackground):
     """Scene for the border view."""
 
     def __init__(self, map_widget: BlocksTab, parent: QWidget | None = None):
@@ -32,9 +33,9 @@ class BorderScene(QGraphicsScene):
         """Event handler for moving the mouse."""
         if not self.blocks_tab.map_widget.header_loaded:
             return
-        assert (
-            self.blocks_tab.map_widget.main_gui.project is not None
-        ), 'Project is not loaded'
+        assert self.blocks_tab.map_widget.main_gui.project is not None, (
+            'Project is not loaded'
+        )
         borders = self.blocks_tab.map_widget.main_gui.get_borders()
         pos = event.scenePos()
         x, y = int(pos.x() / 16), int(pos.y() / 16)

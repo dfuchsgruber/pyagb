@@ -6,18 +6,18 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QGraphicsScene,
     QGraphicsSceneMouseEvent,
     QWidget,
 )
 
 import pymap.gui.render as render
+from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
 
 if TYPE_CHECKING:
     from .parent import BlocksSceneParent
 
 
-class BlocksScene(QGraphicsScene):
+class BlocksScene(QGraphicsSceneWithTransparentBackground):
     """Scene for the blocks view."""
 
     def __init__(

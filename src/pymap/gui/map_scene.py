@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QGraphicsOpacityEffect,
     QGraphicsPixmapItem,
     QGraphicsRectItem,
-    QGraphicsScene,
     QGraphicsTextItem,
     QWidget,
 )
@@ -29,6 +28,7 @@ from pymap.gui.blocks import (
 )
 from pymap.gui.map.tabs.events.event_image import EventImage
 from pymap.gui.render import ndarray_to_QImage
+from pymap.gui.transparent import QGraphicsSceneWithTransparentBackground
 from pymap.gui.types import ConnectionType, Tilemap, visible_connection_directions
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 import numpy as np
 
 
-class MapScene(QGraphicsScene):
+class MapScene(QGraphicsSceneWithTransparentBackground):
     """Scene that will show the map."""
 
     @unique
@@ -64,6 +64,7 @@ class MapScene(QGraphicsScene):
         self.setItemIndexMethod(self.ItemIndexMethod.NoIndex)
         self.main_gui = main_gui
         self.visible_layers = self.VisibleLayer(0)
+        self.transparent_background_group = None
         self.grid_group = None
         self.blocks_group = None
         self.levels_group = None
@@ -79,6 +80,7 @@ class MapScene(QGraphicsScene):
     def clear(self) -> None:
         """Clears the scene."""
         super().clear()
+        self.transparent_background_group = None
         self.grid_group = None
         self.blocks_group = None
         self.levels_group = None
@@ -115,6 +117,11 @@ class MapScene(QGraphicsScene):
         if self.main_gui.project is None or self.main_gui.header is None:
             return
         self.compute_blocks()
+        padded_width, padded_height = self.main_gui.get_border_padding()
+        map_width, map_height = self.main_gui.get_map_dimensions()
+        self.add_transparent_background(
+            16 * (map_width + 2 * padded_width), 16 * (map_height + 2 * padded_height)
+        )
         self.add_block_images()
         self.add_level_images()
         self.add_border_effect()

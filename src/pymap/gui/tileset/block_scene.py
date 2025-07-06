@@ -10,11 +10,12 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsPixmapItem,
-    QGraphicsScene,
     QGraphicsSceneMouseEvent,
     QWidget,
 )
 from typing_extensions import ParamSpec
+
+from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
 
 from .. import history
 from ..render import ndarray_to_QImage, select_blocks
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
     from .tileset import TilesetWidget
 
 
-class BlockScene(QGraphicsScene):
+class BlockScene(QGraphicsSceneWithTransparentBackground):
     """Scene for the current block."""
 
     def __init__(
@@ -66,6 +67,7 @@ class BlockScene(QGraphicsScene):
                 tile_img = tile_img[::-1, :]
             image[8 * y : 8 * (y + 1), 8 * x : 8 * (x + 1), :] = tile_img
         size = int(self.tileset_widget.zoom_slider.value() * 16 / 10)
+        self.add_transparent_background(16, 16, scaled_width=size, scaled_height=size)
         item = QGraphicsPixmapItem(
             QPixmap.fromImage(ndarray_to_QImage(image).scaled(size, size))
         )

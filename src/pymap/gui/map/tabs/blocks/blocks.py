@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsItemGroup,
     QGraphicsPixmapItem,
-    QGraphicsScene,
     QSizePolicy,
     QSplitter,
     QWidget,
@@ -21,6 +20,7 @@ from PySide6.QtWidgets import (
 from pymap.gui import render
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
 from pymap.gui.map_scene import MapScene
+from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
 from pymap.gui.types import MapLayers, Tilemap
 
 from ..blocks_like import BlocksLikeTab
@@ -73,7 +73,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         group_selection = QtWidgets.QGroupBox('Selection')
         group_selection_layout = QtWidgets.QGridLayout()
         group_selection.setLayout(group_selection_layout)
-        self.selection_scene = QGraphicsScene()
+        self.selection_scene = QGraphicsSceneWithTransparentBackground()
         self.selection_scene_view = QtWidgets.QGraphicsView()
         self.selection_scene_view.setScene(self.selection_scene)
         self.selection_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
@@ -166,6 +166,9 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
             return
         map_blocks = self.map_widget.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
+        self.blocks_scene.add_transparent_background(
+            render.blocks_pool.shape[1] * 16, render.blocks_pool.shape[0] * 16
+        )
 
         blocks_group = QGraphicsItemGroup()
         block_pixmap_items: list[QGraphicsPixmapItem] = []
@@ -190,6 +193,9 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         map_blocks = self.map_widget.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
         border_blocks = self.map_widget.main_gui.get_borders()
+        self.border_scene.add_transparent_background(
+            border_blocks.shape[1] * 16, border_blocks.shape[0] * 16
+        )
 
         border_group = QGraphicsItemGroup()
         self.border_pixmap_items = np.empty_like(border_blocks[..., 0], dtype=object)
@@ -254,6 +260,10 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         selection = selection.copy()
         self.selection = selection
         self.selection_scene.clear()
+        # Add a transparent background
+        self.selection_scene.add_transparent_background(
+            selection.shape[1] * 16, selection.shape[0] * 16
+        )
         if not self.map_widget.header_loaded:
             return
         # Block selection
