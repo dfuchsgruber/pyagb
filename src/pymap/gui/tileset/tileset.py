@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -682,7 +683,7 @@ class TilesetWidget(QtWidgets.QWidget):
             or self.main_gui.tileset_secondary is None
         ):
             return
-        self.behaviour_clipboard = self.block_properties.model_value
+        self.behaviour_clipboard = deepcopy(self.block_properties.model_value)
         self.behaviour_clipboard_paste.setEnabled(True)
 
     def paste_behaviour(self):
@@ -695,7 +696,7 @@ class TilesetWidget(QtWidgets.QWidget):
             or self.main_gui.tileset_secondary is None
         ):
             return
-        self.block_properties.set_value(self.behaviour_clipboard)
+        self.block_properties.set_value(self.behaviour_clipboard, block_signals=False)
 
     def clear_behaviour(self):
         """Clears the behaviour properties of the current block."""

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -112,7 +113,9 @@ class BlocksScene(QGraphicsSceneWithTransparentBackground):
         block_clipboard, behaviour_clipboard = self.clipboard
         self.tileset_widget.undo_stack.beginMacro('Paste Block')
         if paste_behaviour:
-            self.tileset_widget.block_properties.set_value(behaviour_clipboard)
+            self.tileset_widget.block_properties.set_value(
+                behaviour_clipboard, block_signals=False
+            )
         if paste_tiles:
             for layer in range(3):
                 self.tileset_widget.undo_stack.push(
@@ -191,7 +194,7 @@ class BlocksScene(QGraphicsSceneWithTransparentBackground):
         action = menu.exec(event.screenPos())
         if action == copy_action:
             self.clipboard = (
-                self.tileset_widget.main_gui.get_block(block_idx),
+                deepcopy(self.tileset_widget.main_gui.get_block(block_idx)),
                 self.tileset_widget.block_properties.model_value,
             )
         elif action == paste_action:
