@@ -19,6 +19,7 @@ class ConstantTable(Mapping[str, int]):
         _type: Literal['dict'] | Literal['enum'],
         base: int | None = None,
         values: list[str] | dict[str, int] | None = None,
+        max_value: int | None = None,
     ):
         """Initializes a constant table.
 
@@ -33,16 +34,19 @@ class ConstantTable(Mapping[str, int]):
             first element of the constants is assigned to.
         values : dict, enum or None
             The actual values of the constant table.
+        max_value : int or None
+            The maximum value of the constants. Raises a ValueError
+            if a constant exceeds this value.
         """
         self.type = _type
         self.base = base or 0
+        self.max_value = max_value
         if values is not None:
             # Provide a dictionary interface also for enum constants
             if self.type == 'enum':
                 if not isinstance(values, list):
                     raise RuntimeError(
-                        f'Expected a list for values parameter '
-                        f'for type "{self.type}"'
+                        f'Expected a list for values parameter for type "{self.type}"'
                     )
                 self._values = {
                     constant: idx + self.base for idx, constant in enumerate(values)
@@ -50,12 +54,45 @@ class ConstantTable(Mapping[str, int]):
             elif self.type == 'dict':
                 if not isinstance(values, dict):
                     raise RuntimeError(
-                        f'Expected a dict for values parameter '
-                        f'for type "{self.type}"'
+                        f'Expected a dict for values parameter for type "{self.type}"'
                     )
                 self._values = values
             else:
                 raise RuntimeError(f'Unknown constants type "{self.type}"')
+
+    def is_value_valid(self, value: int) -> bool:
+        """Checks if a value is valid according to the maximum value.
+
+        Args:
+            value (int): The value to check.
+
+        Returns:
+            bool: True if the value is valid, False otherwise.
+        """
+        if self.max_value is None:
+            return True
+        return value <= self.max_value
+
+    @property
+    def all_values_valid(self) -> bool:
+        """Checks if all values in the constant table are valid.
+
+        Returns:
+            bool: True if all values are valid, False otherwise.
+        """
+        for value in self._values.values():
+            if not self.is_value_valid(value):
+                return False
+        return True
+
+    @property
+    def invalid_values(self) -> list[str]:
+        """Returns a list of invalid values in the constant table.
+
+        Returns:
+            list[str]: A list of constants that exceed the maximum value.
+        """
+        return [k for k, v in self._values.items() if not self.is_value_valid(v)]
 
     def __getitem__(self, key: str) -> int:
         """Retrieves the value of a constant.
@@ -149,7 +186,10 @@ class Constants:
                 else:
                     base = 0
             self.constant_tables[key] = ConstantTable(
-                _type=content['type'], base=base, values=content['values']
+                _type=content['type'],
+                base=base,
+                values=content['values'],
+                max_value=content.get('max_value'),
             )
         constants_table = self.constant_tables[key]
         if constants_table is None:

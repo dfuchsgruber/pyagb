@@ -101,6 +101,11 @@ def pymap_export_constants_cli():
         label = args.label
 
     constants = Constants({label: Path(args.input)})[label]
+    if not constants.all_values_valid:
+        raise RuntimeError(
+            f'Constants {label} contain values that are not valid:\n'
+            f'{constants.invalid_values}'
+        )
 
     # Format the values
     if file_type == 'as':
