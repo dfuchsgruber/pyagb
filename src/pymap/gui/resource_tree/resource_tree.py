@@ -67,28 +67,35 @@ class ResourceParameterTree(QTreeWidget):
         )
         self.footer_root = ResourceParameterTreeItemFooterRoot(self, ['Map Footer'])
         self.footer_root.setIcon(0, QIcon(icon_paths[Icon.TREE]))
+        self.footer_items: dict[str, ResourceParameterTreeItemFooter] = dict()
         self.tileset_root = ResourceParameterTreeItem(self, ['Tileset'])
         self.tileset_root.setIcon(0, QIcon(icon_paths[Icon.TREE]))
         self.tileset_primary_root = ResourceParameterTreeItemTilesetRoot(
             self.tileset_root, ['Primary'], primary=True
         )
         self.tileset_primary_root.setIcon(0, QIcon(icon_paths[Icon.FOLDER]))
+        self.tileset_primary_items: dict[str, ResourceParameterTreeItemTileset] = dict()
         self.tileset_secondary_root = ResourceParameterTreeItemTilesetRoot(
             self.tileset_root,
             ['Secondary'],
             primary=False,
         )
         self.tileset_secondary_root.setIcon(0, QIcon(icon_paths[Icon.FOLDER]))
+        self.tileset_secondary_items: dict[str, ResourceParameterTreeItemTileset] = (
+            dict()
+        )
         self.gfx_root = ResourceParameterTreeItem(self, ['Gfx'])
         self.gfx_root.setIcon(0, QIcon(str(icon_paths[Icon.TREE])))
         self.gfx_primary_root = ResourceParameterTreeItemGfxRoot(
             self.gfx_root, ['Primary'], primary=True
         )
         self.gfx_primary_root.setIcon(0, QIcon(icon_paths[Icon.FOLDER]))
+        self.gfx_primary_items: dict[str, ResourceParameterTreeItemGfx] = dict()
         self.gfx_secondary_root = ResourceParameterTreeItemGfxRoot(
             self.gfx_root, ['Secondary'], primary=False
         )
         self.gfx_secondary_root.setIcon(0, QIcon(icon_paths[Icon.FOLDER]))
+        self.gfx_secondary_items: dict[str, ResourceParameterTreeItemGfx] = dict()
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.context_menu_requested)
@@ -110,18 +117,82 @@ class ResourceParameterTree(QTreeWidget):
         assert isinstance(item, ResourceParameterTreeItem)
         item.double_clicked(self)
 
-    def select_map(self, bank: str, map_idx: str):
+    def select_map(self, bank: str, map_idx: str, scroll_to_item: bool = True):
         """Selects a map in the tree.
 
         Args:
             bank (str): The bank.
             map_idx (str): The map.
+            scroll_to_item (bool): Whether to scroll to the item. Defaults to True.
         """
         item: QTreeWidgetItem | None = self.header_items[(bank, map_idx)]
         self.setCurrentItem(item)
         while item is not None:  # type: ignore
             self.expandItem(item)
             item = item.parent()
+        if scroll_to_item:
+            self.scrollToItem(
+                self.currentItem(), QTreeWidget.ScrollHint.PositionAtCenter
+            )
+
+    def select_footer(self, footer_label: str, scroll_to_item: bool = True):
+        """Selects a footer in the tree.
+
+        Args:
+            footer_label (str): The label of the footer.
+            scroll_to_item (bool): Whether to scroll to the item. Defaults to True.
+        """
+        item: QTreeWidgetItem | None = self.footer_items[footer_label]
+        self.setCurrentItem(item)
+        while item is not None:  # type: ignore
+            self.expandItem(item)
+            item = item.parent()
+        if scroll_to_item:
+            self.scrollToItem(
+                self.currentItem(), QTreeWidget.ScrollHint.PositionAtCenter
+            )
+
+    def select_tileset(self, primary: bool, label: str, scroll_to_item: bool = True):
+        """Selects a tileset in the tree.
+
+        Args:
+            primary (bool): Whether the tileset is primary or secondary.
+            label (str): The label of the tileset.
+            scroll_to_item (bool): Whether to scroll to the item. Defaults to True.
+        """
+        if primary:
+            item: QTreeWidgetItem | None = self.tileset_primary_items[label]
+        else:
+            item: QTreeWidgetItem | None = self.tileset_secondary_items[label]
+        self.setCurrentItem(item)
+        while item is not None:  # type: ignore
+            self.expandItem(item)
+            item = item.parent()
+        if scroll_to_item:
+            self.scrollToItem(
+                self.currentItem(), QTreeWidget.ScrollHint.PositionAtCenter
+            )
+
+    def select_gfx(self, primary: bool, label: str, scroll_to_item: bool = True):
+        """Selects a gfx in the tree.
+
+        Args:
+            primary (bool): Whether the gfx is primary or secondary.
+            label (str): The label of the gfx.
+            scroll_to_item (bool): Whether to scroll to the item. Defaults to True.
+        """
+        if primary:
+            item: QTreeWidgetItem | None = self.gfx_primary_items[label]
+        else:
+            item: QTreeWidgetItem | None = self.gfx_secondary_items[label]
+        self.setCurrentItem(item)
+        while item is not None:  # type: ignore
+            self.expandItem(item)
+            item = item.parent()
+        if scroll_to_item:
+            self.scrollToItem(
+                self.currentItem(), QTreeWidget.ScrollHint.PositionAtCenter
+            )
 
     def create_bank(self, *args: Any):
         """Prompts a dialog to create a new map bank."""
@@ -1089,6 +1160,18 @@ class ResourceParameterTree(QTreeWidget):
                     map_root.setIcon(0, QIcon(icon_paths[Icon.HEADER]))
                     self.header_items[(bank, map_idx)] = map_root
 
+        # Re-select the current header
+        if (
+            self.main_gui.header_loaded
+            and self.main_gui.header_bank is not None
+            and self.main_gui.header_map_idx is not None
+        ):
+            self.select_map(
+                self.main_gui.header_bank,
+                self.main_gui.header_map_idx,
+                scroll_to_item=False,
+            )
+
     def load_footers(self):
         """Updates the footers of a project."""
         project = self.main_gui.project
@@ -1106,6 +1189,12 @@ class ResourceParameterTree(QTreeWidget):
                 label=footer,
             )
             footer_root.setIcon(0, QIcon(icon_paths[Icon.FOOTER]))
+            self.footer_items[footer] = footer_root
+        if self.main_gui.footer_loaded:
+            self.select_footer(
+                self.main_gui.footer_label,
+                scroll_to_item=False,
+            )
 
     def load_tilesets(self):
         """Updates the tilesets of a project."""
@@ -1120,6 +1209,8 @@ class ResourceParameterTree(QTreeWidget):
                 self.tileset_primary_root, [f'{tileset}'], primary=True, label=tileset
             )
             tileset_root.setIcon(0, QIcon(icon_paths[Icon.TILESET]))
+            self.tileset_primary_items[tileset] = tileset_root
+
         for tileset in sorted(project.tilesets_secondary):
             tileset_root = ResourceParameterTreeItemTileset(
                 self.tileset_secondary_root,
@@ -1128,6 +1219,22 @@ class ResourceParameterTree(QTreeWidget):
                 label=tileset,
             )
             tileset_root.setIcon(0, QIcon(icon_paths[Icon.TILESET]))
+            self.tileset_secondary_items[tileset] = tileset_root
+        if self.main_gui.tilesets_loaded and self.main_gui.tileset_primary is not None:
+            self.select_tileset(
+                primary=True,
+                label=self.main_gui.tileset_primary_label,
+                scroll_to_item=False,
+            )
+        if (
+            self.main_gui.tilesets_loaded
+            and self.main_gui.tileset_secondary is not None
+        ):
+            self.select_tileset(
+                primary=False,
+                label=self.main_gui.tileset_secondary_label,
+                scroll_to_item=False,
+            )
 
     def load_gfx(self):
         """Updates the gfxs of a project."""
@@ -1141,11 +1248,28 @@ class ResourceParameterTree(QTreeWidget):
                 self.gfx_primary_root, [f'{gfx}'], primary=True, label=gfx
             )
             gfx_root.setIcon(0, QIcon(icon_paths[Icon.GFX]))
+            self.gfx_primary_items[gfx] = gfx_root
         for gfx in sorted(project.gfxs_secondary):
             gfx_root = ResourceParameterTreeItemGfx(
                 self.gfx_secondary_root, [f'{gfx}'], primary=False, label=gfx
             )
             gfx_root.setIcon(0, QIcon(icon_paths[Icon.GFX]))
+            self.gfx_secondary_items[gfx] = gfx_root
+
+        if self.main_gui.tilesets_loaded:
+            gfx_primary_label = self.main_gui.get_tileset_gfx_label(primary=True)
+            self.select_gfx(
+                primary=True,
+                label=gfx_primary_label,
+                scroll_to_item=False,
+            )
+        if self.main_gui.tilesets_loaded:
+            gfx_secondary_label = self.main_gui.get_tileset_gfx_label(primary=False)
+            self.select_gfx(
+                primary=False,
+                label=gfx_secondary_label,
+                scroll_to_item=False,
+            )
 
 
 def remove_children(widget: QTreeWidgetItem):
