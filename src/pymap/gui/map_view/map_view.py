@@ -157,10 +157,6 @@ class MapView(QGraphicsView):
         """
         self.visible_layers = visible_layers
         for layer_name, layer in self.layers.items():
-            print(
-                f'Updating layer {layer_name.name} visibility to '
-                f'{(visible_layers & layer_name) > 0}'
-            )
             if layer.item is not None:
                 layer.item.setVisible((visible_layers & layer_name) > 0)
 

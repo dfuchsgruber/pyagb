@@ -2,10 +2,10 @@
 
 from pymap.gui.render import tile
 
-from .layer import MapViewLayerTilemap
+from .layer import MapViewLayerRGBAImage
 
 
-class MapViewLayerBlocks(MapViewLayerTilemap):
+class MapViewLayerBlocks(MapViewLayerRGBAImage):
     """A layer in the map view that displays blocks."""
 
     def load_map(self) -> None:

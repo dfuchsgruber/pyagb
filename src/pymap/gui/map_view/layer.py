@@ -36,8 +36,8 @@ class MapViewLayer(ABC):
         raise NotImplementedError('Subclasses must implement this method.')
 
 
-class MapViewLayerTilemap(MapViewLayer):
-    """A layer in the map view."""
+class MapViewLayerRGBAImage(MapViewLayer):
+    """A layer in the map view that is a single RGBA image."""
 
     def __init__(self, view: MapView):
         """Initialize the layer with an RGBA image."""
