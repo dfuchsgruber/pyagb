@@ -17,7 +17,7 @@ from agb.model.type import ModelValue
 from pymap.configuration import EventTemplateType, PymapEventConfigType
 from pymap.gui.history.event import AppendEvent, ChangeEventProperty, RemoveEvent
 from pymap.gui.history.statement import path_to_statement
-from pymap.gui.map.map_view import VisibleLayer
+from pymap.gui.map.view import VisibleLayer
 from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 
 from ..tab import MapWidgetTab

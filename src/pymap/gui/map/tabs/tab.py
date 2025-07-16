@@ -15,7 +15,7 @@ from pymap.gui.types import MapLayers, Tilemap
 from ..level import level_to_info
 
 if TYPE_CHECKING:
-    from pymap.gui.map.map_view import VisibleLayer
+    from pymap.gui.map.view import VisibleLayer
 
     from ..map_widget import MapWidget
 

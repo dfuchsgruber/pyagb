@@ -18,13 +18,13 @@ from PySide6.QtWidgets import (
 
 from pymap.gui.types import MapLayers, Tilemap
 
-from .map_view import MapView
 from .tabs.blocks import BlocksTab
 from .tabs.connections import ConnectionsTab
 from .tabs.events import EventsTab
 from .tabs.levels import LevelsTab
 from .tabs.smart_shapes.smart_shapes import SmartShapesTab
 from .tabs.tab import MapWidgetTab
+from .view import MapView
 
 if TYPE_CHECKING:
     from ..main.gui import PymapGui
