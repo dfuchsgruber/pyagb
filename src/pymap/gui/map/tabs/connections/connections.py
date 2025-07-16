@@ -129,7 +129,13 @@ class ConnectionsTab(MapWidgetTab):
     @property
     def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
-        return VisibleLayer.BLOCKS | VisibleLayer.CONNECTION_RECTANGLES
+        return (
+            VisibleLayer.BLOCKS
+            | VisibleLayer.BORDER_EFFECT
+            | VisibleLayer.CONNECTION_RECTANGLES
+            | VisibleLayer.GRID
+            | VisibleLayer.TRANSPARENT_BACKGROUND
+        )
 
     @property
     def selected_connection_idx(self) -> int:

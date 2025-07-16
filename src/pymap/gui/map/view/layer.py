@@ -76,8 +76,10 @@ class MapViewLayerRGBAImage(MapViewLayer):
 class VisibleLayer(IntFlag):
     """Layers that can be visible."""
 
+    TRANSPARENT_BACKGROUND = auto()
     BLOCKS = auto()
     LEVELS = auto()
+    BORDER_EFFECT = auto()
     SMART_SHAPE = auto()
     EVENTS = auto()
     SELECTED_EVENT = auto()

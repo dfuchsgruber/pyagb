@@ -17,6 +17,7 @@ from pymap.gui.blocks import (
 )
 
 from .blocks import MapViewLayerBlocks
+from .border_effect import MapViewLayerBorderEffects
 from .connections import MapViewLayerConnections
 from .events import MapViewLayerEvents
 from .grid import MapViewLayerGrid
@@ -50,6 +51,7 @@ class MapView(QGraphicsView):
             VisibleLayer.SELECTED_EVENT: MapViewLayerSelectedEvent(self),
             VisibleLayer.GRID: MapViewLayerGrid(self),
             VisibleLayer.SMART_SHAPE: MapViewLayerSmartShapes(self),
+            VisibleLayer.BORDER_EFFECT: MapViewLayerBorderEffects(self),
         }
 
         # Functionality

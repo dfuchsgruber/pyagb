@@ -137,7 +137,12 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
     @property
     def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
-        return VisibleLayer.BLOCKS
+        return (
+            VisibleLayer.BLOCKS
+            | VisibleLayer.BORDER_EFFECT
+            | VisibleLayer.GRID
+            | VisibleLayer.TRANSPARENT_BACKGROUND
+        )
 
     @property
     def selected_layers(self) -> MapLayers:

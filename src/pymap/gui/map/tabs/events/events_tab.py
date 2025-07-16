@@ -105,7 +105,14 @@ class EventsTab(MapWidgetTab):
     @property
     def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
-        return VisibleLayer.BLOCKS | VisibleLayer.EVENTS | VisibleLayer.SELECTED_EVENT
+        return (
+            VisibleLayer.BLOCKS
+            | VisibleLayer.EVENTS
+            | VisibleLayer.SELECTED_EVENT
+            | VisibleLayer.BORDER_EFFECT
+            | VisibleLayer.GRID
+            | VisibleLayer.TRANSPARENT_BACKGROUND
+        )
 
     def _get_event_by_padded_position(
         self,

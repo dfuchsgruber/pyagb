@@ -104,7 +104,13 @@ class LevelsTab(BlocksLikeTab):
     @property
     def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
-        return VisibleLayer.BLOCKS | VisibleLayer.LEVELS
+        return (
+            VisibleLayer.BLOCKS
+            | VisibleLayer.LEVELS
+            | VisibleLayer.BORDER_EFFECT
+            | VisibleLayer.GRID
+            | VisibleLayer.TRANSPARENT_BACKGROUND
+        )
 
     @property
     def selected_layers(self) -> Tilemap:

@@ -153,7 +153,13 @@ class SmartShapesTab(BlocksLikeTab):
     @property
     def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
-        return VisibleLayer.BLOCKS | VisibleLayer.SMART_SHAPE
+        return (
+            VisibleLayer.BLOCKS
+            | VisibleLayer.SMART_SHAPE
+            | VisibleLayer.BORDER_EFFECT
+            | VisibleLayer.GRID
+            | VisibleLayer.TRANSPARENT_BACKGROUND
+        )
 
     @property
     def current_smart_shape_name(self) -> str:
