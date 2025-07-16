@@ -56,7 +56,7 @@ class ChangeConnectionProperty(ChangeProperty):
             self.connection_idx, previous_value=self.previous_value
         )
         self.connections_tab.map_widget.update_blocks()
-        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
+        self.connections_tab.map_widget.map_scene_view.connections.update_connection_rectangles()
         if self.mirror_offset:
             self.connections_tab.mirror_connection_update_to_adjacent_connection(
                 self.connection_idx,
@@ -69,7 +69,7 @@ class ChangeConnectionProperty(ChangeProperty):
             self.connection_idx, previous_value=self.previous_value
         )
         self.connections_tab.map_widget.update_blocks()
-        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
+        self.connections_tab.map_widget.map_scene_view.connections.update_connection_rectangles()
         if self.mirror_offset:
             self.connections_tab.mirror_connection_update_to_adjacent_connection(
                 self.connection_idx,
@@ -98,9 +98,9 @@ class AppendConnection(QUndoCommand):
         ]['connections']['datatype']
         connections = self.connections_tab.map_widget.main_gui.get_connections()
         assert isinstance(connections, list)
-        context = self.connections_tab.map_widget.main_gui.project.config['pymap'][
+        context = self.connections_tab.map_widget.main_gui.project.config['pymap'][  # type: ignore
             'header'
-        ]['connections']['connections_path'] + [len(connections)]
+        ]['connections']['connections_path'] + [len(connections)]  # type: ignore
         parents = get_parents_by_path(
             self.connections_tab.map_widget.main_gui.header,
             self.connections_tab.map_widget.main_gui.project.config['pymap']['header'][
@@ -108,7 +108,7 @@ class AppendConnection(QUndoCommand):
             ]['connections_path'],
         )
 
-        connections.append(project.model[datatype](project, context, parents))
+        connections.append(project.model[datatype](project, context, parents))  # type: ignore
         self.connections_tab.map_widget.main_gui.set_number_of_connections(
             len(connections)
         )
@@ -117,7 +117,7 @@ class AppendConnection(QUndoCommand):
         )
         self.connections_tab.load_header()
         self.connections_tab.map_widget.update_blocks()
-        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
+        self.connections_tab.map_widget.map_scene_view.connections.update_connection_rectangles()
 
     def undo(self):
         """Removes the last event."""
@@ -128,7 +128,7 @@ class AppendConnection(QUndoCommand):
         )
         self.connections_tab.load_header()
         self.connections_tab.map_widget.update_blocks()
-        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
+        self.connections_tab.map_widget.map_scene_view.connections.update_connection_rectangles()
 
 
 class RemoveConnection(QUndoCommand):
@@ -158,7 +158,7 @@ class RemoveConnection(QUndoCommand):
         )
         self.connections_tab.load_header()
         self.connections_tab.map_widget.update_blocks()
-        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
+        self.connections_tab.map_widget.map_scene_view.connections.update_connection_rectangles()
 
     def undo(self):
         """Reinserts the connection."""
@@ -177,4 +177,4 @@ class RemoveConnection(QUndoCommand):
         )
         self.connections_tab.load_header()
         self.connections_tab.map_widget.update_blocks()
-        self.connections_tab.map_widget.map_scene.update_connection_rectangles()
+        self.connections_tab.map_widget.map_scene_view.connections.update_connection_rectangles()

@@ -171,7 +171,20 @@ class MapViewLayerConnections(MapViewLayer):
 
     def update_connection_rectangles(self):
         """Updates the connection rectangles."""
-        ...
+        assert self.view.main_gui.project is not None
+        if self.item is None:
+            return
+        for (
+            connection_type,
+            rectangle_graphics_item,
+        ) in self._connection_rectangles.items():
+            if connection_type not in self.visible_connection_idxs:
+                rect = 0, 0, 0, 0
+            else:
+                rect = self.connection_rectangle_get_position_and_dimensions(
+                    self.visible_connection_idxs[connection_type]
+                )
+            rectangle_graphics_item.setRect(*rect)
 
     def update_selected_connection(self, connection_idx: int):
         """Updates the selected connection rectangle.
@@ -179,4 +192,44 @@ class MapViewLayerConnections(MapViewLayer):
         Args:
             connection_idx (int | None): The index of the connection.
         """
-        ...
+        assert self.view.main_gui.project is not None
+        if self.item is None or connection_idx < 0:
+            return
+        connection_color = QColor.fromRgbF(
+            *(self.view.main_gui.project.config['pymap']['display']['connection_color'])
+        )
+        connection_active_color = QColor.fromRgbF(
+            *(
+                self.view.main_gui.project.config['pymap']['display'][
+                    'connection_active_color'
+                ]
+            )
+        )
+        connection_border_color = QColor.fromRgbF(
+            *(
+                self.view.main_gui.project.config['pymap']['display'][
+                    'connection_border_color'
+                ]
+            )
+        )
+        connection_active_border_color = QColor.fromRgbF(
+            *(
+                self.view.main_gui.project.config['pymap']['display'][
+                    'connection_active_border_color'
+                ]
+            )
+        )
+        idx_to_visible_connection_type = {
+            idx: connection_type
+            for connection_type, idx in self.visible_connection_idxs.items()
+        }
+        selected_connection_type = idx_to_visible_connection_type.get(
+            connection_idx, None
+        )
+        for connection_type, rect in self._connection_rectangles.items():
+            if connection_type == selected_connection_type:
+                rect.setPen(QPen(connection_active_border_color, 2.0))
+                rect.setBrush(QBrush(connection_active_color))
+            else:
+                rect.setPen(QPen(connection_border_color))
+                rect.setBrush(QBrush(connection_color))
