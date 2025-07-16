@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 
 from pymap.gui import render
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
-from pymap.gui.map_view import VisibleLayer
+from pymap.gui.map.map_view import VisibleLayer
 from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
 from pymap.gui.types import MapLayers, Tilemap
 

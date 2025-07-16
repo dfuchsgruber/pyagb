@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pymap.gui.map_view import VisibleLayer
+from pymap.gui.map.map_view import VisibleLayer
 from pymap.gui.render import QImage_to_ndarray, split_image_into_tiles
 from pymap.gui.types import Tilemap
 

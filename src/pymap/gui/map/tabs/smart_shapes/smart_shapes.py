@@ -21,11 +21,11 @@ from PySide6.QtWidgets import (
 
 from pymap.gui.history import AddOrRemoveSmartShape
 from pymap.gui.icon import Icon, icon_paths
+from pymap.gui.map.map_view import VisibleLayer
 from pymap.gui.map.tabs.blocks_like import BlocksLikeTab
 from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
     smart_shape_get_block_image,
 )
-from pymap.gui.map_view import VisibleLayer
 from pymap.gui.smart_shape.smart_shape import SmartShape
 from pymap.gui.types import MapLayers, Tilemap
 

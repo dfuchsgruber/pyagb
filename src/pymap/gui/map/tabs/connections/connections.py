@@ -27,7 +27,7 @@ from pymap.gui.history.connection import (
 )
 from pymap.gui.history.statement import path_to_statement
 from pymap.gui.icon import Icon, icon_paths
-from pymap.gui.map_view import VisibleLayer
+from pymap.gui.map.map_view import VisibleLayer
 from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 from pymap.gui.types import ConnectionType, opposite_connection_direction
 
