@@ -61,7 +61,7 @@ class SmartShapesBlocksScene(QGraphicsScene):
                 item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
                 x, y = idx % cols, idx // cols
                 item.setPos(16 * x, 16 * y)
-                item.setAcceptHoverEvents(True)
+                item.setAcceptHoverEvents(False)
                 item.setToolTip(tooltip)
                 self.addItem(item)
 

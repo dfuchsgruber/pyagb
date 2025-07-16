@@ -201,24 +201,31 @@ def get_tiles(
     )
 
 
-def split_image_into_tiles(image: RGBAImage) -> RGBAImage:
+def split_image_into_tiles(image: RGBAImage, tile_size: int = 8) -> RGBAImage:
     """Splits an image into 8x8 tiles that are cropped from the image.
 
     Args:
         image (np.ndarray, shape [h, w, ...]): The image to split.
+        tile_size (int): The size of the tiles to split the image into.
 
     Returns:
-        np.ndarray, shape [h // 8, w // 8, 8, 8, ...]: The tiles.
+        np.ndarray, shape [h // tile_size, w // tile_size, tile_size, tile_size, ...]:
+            The tiles.
     """
     assert isinstance(image, np.ndarray)
     h, w = image.shape[:2]
-    assert h % 8 == 0
-    assert w % 8 == 0
-    tiles = np.zeros((h // 8, w // 8, 8, 8, *image.shape[2:]), dtype=np.uint8)
+    assert h % tile_size == 0
+    assert w % tile_size == 0
+    tiles = np.zeros(
+        (h // tile_size, w // tile_size, tile_size, tile_size, *image.shape[2:]),
+        dtype=np.uint8,
+    )
     # TODO: efficiency, can we improve the tiling runtime?
-    for i in range(h // 8):
-        for j in range(w // 8):
-            tiles[i, j] = image[i * 8 : (i + 1) * 8, j * 8 : (j + 1) * 8]
+    for i in range(h // tile_size):
+        for j in range(w // tile_size):
+            tiles[i, j] = image[
+                i * tile_size : (i + 1) * tile_size, j * tile_size : (j + 1) * tile_size
+            ]
     return tiles
 
 
@@ -304,6 +311,27 @@ def ndarray_to_QImage(
 
     # Create QImage
     return QImage(array_u8.data, W, H, 4 * W, QImage.Format.Format_RGBA8888)
+
+
+def QImage_to_ndarray(image: QImage) -> RGBAImage:
+    """Converts a QImage to a numpy array."""
+    image = image.convertToFormat(QImage.Format.Format_RGBA8888)
+    width = image.width()
+    height = image.height()
+
+    arr = np.empty((height, width, 4), dtype=np.uint8)
+
+    for y in range(height):
+        for x in range(width):
+            color = image.pixelColor(x, y)
+            arr[y, x] = [
+                color.red(),
+                color.green(),
+                color.blue(),
+                color.alpha(),
+            ]
+
+    return arr
 
 
 def image_to_QImage(image: Image, palette: Palette) -> QImage:

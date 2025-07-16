@@ -507,7 +507,7 @@ class TilesetWidget(QtWidgets.QWidget):
 
         item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.blocks_scene.addItem(item)
-        item.setAcceptHoverEvents(True)
+        item.setAcceptHoverEvents(False)
         # Add the selection rectangle
         color = QColor.fromRgbF(1.0, 0.0, 0.0, 1.0)
         self.blocks_scene.selection_rect = self.blocks_scene.addRect(
@@ -553,7 +553,7 @@ class TilesetWidget(QtWidgets.QWidget):
 
         item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.tiles_scene.addItem(item)
-        item.setAcceptHoverEvents(True)
+        item.setAcceptHoverEvents(False)
         # Add the selection rectangle
         self.tiles_scene.add_selection_rect()
         self.tiles_scene.update_selection_rect()
@@ -610,7 +610,7 @@ class TilesetWidget(QtWidgets.QWidget):
 
         item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.selection_scene.addItem(item)
-        item.setAcceptHoverEvents(True)
+        item.setAcceptHoverEvents(False)
         self.selection_scene.setSceneRect(0, 0, width, height)
 
     def set_info(self, tile_idx: int | None):

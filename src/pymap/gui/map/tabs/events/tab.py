@@ -99,7 +99,7 @@ class EventTab(QWidget):
     def select_event(self):
         """Selects the event of the current index."""
         self.event_properties.load()
-        self.events_tab.map_widget.map_scene.update_selected_event_image(
+        self.events_tab.map_widget.map_scene_view.selected_event.update_selected_event_image(
             self.event_type, self._sanitize_event_idx(self.idx_combobox.currentIndex())
         )
 

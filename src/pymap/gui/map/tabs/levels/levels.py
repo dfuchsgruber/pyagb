@@ -18,7 +18,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pymap.gui.map_scene import MapScene
+from pymap.gui.map_view import VisibleLayer
+from pymap.gui.render import QImage_to_ndarray, split_image_into_tiles
 from pymap.gui.types import Tilemap
 
 from ..blocks_like import BlocksLikeTab
@@ -68,6 +69,11 @@ class LevelsTab(BlocksLikeTab):
                 )
             ),
         )
+        self.levels_blocks_rgba = split_image_into_tiles(
+            QImage_to_ndarray(self.level_blocks_pixmap.toImage()),
+            tile_size=16,
+        ).reshape((-1, 16, 16, 4))
+
         # And split them
         self.level_blocks_pixmaps = [
             self.level_blocks_pixmap.copy((idx % 4) * 16, (idx // 4) * 16, 16, 16)
@@ -86,7 +92,7 @@ class LevelsTab(BlocksLikeTab):
         )
         item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.level_scene.addItem(item)
-        item.setAcceptHoverEvents(True)
+        item.setAcceptHoverEvents(False)
         item.hoverLeaveEvent = lambda event: self.map_widget.info_label.setText('')
         self.level_scene.setSceneRect(0, 0, 4 * 16 * 2, 16 * 16 * 2)
 
@@ -96,14 +102,9 @@ class LevelsTab(BlocksLikeTab):
         return 1
 
     @property
-    def visible_layers(self) -> MapScene.VisibleLayer:
+    def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
-        return (
-            MapScene.VisibleLayer.BLOCKS
-            | MapScene.VisibleLayer.CONNECTIONS
-            | MapScene.VisibleLayer.BORDER_EFFECT
-            | MapScene.VisibleLayer.LEVELS
-        )
+        return VisibleLayer.BLOCKS | VisibleLayer.LEVELS
 
     @property
     def selected_layers(self) -> Tilemap:
@@ -117,7 +118,7 @@ class LevelsTab(BlocksLikeTab):
         assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
         opacity = self.level_opacity_slider.sliderPosition()
         self.map_widget.main_gui.settings.setValue('map_widget/level_opacity', opacity)
-        self.map_widget.map_scene.update_level_image_opacity()
+        self.map_widget.map_scene_view.levels.update_level_image_opacity()
 
     def load_project(self) -> None:
         """Loads the project."""

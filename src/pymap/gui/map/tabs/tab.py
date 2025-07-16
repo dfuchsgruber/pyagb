@@ -5,8 +5,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
-    QGraphicsSceneMouseEvent,
     QWidget,
 )
 
@@ -15,7 +15,8 @@ from pymap.gui.types import MapLayers, Tilemap
 from ..level import level_to_info
 
 if TYPE_CHECKING:
-    from ..map_scene import MapScene
+    from pymap.gui.map_view import VisibleLayer
+
     from ..map_widget import MapWidget
 
 
@@ -58,7 +59,7 @@ class MapWidgetTab(QWidget):
 
     @property
     @abstractmethod
-    def visible_layers(self) -> MapScene.VisibleLayer:
+    def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
         raise NotImplementedError
 
@@ -68,28 +69,22 @@ class MapWidgetTab(QWidget):
         raise NotImplementedError
 
     @abstractmethod
-    def map_scene_mouse_pressed(
-        self, event: QGraphicsSceneMouseEvent, x: int, y: int
-    ) -> None:
+    def map_scene_mouse_pressed(self, event: QMouseEvent, x: int, y: int) -> None:
         """Event handler for pressing the mouse."""
         raise NotImplementedError
 
     @abstractmethod
-    def map_scene_mouse_moved(
-        self, event: QGraphicsSceneMouseEvent, x: int, y: int
-    ) -> None:
+    def map_scene_mouse_moved(self, event: QMouseEvent, x: int, y: int) -> None:
         """Event handler for moving the mouse."""
         raise NotImplementedError
 
     @abstractmethod
-    def map_scene_mouse_released(
-        self, event: QGraphicsSceneMouseEvent, x: int, y: int
-    ) -> None:
+    def map_scene_mouse_released(self, event: QMouseEvent, x: int, y: int) -> None:
         """Event handler for releasing the mouse."""
         raise NotImplementedError
 
     def map_scene_mouse_double_clicked(
-        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+        self, event: QMouseEvent, x: int, y: int
     ) -> None:
         """Event handler for double clicking the mouse."""
         ...
@@ -98,6 +93,8 @@ class MapWidgetTab(QWidget):
         """Get the information text for the position."""
         if not self.map_widget.header_loaded:
             return None
-        assert self.map_widget.map_scene.blocks is not None, 'Blocks are not loaded'
-        block, level = self.map_widget.map_scene.blocks[y, x]
+        assert self.map_widget.map_scene_view.visible_blocks is not None, (
+            'Blocks are not loaded'
+        )
+        block, level = self.map_widget.map_scene_view.visible_blocks[y, x]
         return f'Block: {hex(block)}, Level: {hex(level)}({level_to_info(level)})'

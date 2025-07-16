@@ -25,7 +25,7 @@ from pymap.gui.map.tabs.blocks_like import BlocksLikeTab
 from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
     smart_shape_get_block_image,
 )
-from pymap.gui.map_scene import MapScene
+from pymap.gui.map_view import VisibleLayer
 from pymap.gui.smart_shape.smart_shape import SmartShape
 from pymap.gui.types import MapLayers, Tilemap
 
@@ -151,14 +151,9 @@ class SmartShapesTab(BlocksLikeTab):
         smart_shapes_layout.addStretch()
 
     @property
-    def visible_layers(self) -> MapScene.VisibleLayer:
+    def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
-        return (
-            MapScene.VisibleLayer.BLOCKS
-            | MapScene.VisibleLayer.CONNECTIONS
-            | MapScene.VisibleLayer.BORDER_EFFECT
-            | MapScene.VisibleLayer.SMART_SHAPE
-        )
+        return VisibleLayer.BLOCKS | VisibleLayer.SMART_SHAPE
 
     @property
     def current_smart_shape_name(self) -> str:
@@ -432,7 +427,7 @@ class SmartShapesTab(BlocksLikeTab):
                     self.map_widget.main_gui.block_images,
                 )
             ):
-                pixmap_item.setAcceptHoverEvents(True)
+                pixmap_item.setAcceptHoverEvents(False)
                 self.smart_shapes_scene.addItem(pixmap_item)
 
     def _clear_properties_layout(self):

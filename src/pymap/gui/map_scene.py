@@ -100,6 +100,7 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
             for y in range(0, int(self.height()), 16):
                 self.grid_group.addToGroup(self.addLine(0, y, self.width(), y))
             self.addItem(self.grid_group)
+            self._group_set_flags(self.grid_group)
         else:
             self.grid_group = None
 
@@ -168,11 +169,19 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
             )
             item = QGraphicsPixmapItem(pixmap)
             item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
-            item.setAcceptHoverEvents(True)
+            item.setAcceptHoverEvents(False)
             item.setPos(16 * x, 16 * y)
             self.block_images[y, x] = item
             self.blocks_group.addToGroup(item)
         self.addItem(self.blocks_group)
+        self._group_set_flags(self.blocks_group)
+
+    def _group_set_flags(self, group: QGraphicsItemGroup):
+        group.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        group.setAcceptHoverEvents(False)
+        group.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+        group.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsFocusable, False)
+        group.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
 
     def update_block_image_at_padded_position(self, x: int, y: int):
         """Updates the block image at the given padded position.
@@ -207,7 +216,7 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
             pixmap = self.main_gui.map_widget.levels_tab.level_blocks_pixmaps[level]
             item = QGraphicsPixmapItem(pixmap)
             item.setCacheMode(QGraphicsItem.CacheMode.NoCache)
-            item.setAcceptHoverEvents(True)
+            item.setAcceptHoverEvents(False)
             item.setPos(16 * x, 16 * y)
             self.level_images[y, x] = item
             self.levels_group.addToGroup(item)
@@ -216,7 +225,7 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
         self.levels_group.setGraphicsEffect(self.level_image_opacity_effect)
         self.update_level_image_opacity()
         self.addItem(self.levels_group)
-        # Pirnt how many items are in the levels group
+        self._group_set_flags(self.levels_group)
 
     @property
     def visible_connection_idxs(self) -> dict[ConnectionType, int]:
@@ -351,6 +360,7 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
                 self._connection_rectangles[connection_type]
             )
         self.addItem(self.connection_rectangles_group)
+        self._group_set_flags(self.connection_rectangles_group)
 
     def update_connection_rectangles(self):
         """Updates the connection rectangles."""
@@ -480,7 +490,7 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
 
         event = self.main_gui.get_event(event_type, event_idx)
         item = self._event_to_qgraphics_item(event, event_type)
-        item.setAcceptHoverEvents(True)
+        item.setAcceptHoverEvents(False)
         self.events_group.addToGroup(item)
         self.event_images[event_type['datatype']][event_idx] = item
 
@@ -517,7 +527,7 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
         if self.events_group is None:
             return
         item = self._event_to_qgraphics_item(event, event_type)
-        item.setAcceptHoverEvents(True)
+        item.setAcceptHoverEvents(False)
         self.events_group.addToGroup(item)
         self.event_images[event_type['datatype']].insert(event_idx, item)
 
@@ -533,13 +543,14 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
             events = self.main_gui.get_events(event_type)
             for event in events:
                 item = self._event_to_qgraphics_item(event, event_type)
-                item.setAcceptHoverEvents(True)
+                item.setAcceptHoverEvents(False)
                 self.events_group.addToGroup(item)
                 self.event_images[event_type['datatype']].append(item)
         self.addItem(self.events_group)
         self.events_group.setVisible(
             (self.visible_layers & MapScene.VisibleLayer.EVENTS) > 0
         )
+        self.events_group.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
 
     def update_event_images(self):
         """Updates all event images by recomputing them all."""
@@ -558,6 +569,7 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
         rect.setBrush(Qt.BrushStyle.NoBrush)
         self.selected_event_group.addToGroup(rect)
         self.addItem(self.selected_event_group)
+        self._group_set_flags(self.selected_event_group)
 
     @staticmethod
     def _get_event_image_rectangle(
@@ -699,6 +711,7 @@ class MapScene(QGraphicsSceneWithTransparentBackground):
         self.border_effect_group.addToGroup(self.west_border)
         self.border_effect_group.addToGroup(self.east_border)
         self.addItem(self.border_effect_group)
+        self._group_set_flags(self.border_effect_group)
 
     def update_scene_rect(self):
         """Updates the scene rectangle bounds."""

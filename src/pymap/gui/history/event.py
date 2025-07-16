@@ -90,7 +90,7 @@ class RemoveEvent(QUndoCommand):
         self.events_tab.map_widget.main_gui.set_number_of_events(
             self.event_type, len(events)
         )
-        self.events_tab.map_widget.map_scene.remove_event_image(
+        self.events_tab.map_widget.map_scene_view.events.remove_event_image(
             self.event_type, self.event_idx
         )
         self.events_tab.load_header()
@@ -104,7 +104,7 @@ class RemoveEvent(QUndoCommand):
         self.events_tab.map_widget.main_gui.set_number_of_events(
             self.event_type, len(events)
         )
-        self.events_tab.map_widget.map_scene.insert_event_image(
+        self.events_tab.map_widget.map_scene_view.events.insert_event_image(
             self.event_type, self.event_idx, self.event
         )
         self.events_tab.load_header()
@@ -153,7 +153,7 @@ class AppendEvent(QUndoCommand):
         self.events_tab.map_widget.main_gui.set_number_of_events(
             self.event_type, len(events)
         )
-        self.events_tab.map_widget.map_scene.insert_event_image(
+        self.events_tab.map_widget.map_scene_view.events.insert_event_image(
             self.event_type, len(events) - 1, events[-1]
         )
         self.events_tab.load_header()
@@ -168,7 +168,7 @@ class AppendEvent(QUndoCommand):
         self.events_tab.map_widget.main_gui.set_number_of_events(
             self.event_type, len(events)
         )
-        self.events_tab.map_widget.map_scene.remove_event_image(
+        self.events_tab.map_widget.map_scene_view.events.remove_event_image(
             self.event_type, len(events)
         )
         self.events_tab.load_header()

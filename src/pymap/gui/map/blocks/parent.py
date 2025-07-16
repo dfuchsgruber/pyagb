@@ -83,7 +83,7 @@ class BlocksSceneParentMixin:
         item = QGraphicsPixmapItem(self.blocks_image)
         item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.blocks_scene.addItem(item)
-        item.setAcceptHoverEvents(True)
+        item.setAcceptHoverEvents(False)
         # This triggers segfaults, because the pixmap item is deleted before
         # the lambda is called
         # item.hoverLeaveEvent = (

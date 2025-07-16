@@ -4,19 +4,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
-    QGraphicsSceneMouseEvent,
     QWidget,
 )
 
-from pymap.gui.map_scene import MapScene as BaseMapScene
+from pymap.gui.map_view import MapView as BaseMapView
 
 if TYPE_CHECKING:
     from .map_widget import MapWidget
 
 
-class MapScene(BaseMapScene):
-    """Scene for the map view."""
+class MapView(BaseMapView):
+    """Map View for the map widget."""
 
     def __init__(self, map_widget: MapWidget, parent: QWidget | None = None):  #
         """Initializes the map scene.
@@ -25,7 +25,7 @@ class MapScene(BaseMapScene):
             map_widget (MapWidget): The map widget.
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
-        super().__init__(map_widget.main_gui, parent=parent)
+        super().__init__(map_widget.main_gui)
         self.map_widget = map_widget
         self.selection_box = None
         # Store the position where a draw happend recently so there are not multiple
@@ -36,12 +36,12 @@ class MapScene(BaseMapScene):
 
     def event_coordinates_to_padded_map_coordinates(
         self,
-        event: QGraphicsSceneMouseEvent,
+        event: QMouseEvent,
     ) -> tuple[int, int] | None:
         """Converts the event coordinates to the padded map coordinates.
 
         Args:
-            event (QGraphicsSceneMouseEvent): The event.
+            event (QMouseEvent): The event.
 
         Returns:
             tuple[int, int] | None: The padded map coordinates or None if the event is
@@ -52,7 +52,7 @@ class MapScene(BaseMapScene):
         map_width, map_height = self.map_widget.main_gui.get_map_dimensions()
         border_width, border_height = self.map_widget.main_gui.get_border_padding()
 
-        pos = event.scenePos()
+        pos = self.mapToScene(event.pos())
         x, y = int(pos.x() / 16), int(pos.y() / 16)
 
         # Update the information for this position
@@ -64,7 +64,7 @@ class MapScene(BaseMapScene):
         else:  # Return the padded map coordinates
             return x, y
 
-    def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
+    def mousePressEvent(self, event: QMouseEvent):
         """Event handler for pressing the mouse."""
         if not self.map_widget.header_loaded:
             return
@@ -74,8 +74,9 @@ class MapScene(BaseMapScene):
         self.map_widget.tabs.currentWidget().map_scene_mouse_pressed(
             event, *map_coordinates
         )
+        super().mousePressEvent(event)
 
-    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
+    def mouseReleaseEvent(self, event: QMouseEvent):
         """Event handler for releasing the mouse."""
         if not self.map_widget.header_loaded:
             return
@@ -86,7 +87,7 @@ class MapScene(BaseMapScene):
             event, *map_coordinates
         )
 
-    def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent):
+    def mouseDoubleClickEvent(self, event: QMouseEvent):
         """Event handler for double clicking the mouse."""
         if not self.map_widget.header_loaded:
             return
@@ -98,9 +99,9 @@ class MapScene(BaseMapScene):
         )
 
     # @Profile('MapScene:mouseMoveEvent')
-    def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
+    def mouseMoveEvent(self, event: QMouseEvent):
         """Event handler for moving the mouse."""
-        pos = event.scenePos()
+        pos = self.mapToScene(event.pos())
         x, y = int(pos.x() / 16), int(pos.y() / 16)
         if (x, y) == self._last_mouse_pos:
             return

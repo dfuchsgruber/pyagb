@@ -74,7 +74,7 @@ class BlockScene(QGraphicsSceneWithTransparentBackground):
 
         item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
         self.addItem(item)
-        item.setAcceptHoverEvents(True)
+        item.setAcceptHoverEvents(False)
         self.setSceneRect(0, 0, size, size)
 
     def update_selection_box(self):

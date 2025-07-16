@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 
 from pymap.gui import render
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
-from pymap.gui.map_scene import MapScene
+from pymap.gui.map_view import VisibleLayer
 from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
 from pymap.gui.types import MapLayers, Tilemap
 
@@ -135,13 +135,9 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         return 0
 
     @property
-    def visible_layers(self) -> MapScene.VisibleLayer:
+    def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
-        return (
-            MapScene.VisibleLayer.BLOCKS
-            | MapScene.VisibleLayer.CONNECTIONS
-            | MapScene.VisibleLayer.BORDER_EFFECT
-        )
+        return VisibleLayer.BLOCKS
 
     @property
     def selected_layers(self) -> MapLayers:
@@ -176,13 +172,13 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
             pixmap = QPixmap.fromImage(render.ndarray_to_QImage(map_blocks[block_idx]))
             item = QGraphicsPixmapItem(pixmap)
             item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
-            item.setAcceptHoverEvents(True)
+            item.setAcceptHoverEvents(False)
             item.setPos(x * 16, y * 16)
             blocks_group.addToGroup(item)
             block_pixmap_items.append(item)
         self.block_pixmap_items = np.array(block_pixmap_items, dtype=object)
         self.blocks_scene.addItem(blocks_group)
-        blocks_group.setAcceptHoverEvents(True)
+        blocks_group.setAcceptHoverEvents(False)
         blocks_group.hoverLeaveEvent = lambda event: self.set_info_text('')
 
     def load_border(self):

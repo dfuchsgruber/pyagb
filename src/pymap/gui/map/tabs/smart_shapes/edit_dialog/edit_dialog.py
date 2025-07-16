@@ -146,7 +146,7 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
             self.main_gui.block_images,
         )
         for _, item in np.ndenumerate(self.shape_block_images):
-            item.setAcceptHoverEvents(True)
+            item.setAcceptHoverEvents(False)
             self.shape_scene.addItem(item)
 
     def update_shape_with_blocks(self, x: int, y: int, blocks: Tilemap) -> None:

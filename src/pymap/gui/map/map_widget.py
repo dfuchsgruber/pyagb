@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 
 from pymap.gui.types import MapLayers, Tilemap
 
-from .map_scene import MapScene
+from .map_view import MapView
 from .tabs.blocks import BlocksTab
 from .tabs.connections import ConnectionsTab
 from .tabs.events import EventsTab
@@ -92,10 +92,8 @@ class MapWidget(QWidget):
 
         grid_layout.addWidget(splitter, 2, 1, 1, 1)
 
-        self.map_scene = MapScene(self)
-        self.map_scene_view = QtWidgets.QGraphicsView()
+        self.map_scene_view = MapView(self)
         self.map_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        self.map_scene_view.setScene(self.map_scene)
         self.map_scene_view.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
@@ -165,7 +163,7 @@ class MapWidget(QWidget):
     def tab_changed(self, *args: Any, **kwargs: Any):
         """Triggered when the user switches from the blocks to levels tab."""
         widget = self.tabs.currentWidget()
-        self.map_scene.update_visible_layers(widget.visible_layers)
+        self.map_scene_view.update_visible_layers(widget.visible_layers)
 
     def update_layers(self):
         """Updates the current layers."""
@@ -178,7 +176,7 @@ class MapWidget(QWidget):
         assert self.main_gui.project is not None, 'Project is not loaded'
         for idx in range(self.tabs.count()):
             self.tabs.widget(idx).load_project()
-        self.map_scene.load_project()
+        self.map_scene_view.load_project()
         self.load_header()
 
     def load_header(self, *args: Any):
@@ -191,37 +189,41 @@ class MapWidget(QWidget):
 
     def load_map(self):
         """Loads the entire map image."""
-        self.map_scene.clear()
+        self.map_scene_view.scene().clear()
         if self.main_gui.project is None or self.main_gui.header is None:
             return
-        self.map_scene.load_map()
-        self.map_scene.update_visible_layers(self.tabs.currentWidget().visible_layers)
+        self.map_scene_view.load_map()
+        self.map_scene_view.update_visible_layers(
+            self.tabs.currentWidget().visible_layers
+        )
 
     def update_grid(self):
         """Updates the grid."""
-        self.map_scene.update_grid()
+        self.map_scene_view.update_grid()
 
     def update_blocks(self):
         """Re-computes all blocks and updates the images for blocks that changed."""
-        assert self.map_scene.blocks is not None
-        blocks_previous = self.map_scene.blocks.copy()
-        self.map_scene.compute_blocks()
+        assert self.map_scene_view.visible_blocks is not None
+        blocks_previous = self.map_scene_view.visible_blocks.copy()
+        self.map_scene_view.compute_visible_blocks()
         self.update_blocks_at_padded_indices(
-            np.where(blocks_previous[..., 0] != self.map_scene.blocks[..., 0])
+            np.where(
+                blocks_previous[..., 0] != self.map_scene_view.visible_blocks[..., 0]
+            )
         )
 
     def update_all_blocks(self):
         """Updates all blocks in the map."""
-        assert self.map_scene.blocks is not None
-        for y in range(self.map_scene.blocks.shape[0]):
-            for x in range(self.map_scene.blocks.shape[1]):
-                self.map_scene.update_block_image_at_padded_position(x, y)
+        assert self.map_scene_view.visible_blocks is not None
+        for y in range(self.map_scene_view.visible_blocks.shape[0]):
+            for x in range(self.map_scene_view.visible_blocks.shape[1]):
+                self.map_scene_view.blocks.update_block_image_at_padded_position(x, y)
 
     def update_block_idx(self, block_idx: int):
         """Updates all blocks with a certain block index."""
-        assert self.map_scene.blocks is not None, 'Blocks are not loaded'
+        assert self.map_scene_view.visible_blocks is not None, 'Blocks are not loaded'
         self.update_blocks_at_padded_indices(
-            np.where(self.map_scene.blocks[..., 0] == block_idx)
+            np.where(self.map_scene_view.visible_blocks[..., 0] == block_idx)
         )
         for idx in range(self.tabs.count()):
             self.tabs.widget(idx).update_block_idx(block_idx)
@@ -238,7 +240,7 @@ class MapWidget(QWidget):
         idx_y, idx_x = indices_padded
         for y, x in zip(idx_y, idx_x):
             y, x = cast(int, y), cast(int, x)
-            self.map_scene.update_block_image_at_padded_position(x, y)
+            self.map_scene_view.blocks.update_block_image_at_padded_position(x, y)
 
     def update_layer_at_indices(
         self,
@@ -280,7 +282,7 @@ class MapWidget(QWidget):
         idx_y, idx_x = indices_padded
         for y, x in zip(idx_y, idx_x):
             y, x = cast(int, y), cast(int, x)
-            self.map_scene.update_level_image_at_padded_position(x, y)
+            self.map_scene_view.levels.update_level_image_at_padded_position(x, y)
 
     def update_map_at_indices(
         self,
@@ -298,10 +300,10 @@ class MapWidget(QWidget):
         """
         if not self.main_gui.footer_loaded:
             return
-        assert self.map_scene.blocks is not None, 'Blocks are not loaded'
+        assert self.map_scene_view.visible_blocks is not None, 'Blocks are not loaded'
         assert self.main_gui.block_images is not None, 'Blocks are not loaded'
         padded_width, padded_height = self.main_gui.get_border_padding()
-        self.map_scene.blocks[
+        self.map_scene_view.visible_blocks[
             indices[0] + padded_height, indices[1] + padded_width, layer
         ] = blocks[...]
         indices = np.array(indices).copy()
@@ -317,11 +319,11 @@ class MapWidget(QWidget):
         """Updates the map image with new blocks rooted at a certain position."""
         if not self.main_gui.footer_loaded:
             return
-        assert self.map_scene.blocks is not None, 'Blocks are not loaded'
+        assert self.map_scene_view.visible_blocks is not None, 'Blocks are not loaded'
         assert self.main_gui.block_images is not None, 'Blocks are not loaded'
         padded_width, padded_height = self.main_gui.get_border_padding()
 
-        self.map_scene.blocks[
+        self.map_scene_view.visible_blocks[
             padded_height + y : padded_height + y + blocks.shape[0],
             padded_width + x : padded_width + x + blocks.shape[1],
             layers,

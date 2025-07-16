@@ -762,11 +762,11 @@ class PymapGui(QMainWindow, PymapGuiModel):
         if len(path):
             self.settings.setValue('map_image/recent', os.path.dirname(path))
             image = QImage(
-                self.map_widget.map_scene.sceneRect().size().toSize(),
+                self.map_widget.map_scene_view.scene().sceneRect().size().toSize(),
                 QImage.Format.Format_ARGB32,
             )
             painter = QPainter(image)
-            self.map_widget.map_scene.render(painter)
+            self.map_widget.map_scene_view.render(painter)
             image.save(path)  # type: ignore
             painter.end()
 
@@ -778,7 +778,7 @@ class PymapGui(QMainWindow, PymapGuiModel):
             'event_widget/show_pictures',
             not self.settings.value('event_widget/show_pictures', False, bool),
         )
-        self.map_widget.map_scene.update_event_images()
+        self.map_widget.map_scene_view.events.update_event_images()
 
     def set_border_at(self, x: int, y: int, blocks: Tilemap):
         """Sets the blocks of the border and adds an action to the history."""

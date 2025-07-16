@@ -6,9 +6,8 @@ from typing import TYPE_CHECKING
 
 from PySide6 import QtWidgets
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QMouseEvent
 from PySide6.QtWidgets import (
-    QGraphicsSceneMouseEvent,
     QMessageBox,
     QWidget,
 )
@@ -28,7 +27,7 @@ from pymap.gui.history.connection import (
 )
 from pymap.gui.history.statement import path_to_statement
 from pymap.gui.icon import Icon, icon_paths
-from pymap.gui.map_scene import MapScene
+from pymap.gui.map_view import VisibleLayer
 from pymap.gui.properties.utils import get_member_by_path, set_member_by_path
 from pymap.gui.types import ConnectionType, opposite_connection_direction
 
@@ -128,14 +127,9 @@ class ConnectionsTab(MapWidgetTab):
         self.idx_combobox.blockSignals(False)
 
     @property
-    def visible_layers(self) -> MapScene.VisibleLayer:
+    def visible_layers(self) -> VisibleLayer:
         """Get the visible layers."""
-        return (
-            MapScene.VisibleLayer.BLOCKS
-            | MapScene.VisibleLayer.BORDER_EFFECT
-            | MapScene.VisibleLayer.CONNECTIONS
-            | MapScene.VisibleLayer.CONNECTION_RECTANGLES
-        )
+        return VisibleLayer.BLOCKS | VisibleLayer.CONNECTION_RECTANGLES
 
     @property
     def selected_connection_idx(self) -> int:
@@ -170,7 +164,7 @@ class ConnectionsTab(MapWidgetTab):
             for connection_idx in range(len(connections)):
                 # Get the position of the connection rectangle
                 rectangle_x, rectangle_y, rectangle_width, rectangle_height = (
-                    self.map_widget.map_scene.connection_rectangle_get_position_and_dimensions(
+                    self.map_widget.map_scene_view.connections.connection_rectangle_get_position_and_dimensions(
                         connection_idx
                     )
                 )
@@ -202,13 +196,11 @@ class ConnectionsTab(MapWidgetTab):
             self.dragged_connection_idx = None
             self.is_dragging = False
 
-    def map_scene_mouse_pressed(
-        self, event: QGraphicsSceneMouseEvent, x: int, y: int
-    ) -> None:
+    def map_scene_mouse_pressed(self, event: QMouseEvent, x: int, y: int) -> None:
         """Event handler for pressing the mouse.
 
         Args:
-            event (QGraphicsSceneMouseEvent): The event.
+            event (QMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -242,13 +234,11 @@ class ConnectionsTab(MapWidgetTab):
         """
         self._select_connection_at_padded_position(x, y)
 
-    def map_scene_mouse_moved(
-        self, event: QGraphicsSceneMouseEvent, x: int, y: int
-    ) -> None:
+    def map_scene_mouse_moved(self, event: QMouseEvent, x: int, y: int) -> None:
         """Event handler for moving the mouse.
 
         Args:
-            event (QGraphicsSceneMouseEvent): The event.
+            event (QMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -300,13 +290,11 @@ class ConnectionsTab(MapWidgetTab):
 
             self.last_dragged_position = x, y
 
-    def map_scene_mouse_released(
-        self, event: QGraphicsSceneMouseEvent, x: int, y: int
-    ) -> None:
+    def map_scene_mouse_released(self, event: QMouseEvent, x: int, y: int) -> None:
         """Event handler for releasing the mouse.
 
         Args:
-            event (QGraphicsSceneMouseEvent): The event.
+            event (QMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -319,7 +307,7 @@ class ConnectionsTab(MapWidgetTab):
         self.dragged_connection_idx = None
 
     def map_scene_mouse_double_clicked(
-        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+        self, event: QMouseEvent, x: int, y: int
     ) -> None:
         """Event handler for double clicking the mouse."""
         if not self.map_widget.header_loaded:
@@ -396,7 +384,7 @@ class ConnectionsTab(MapWidgetTab):
         if not self.map_widget.main_gui.project:
             return
         self.connection_properties.load()
-        self.map_widget.map_scene.update_selected_connection(
+        self.map_widget.map_scene_view.connections.update_selected_connection(
             self.selected_connection_idx
         )
 
