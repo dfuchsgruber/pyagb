@@ -7,11 +7,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from PySide6 import QtOpenGLWidgets, QtWidgets
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QGraphicsItem,
-    QGraphicsItemGroup,
-    QGraphicsPixmapItem,
     QGraphicsScene,
     QSizePolicy,
     QSplitter,
@@ -60,7 +57,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         border_layout = QtWidgets.QGridLayout()
         group_border.setLayout(border_layout)
         self.border_scene = BorderScene(self)
-        self.border_scene_view = QtWidgets.QGraphicsView()
+        self.border_scene_view = QGraphicsViewWithTransparentBackground()
         self.border_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.border_scene_view.setScene(self.border_scene)
         self.border_scene_view.setSizePolicy(
@@ -193,20 +190,19 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         map_blocks = self.map_widget.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
         border_blocks = self.map_widget.main_gui.get_borders()
-        self.border_scene.add_transparent_background(
-            border_blocks.shape[1] * 16, border_blocks.shape[0] * 16
-        )
 
-        border_group = QGraphicsItemGroup()
-        self.border_pixmap_items = np.empty_like(border_blocks[..., 0], dtype=object)
-        for (y, x), block_idx in np.ndenumerate(border_blocks[..., 0]):
-            pixmap = QPixmap.fromImage(render.ndarray_to_QImage(map_blocks[block_idx]))
-            item = QGraphicsPixmapItem(pixmap)
-            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
-            item.setPos(x * 16, y * 16)
-            border_group.addToGroup(item)
-            self.border_pixmap_items[y, x] = item
-        self.border_scene.addItem(border_group)
+        self.border_scene.addItem(
+            self.border_scene_view.get_transparent_background(
+                border_blocks.shape[1] * 16, border_blocks.shape[0] * 16
+            )
+        )
+        self.border_qrgba_image = QRGBAImage(
+            render.draw_blocks(map_blocks, border_blocks[..., 0])
+        )
+        self.border_qrgba_image.item.setCacheMode(
+            QGraphicsItem.CacheMode.DeviceCoordinateCache
+        )
+        self.border_scene.addItem(self.border_qrgba_image.item)
         self.border_scene.setSceneRect(
             0, 0, border_blocks.shape[1] * 16, border_blocks.shape[0] * 16
         )
@@ -224,10 +220,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         assert map_blocks is not None, 'Blocks are not loaded'
         border_blocks = self.map_widget.main_gui.get_borders()
         block_idx = border_blocks[y, x, 0]
-        pixmap = QPixmap.fromImage(render.ndarray_to_QImage(map_blocks[block_idx]))
-        item = self.border_pixmap_items[y, x]
-        if item.pixmap().cacheKey() != pixmap.cacheKey():
-            item.setPixmap(pixmap)
+        self.border_qrgba_image.set_rectangle(map_blocks[block_idx], 16 * x, 16 * y)
 
     def update_block_idx(self, block_idx: int):
         """Updates the block with a given index.

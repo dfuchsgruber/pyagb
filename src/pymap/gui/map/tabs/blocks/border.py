@@ -5,18 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QGraphicsSceneMouseEvent,
-    QWidget,
-)
-
-from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
+from PySide6.QtWidgets import QGraphicsScene, QGraphicsSceneMouseEvent, QWidget
 
 if TYPE_CHECKING:
     from . import BlocksTab
 
 
-class BorderScene(QGraphicsSceneWithTransparentBackground):
+class BorderScene(QGraphicsScene):
     """Scene for the border view."""
 
     def __init__(self, map_widget: BlocksTab, parent: QWidget | None = None):
