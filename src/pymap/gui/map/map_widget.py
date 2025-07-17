@@ -70,6 +70,8 @@ class MapTabsWidget(QTabWidget):
 class MapWidget(QWidget):
     """Widget for the map and its properties."""
 
+    THRESHOLD_NUM_BLOCKS_TO_RELOAD_IMAGE = 50
+
     def __init__(self, main_gui: PymapGui, parent: QWidget | None = None):
         """Initializes the map widget.
 
@@ -80,7 +82,6 @@ class MapWidget(QWidget):
         super().__init__(parent=parent)
         self.main_gui = main_gui
         # Store blocks in an seperate numpy array that contains the border as well
-        self.layers = np.array(0)
         self.undo_stack = QtGui.QUndoStack()
         self.undo_stack.canRedoChanged.connect(self._update_undo_redo_tooltips)
         self.undo_stack.canUndoChanged.connect(self._update_undo_redo_tooltips)
@@ -212,13 +213,6 @@ class MapWidget(QWidget):
             )
         )
 
-    def update_all_blocks(self):
-        """Updates all blocks in the map."""
-        assert self.map_scene_view.visible_blocks is not None
-        for y in range(self.map_scene_view.visible_blocks.shape[0]):
-            for x in range(self.map_scene_view.visible_blocks.shape[1]):
-                self.map_scene_view.blocks.update_block_image_at_padded_position(x, y)
-
     def update_block_idx(self, block_idx: int):
         """Updates all blocks with a certain block index."""
         assert self.map_scene_view.visible_blocks is not None, 'Blocks are not loaded'
@@ -238,9 +232,16 @@ class MapWidget(QWidget):
                 The indices.
         """
         idx_y, idx_x = indices_padded
-        for y, x in zip(idx_y, idx_x):
-            y, x = cast(int, y), cast(int, x)
-            self.map_scene_view.blocks.update_block_image_at_padded_position(x, y)
+        if len(idx_y) > self.THRESHOLD_NUM_BLOCKS_TO_RELOAD_IMAGE:
+            # Too many blocks to update, reload the entire image
+            self.map_scene_view.load_map()
+            self.map_scene_view.update_visible_layers(
+                self.tabs.currentWidget().visible_layers
+            )
+        else:
+            for y, x in zip(idx_y, idx_x):
+                y, x = cast(int, y), cast(int, x)
+                self.map_scene_view.blocks.update_block_image_at_padded_position(x, y)
 
     def update_layer_at_indices(
         self,
@@ -280,9 +281,16 @@ class MapWidget(QWidget):
 
         """
         idx_y, idx_x = indices_padded
-        for y, x in zip(idx_y, idx_x):
-            y, x = cast(int, y), cast(int, x)
-            self.map_scene_view.levels.update_level_image_at_padded_position(x, y)
+        if len(idx_y) > self.THRESHOLD_NUM_BLOCKS_TO_RELOAD_IMAGE:
+            # Too many blocks to update, reload the entire image
+            self.map_scene_view.load_map()
+            self.map_scene_view.update_visible_layers(
+                self.tabs.currentWidget().visible_layers
+            )
+        else:
+            for y, x in zip(idx_y, idx_x):
+                y, x = cast(int, y), cast(int, x)
+                self.map_scene_view.levels.update_level_image_at_padded_position(x, y)
 
     def update_map_at_indices(
         self,
@@ -309,11 +317,13 @@ class MapWidget(QWidget):
         indices = np.array(indices).copy()
         indices[0] += padded_height
         indices[1] += padded_width
-        assert isinstance(self.layers, Iterable), 'Layers is not an iterable'
-        if 0 in self.layers:
-            self.update_blocks_at_padded_indices(indices)
-        if 1 in self.layers:
-            self.update_levels_at_padded_indices(indices)
+        match layer:
+            case 0:
+                self.update_blocks_at_padded_indices(indices)
+            case 1:
+                self.update_levels_at_padded_indices(indices)
+            case _:
+                ...  # Invalid layer, do nothing
 
     def update_map_at(self, x: int, y: int, layers: MapLayers, blocks: Tilemap):
         """Updates the map image with new blocks rooted at a certain position."""

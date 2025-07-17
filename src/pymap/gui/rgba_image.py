@@ -12,11 +12,30 @@ from pymap.gui.types import RGBAImage
 class QRGBAImage:
     """A wrapper for a pixmap and pixmap items that are a single RGBA image."""
 
-    def __init__(self, rgba_image: RGBAImage):
+    def __init__(
+        self,
+        rgba_image: RGBAImage,
+        scaled_width: int | None = None,
+        scaled_height: int | None = None,
+        scaling_factor: float | None = None,
+    ):
         """Initialize with an RGBA image."""
         self.rgba_image = rgba_image
+        if scaling_factor is not None:
+            assert scaled_width is None and scaled_height is None, (
+                'Cannot set both scaling factor and scaled dimensions'
+            )
+            scaled_width = int(rgba_image.shape[1] * scaling_factor)
+            scaled_height = int(rgba_image.shape[0] * scaling_factor)
+        self.scaled_width = scaled_width
+        self.scaled_height = scaled_height
         self.pixmap = QPixmap.fromImage(ndarray_to_QImage(rgba_image))
-        self.item: QGraphicsPixmapItem = QGraphicsPixmapItem(self.pixmap)
+        if self.scaled_width is not None and self.scaled_height is not None:
+            self.item = QGraphicsPixmapItem(
+                self.pixmap.scaled(self.scaled_width, self.scaled_height)
+            )
+        else:
+            self.item = QGraphicsPixmapItem(self.pixmap)
 
     def set_rectangle(self, image: RGBAImage, x: int, y: int) -> None:
         """Paints the given image at the specified position on the pixmap."""
@@ -27,4 +46,9 @@ class QRGBAImage:
         with QPainter(self.pixmap) as painter:
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
             painter.drawImage(x, y, ndarray_to_QImage(image))
-        self.item.setPixmap(self.pixmap)
+        if self.scaled_width is not None and self.scaled_height is not None:
+            self.item.setPixmap(
+                self.pixmap.scaled(self.scaled_width, self.scaled_height)
+            )
+        else:
+            self.item.setPixmap(self.pixmap)

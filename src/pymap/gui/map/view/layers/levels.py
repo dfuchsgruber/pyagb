@@ -69,9 +69,9 @@ class MapViewLayerLevels(MapViewLayerRGBAImage):
                 16 * x,
                 16 * y,
             )
-            self.view.scene().update(
-                16 * x,
-                16 * y,
-                16,
-                16,
-            )
+            # self.view.scene().update(
+            #     16 * x,
+            #     16 * y,
+            #     16,
+            #     16,
+            # )
