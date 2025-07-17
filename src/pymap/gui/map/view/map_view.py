@@ -5,34 +5,34 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 from PySide6.QtGui import QMouseEvent, QPainter
-from PySide6.QtWidgets import (
-    QGraphicsScene,
-    QGraphicsView,
-)
+from PySide6.QtWidgets import QGraphicsItemGroup, QGraphicsLineItem, QGraphicsScene
 
 from agb.model.type import ModelValue
 from pymap.gui.blocks import (
     compute_blocks,
     insert_connection,
 )
-
-from .blocks import MapViewLayerBlocks
-from .border_effect import MapViewLayerBorderEffects
-from .connections import MapViewLayerConnections
-from .events import MapViewLayerEvents
-from .grid import MapViewLayerGrid
-from .levels import MapViewLayerLevels
-from .selected_event import MapViewLayerSelectedEvent
-from .smart_shapes import MapViewLayerSmartShapes
+from pymap.gui.transparent.view import QGraphicsViewWithTransparentBackground
 
 if TYPE_CHECKING:
     from pymap.gui.main.gui import PymapGui
     from pymap.gui.map.map_widget import MapWidget
 
-from .layer import MapViewLayer, VisibleLayer
+from .layers import (
+    MapViewLayer,
+    MapViewLayerBlocks,
+    MapViewLayerBorderEffects,
+    MapViewLayerConnections,
+    MapViewLayerEvents,
+    MapViewLayerGrid,
+    MapViewLayerLevels,
+    MapViewLayerSelectedEvent,
+    MapViewLayerSmartShapes,
+    VisibleLayer,
+)
 
 
-class MapView(QGraphicsView):
+class MapView(QGraphicsViewWithTransparentBackground):
     """A QGraphicsView that displays a tilemap with a transparent background."""
 
     def __init__(self, map_widget: MapWidget):
@@ -132,10 +132,6 @@ class MapView(QGraphicsView):
             - invisible_border_width,
         ]
 
-    def update_grid(self):
-        """Updates the grid of the scene."""
-        ...
-
     def load_project(self):
         """Loads the project."""
         ...
@@ -145,10 +141,19 @@ class MapView(QGraphicsView):
         if self.main_gui.project is None or self.main_gui.header is None:
             return
         self.compute_visible_blocks()
+        self.transparent_background = self.get_transparent_background(
+            16 * self.visible_blocks.shape[1],
+            16 * self.visible_blocks.shape[0],
+        )
+        self.scene().addItem(self.transparent_background)
         for layer in self.layers.values():
             layer.load_map()
             if layer.item is not None:
                 self.scene().addItem(layer.item)
+        self.grid_group = self._get_grid_group()
+        self.grid_group.setAcceptHoverEvents(False)
+        self.scene().addItem(self.grid_group)
+        self.update_grid()
 
         # Set the size of the scene
         padded_width, padded_height = self.main_gui.get_border_padding()
@@ -170,6 +175,20 @@ class MapView(QGraphicsView):
         for layer_name, layer in self.layers.items():
             if layer.item is not None:
                 layer.item.setVisible((visible_layers & layer_name) > 0)
+
+    def update_grid(self):
+        """Updates the grid of the scene."""
+        self.grid_group.setVisible(self.main_gui.grid_visible)
+
+    def _get_grid_group(self) -> QGraphicsItemGroup:
+        """Gets a group for a grid over the map."""
+        grid_group = QGraphicsItemGroup()
+        height, width = self.visible_blocks.shape[:2]
+        for x in range(0, 16 * width, 16):
+            grid_group.addToGroup(QGraphicsLineItem(x, 0, x, 16 * height))
+        for y in range(0, 16 * height, 16):
+            grid_group.addToGroup(QGraphicsLineItem(0, y, 16 * width, y))
+        return grid_group
 
     @staticmethod
     def pad_coordinates(

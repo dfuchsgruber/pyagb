@@ -10,7 +10,7 @@ from pymap.configuration import PymapEventConfigType
 from .layer import MapViewLayer
 
 if TYPE_CHECKING:
-    from .map_view import MapView
+    from ..map_view import MapView
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QPen, QPixmap

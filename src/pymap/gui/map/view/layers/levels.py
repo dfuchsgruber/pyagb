@@ -14,7 +14,7 @@ from pymap.gui.render import tile
 from .layer import MapViewLayerRGBAImage
 
 if TYPE_CHECKING:
-    from .map_view import MapView
+    from ..map_view import MapView
 
 
 class MapViewLayerLevels(MapViewLayerRGBAImage):

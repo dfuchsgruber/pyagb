@@ -134,7 +134,6 @@ class ConnectionsTab(MapWidgetTab):
             | VisibleLayer.BORDER_EFFECT
             | VisibleLayer.CONNECTION_RECTANGLES
             | VisibleLayer.GRID
-            | VisibleLayer.TRANSPARENT_BACKGROUND
         )
 
     @property

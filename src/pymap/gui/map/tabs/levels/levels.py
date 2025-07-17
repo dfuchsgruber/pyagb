@@ -109,7 +109,6 @@ class LevelsTab(BlocksLikeTab):
             | VisibleLayer.LEVELS
             | VisibleLayer.BORDER_EFFECT
             | VisibleLayer.GRID
-            | VisibleLayer.TRANSPARENT_BACKGROUND
         )
 
     @property

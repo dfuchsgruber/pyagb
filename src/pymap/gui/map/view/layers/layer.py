@@ -16,7 +16,7 @@ from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.types import RGBAImage
 
 if TYPE_CHECKING:
-    from .map_view import MapView
+    from ..map_view import MapView
 
 
 from abc import ABC
@@ -76,7 +76,6 @@ class MapViewLayerRGBAImage(MapViewLayer):
 class VisibleLayer(IntFlag):
     """Layers that can be visible."""
 
-    TRANSPARENT_BACKGROUND = auto()
     BLOCKS = auto()
     LEVELS = auto()
     BORDER_EFFECT = auto()

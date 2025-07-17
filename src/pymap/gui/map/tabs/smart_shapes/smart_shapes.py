@@ -158,7 +158,6 @@ class SmartShapesTab(BlocksLikeTab):
             | VisibleLayer.SMART_SHAPE
             | VisibleLayer.BORDER_EFFECT
             | VisibleLayer.GRID
-            | VisibleLayer.TRANSPARENT_BACKGROUND
         )
 
     @property
