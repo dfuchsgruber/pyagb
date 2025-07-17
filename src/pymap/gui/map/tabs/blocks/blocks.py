@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsItemGroup,
     QGraphicsPixmapItem,
+    QGraphicsScene,
     QSizePolicy,
     QSplitter,
     QWidget,
@@ -20,7 +21,8 @@ from PySide6.QtWidgets import (
 from pymap.gui import render
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
 from pymap.gui.map.view import VisibleLayer
-from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
+from pymap.gui.rgba_image import QRGBAImage
+from pymap.gui.transparent.view import QGraphicsViewWithTransparentBackground
 from pymap.gui.types import MapLayers, Tilemap
 
 from ..blocks_like import BlocksLikeTab
@@ -73,8 +75,8 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         group_selection = QtWidgets.QGroupBox('Selection')
         group_selection_layout = QtWidgets.QGridLayout()
         group_selection.setLayout(group_selection_layout)
-        self.selection_scene = QGraphicsSceneWithTransparentBackground()
-        self.selection_scene_view = QtWidgets.QGraphicsView()
+        self.selection_scene = QGraphicsScene()
+        self.selection_scene_view = QGraphicsViewWithTransparentBackground()
         self.selection_scene_view.setScene(self.selection_scene)
         self.selection_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         group_selection_layout.addWidget(self.selection_scene_view, 1, 1, 2, 1)
@@ -91,7 +93,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         group_blocks.setLayout(group_blocks_layout)
 
         self.blocks_scene = BlocksScene(self)
-        self.blocks_scene_view = QtWidgets.QGraphicsView()
+        self.blocks_scene_view = QGraphicsViewWithTransparentBackground()
         self.blocks_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.blocks_scene_view.setScene(self.blocks_scene)
         self.blocks_scene_view.leaveEvent = (
@@ -162,24 +164,26 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
             return
         map_blocks = self.map_widget.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
-        self.blocks_scene.add_transparent_background(
-            render.blocks_pool.shape[1] * 16, render.blocks_pool.shape[0] * 16
+        self.blocks_scene.addItem(
+            self.blocks_scene_view.get_transparent_background(
+                render.blocks_pool.shape[1] * 16, render.blocks_pool.shape[0] * 16
+            )
+        )
+        self.blocks_qrgba_image = QRGBAImage(
+            render.draw_blocks(map_blocks, render.blocks_pool[..., 0])
         )
 
-        blocks_group = QGraphicsItemGroup()
-        block_pixmap_items: list[QGraphicsPixmapItem] = []
-        for (y, x), block_idx in np.ndenumerate(render.blocks_pool[..., 0]):
-            pixmap = QPixmap.fromImage(render.ndarray_to_QImage(map_blocks[block_idx]))
-            item = QGraphicsPixmapItem(pixmap)
-            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
-            item.setAcceptHoverEvents(False)
-            item.setPos(x * 16, y * 16)
-            blocks_group.addToGroup(item)
-            block_pixmap_items.append(item)
-        self.block_pixmap_items = np.array(block_pixmap_items, dtype=object)
-        self.blocks_scene.addItem(blocks_group)
-        blocks_group.setAcceptHoverEvents(False)
-        blocks_group.hoverLeaveEvent = lambda event: self.set_info_text('')
+        self.blocks_qrgba_image.item.setCacheMode(
+            QGraphicsItem.CacheMode.DeviceCoordinateCache
+        )
+        self.blocks_qrgba_image.item.setAcceptHoverEvents(False)
+        self.blocks_scene.addItem(self.blocks_qrgba_image.item)
+        self.blocks_scene.setSceneRect(
+            0, 0, render.blocks_pool.shape[1] * 16, render.blocks_pool.shape[0] * 16
+        )
+        self.blocks_qrgba_image.item.hoverLeaveEvent = lambda event: self.set_info_text(
+            ''
+        )
 
     def load_border(self):
         """Loads the border."""
@@ -236,16 +240,18 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         super().update_block_idx(block_idx)
         if not self.map_widget.main_gui.footer_loaded:
             return
+
+        assert self.map_widget.main_gui.block_images is not None, (
+            'Blocks are not loaded'
+        )
         border_blocks = self.map_widget.main_gui.get_borders()
         for y, x in zip(*np.where(border_blocks[..., 0] == block_idx)):
             self.update_border_block_at(x, y)
-
-        map_blocks = self.map_widget.main_gui.block_images
-        assert map_blocks is not None, 'Blocks are not loaded'
-        pixmap = QPixmap.fromImage(render.ndarray_to_QImage(map_blocks[block_idx]))
-        item = self.block_pixmap_items[block_idx]
-        if item.pixmap().cacheKey() != pixmap.cacheKey():
-            item.setPixmap(pixmap)
+        x = block_idx % render.blocks_pool.shape[1]
+        y = block_idx // render.blocks_pool.shape[1]
+        self.blocks_qrgba_image.set_rectangle(
+            self.map_widget.main_gui.block_images[block_idx], 16 * x, 16 * y
+        )
 
     def set_selection(self, selection: Tilemap):
         """Sets the selection.
@@ -257,24 +263,29 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         self.selection = selection
         self.selection_scene.clear()
         # Add a transparent background
-        self.selection_scene.add_transparent_background(
-            selection.shape[1] * 16, selection.shape[0] * 16
+        self.selection_scene.addItem(
+            self.selection_scene_view.get_transparent_background(
+                selection.shape[1] * 16, selection.shape[0] * 16
+            )
         )
         if not self.map_widget.header_loaded:
             return
         # Block selection
         map_blocks = self.map_widget.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
-        selection_pixmap = QPixmap.fromImage(
-            render.ndarray_to_QImage(
-                render.draw_blocks(map_blocks, self.selection[..., 0])
-            )
+        selection_qrgba_image = QRGBAImage(
+            render.draw_blocks(map_blocks, selection[..., 0])
         )
-        item = QGraphicsPixmapItem(selection_pixmap)
-        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
-        self.selection_scene.addItem(item)
+
+        selection_qrgba_image.item.setCacheMode(
+            QGraphicsItem.CacheMode.DeviceCoordinateCache
+        )
+        self.selection_scene.addItem(selection_qrgba_image.item)
         self.selection_scene.setSceneRect(
-            0, 0, selection_pixmap.width(), selection_pixmap.height()
+            0,
+            0,
+            selection_qrgba_image.pixmap.width(),
+            selection_qrgba_image.pixmap.height(),
         )
 
     def load_map(self):
