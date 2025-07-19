@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QGraphicsItem,
     QGraphicsPixmapItem,
+    QGraphicsScene,
     QGraphicsView,
     QGridLayout,
     QGroupBox,
@@ -24,7 +25,7 @@ from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
 from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
     smart_shape_get_block_image,
 )
-from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
+from pymap.gui.transparent.view import QGraphicsViewWithTransparentBackground
 from pymap.gui.types import Tilemap
 
 from .shape_scene import ShapeScene
@@ -56,8 +57,8 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         group_selection_layout = QVBoxLayout()
         group_selection.setLayout(group_selection_layout)
         layout.addWidget(group_selection, 1, 1, 1, 1)
-        self.selection_scene = QGraphicsSceneWithTransparentBackground()
-        self.selection_scene_view = QGraphicsView()
+        self.selection_scene = QGraphicsScene()
+        self.selection_scene_view = QGraphicsViewWithTransparentBackground()
         self.selection_scene_view.setViewport(QOpenGLWidget())
         self.selection_scene_view.setScene(self.selection_scene)
         group_selection_layout.addWidget(self.selection_scene_view)
@@ -110,8 +111,10 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         selection = selection.copy()
         self.selection = selection
         self.selection_scene.clear()
-        self.selection_scene.add_transparent_background(
-            selection.shape[1] * 16, selection.shape[0] * 16
+        self.selection_scene.addItem(
+            self.selection_scene_view.get_transparent_background(
+                selection.shape[1] * 16, selection.shape[0] * 16
+            )
         )
         if not self.main_gui.header_loaded:
             return

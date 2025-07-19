@@ -10,12 +10,13 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsPixmapItem,
+    QGraphicsScene,
     QGraphicsSceneMouseEvent,
     QWidget,
 )
 from typing_extensions import ParamSpec
 
-from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
+from pymap.gui.transparent.view import QGraphicsViewWithTransparentBackground
 
 from .. import history
 from ..render import ndarray_to_QImage, select_blocks
@@ -26,17 +27,23 @@ if TYPE_CHECKING:
     from .tileset import TilesetWidget
 
 
-class BlockScene(QGraphicsSceneWithTransparentBackground):
+class BlockScene(QGraphicsScene):
     """Scene for the current block."""
 
     def __init__(
-        self, tileset_widget: TilesetWidget, layer: int, parent: QWidget | None = None
+        self,
+        tileset_widget: TilesetWidget,
+        layer: int,
+        view: QGraphicsViewWithTransparentBackground,
+        parent: QWidget | None = None,
     ):
         """Initializes the scene.
 
         Args:
             tileset_widget (TilesetWidget): The tileset widget.
             layer (int): The layer of the block.
+            view (QGraphicsViewWithTransparentBackground): The view to use
+                for the scene.
             parent (QWidget | None, optional): The parent. Defaults to None.
         """
         super().__init__(parent=parent)
@@ -44,6 +51,7 @@ class BlockScene(QGraphicsSceneWithTransparentBackground):
         self.layer = layer
         self.last_draw = None
         self.selection_box = None
+        self.transparent_view = view
 
     def update_block(self):
         """Updates the display of this block."""
@@ -67,7 +75,11 @@ class BlockScene(QGraphicsSceneWithTransparentBackground):
                 tile_img = tile_img[::-1, :]
             image[8 * y : 8 * (y + 1), 8 * x : 8 * (x + 1), :] = tile_img
         size = int(self.tileset_widget.zoom_slider.value() * 16 / 10)
-        self.add_transparent_background(16, 16, scaled_width=size, scaled_height=size)
+        self.addItem(
+            self.transparent_view.get_transparent_background(
+                16, 16, scaled_width=size, scaled_height=size
+            )
+        )
         item = QGraphicsPixmapItem(
             QPixmap.fromImage(ndarray_to_QImage(image).scaled(size, size))
         )

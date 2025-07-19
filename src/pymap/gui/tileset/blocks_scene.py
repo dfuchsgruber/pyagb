@@ -9,14 +9,13 @@ import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPen
 from PySide6.QtWidgets import (
+    QGraphicsScene,
     QGraphicsSceneContextMenuEvent,
     QGraphicsSceneMouseEvent,
     QMenu,
     QWidget,
 )
 from typing_extensions import ParamSpec
-
-from pymap.gui.transparent.scene import QGraphicsSceneWithTransparentBackground
 
 from .. import history
 
@@ -26,7 +25,7 @@ if TYPE_CHECKING:
     from .tileset import TilesetWidget
 
 
-class BlocksScene(QGraphicsSceneWithTransparentBackground):
+class BlocksScene(QGraphicsScene):
     """Scene for the individual blocks."""
 
     def __init__(self, tileset_widget: TilesetWidget, parent: QWidget | None = None):

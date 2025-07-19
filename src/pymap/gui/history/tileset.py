@@ -219,12 +219,7 @@ class SetTiles(QUndoCommand):
         )
         self.tileset_widget.main_gui.map_widget.update_block_idx(self.block_idx)
         self.tileset_widget.load_blocks()
-        if self.layer == 0:
-            self.tileset_widget.block_lower_scene.update_block()
-        elif self.layer == 1:
-            self.tileset_widget.block_mid_scene.update_block()
-        elif self.layer == 2:
-            self.tileset_widget.block_upper_scene.update_block()
+        self.tileset_widget.block_layers[self.layer].scene.update_block()
 
     def redo(self):
         """Performs the change on the block."""

@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy as np
 import numpy.typing as npt
@@ -26,6 +26,7 @@ from pymap.gui.render import ndarray_to_QImage
 from pymap.gui.tileset.block_properties import BlockProperties
 from pymap.gui.tileset.compression import tileset_remove_redundant_tiles
 from pymap.gui.tileset.tileset_properties import TilesetProperties
+from pymap.gui.transparent.view import QGraphicsViewWithTransparentBackground
 
 from .. import history, properties, render
 from .block_scene import BlockScene
@@ -39,6 +40,12 @@ if TYPE_CHECKING:
 
 class TilesetWidget(QtWidgets.QWidget):
     """Widget for editing tilesets."""
+
+    class BlockLayer(NamedTuple):
+        """A block layer."""
+
+        scene: BlockScene
+        view: QtWidgets.QGraphicsView
 
     def __init__(self, main_gui: PymapGui, parent: QtWidgets.QWidget | None = None):
         """Widget for editing tilesets.
@@ -70,7 +77,7 @@ class TilesetWidget(QtWidgets.QWidget):
 
         blocks_group = QtWidgets.QGroupBox('Blocks')
         self.blocks_scene = BlocksScene(self)
-        self.blocks_scene_view = QtWidgets.QGraphicsView()
+        self.blocks_scene_view = QGraphicsViewWithTransparentBackground()
         self.blocks_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.blocks_scene_view.setScene(self.blocks_scene)
         blocks_layout = QtWidgets.QGridLayout()
@@ -120,7 +127,7 @@ class TilesetWidget(QtWidgets.QWidget):
         selection_layout = QtWidgets.QGridLayout()
         seleciton_group.setLayout(selection_layout)
         self.selection_scene = SelectionScene(self)
-        self.selection_scene_view = QtWidgets.QGraphicsView()
+        self.selection_scene_view = QGraphicsViewWithTransparentBackground()
         self.selection_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.selection_scene_view.setScene(self.selection_scene)
         selection_layout.addWidget(self.selection_scene_view)
@@ -129,33 +136,24 @@ class TilesetWidget(QtWidgets.QWidget):
         current_block_group = QtWidgets.QGroupBox('Current Block')
         current_block_layout = QtWidgets.QGridLayout()
         current_block_group.setLayout(current_block_layout)
-        lower_group = QtWidgets.QGroupBox('Bottom Layer')
-        lower_layout = QtWidgets.QGridLayout()
-        lower_group.setLayout(lower_layout)
-        self.block_lower_scene = BlockScene(self, 0)
-        self.block_lower_scene_view = QtWidgets.QGraphicsView()
-        self.block_lower_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        self.block_lower_scene_view.setScene(self.block_lower_scene)
-        lower_layout.addWidget(self.block_lower_scene_view)
-        mid_group = QtWidgets.QGroupBox('Mid Layer')
-        mid_layout = QtWidgets.QGridLayout()
-        mid_group.setLayout(mid_layout)
-        self.block_mid_scene = BlockScene(self, 1)
-        self.block_mid_scene_view = QtWidgets.QGraphicsView()
-        self.block_mid_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        self.block_mid_scene_view.setScene(self.block_mid_scene)
-        mid_layout.addWidget(self.block_mid_scene_view)
-        upper_group = QtWidgets.QGroupBox('Upper Layer')
-        upper_layout = QtWidgets.QGridLayout()
-        upper_group.setLayout(upper_layout)
-        self.block_upper_scene = BlockScene(self, 2)
-        self.block_upper_scene_view = QtWidgets.QGraphicsView()
-        self.block_upper_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
-        self.block_upper_scene_view.setScene(self.block_upper_scene)
-        upper_layout.addWidget(self.block_upper_scene_view)
-        current_block_layout.addWidget(lower_group, 1, 1, 1, 1)
-        current_block_layout.addWidget(mid_group, 1, 2, 1, 1)
-        current_block_layout.addWidget(upper_group, 1, 3, 1, 1)
+        self.block_layers: list[TilesetWidget.BlockLayer] = []
+
+        for layer_idx, name in enumerate(['Bottom Layer', 'Mid Layer', 'Upper Layer']):
+            layer_group = QtWidgets.QGroupBox(name)
+            layer_layout = QtWidgets.QGridLayout()
+            layer_group.setLayout(layer_layout)
+            view = QGraphicsViewWithTransparentBackground()
+            scene = BlockScene(self, layer_idx, view=view)
+            view.setScene(scene)
+            self.block_layers.append(
+                TilesetWidget.BlockLayer(
+                    view=view,
+                    scene=scene,
+                )
+            )
+            layer_layout.addWidget(view)
+            current_block_layout.addWidget(layer_group, 1, layer_idx + 1, 1, 1)
+
         self.block_properties = BlockProperties(self)
         current_block_layout.addWidget(self.block_properties, 2, 1, 1, 3)
         behaviour_clipboard_layout = QtWidgets.QGridLayout()
@@ -213,7 +211,7 @@ class TilesetWidget(QtWidgets.QWidget):
 
         tiles_layout.addWidget(tiles_palette_group, 1, 1, 1, 1)
         self.tiles_scene = TilesScene(self)
-        self.tiles_scene_view = QtWidgets.QGraphicsView()
+        self.tiles_scene_view = QGraphicsViewWithTransparentBackground()
         self.tiles_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.tiles_scene_view.setScene(self.tiles_scene)
         tiles_layout.addWidget(self.tiles_scene_view, 3, 1, 1, 3)
@@ -462,9 +460,8 @@ class TilesetWidget(QtWidgets.QWidget):
 
     def set_current_block(self, block_idx: int):
         """Reloads the current block."""
-        self.block_lower_scene.clear()
-        self.block_mid_scene.clear()
-        self.block_upper_scene.clear()
+        for layer in self.block_layers:
+            layer.scene.clear()
         if (
             self.main_gui.project is None
             or self.main_gui.header is None
@@ -474,9 +471,8 @@ class TilesetWidget(QtWidgets.QWidget):
         ):
             return
         self.selected_block_idx = block_idx
-        self.block_lower_scene.update_block()
-        self.block_mid_scene.update_block()
-        self.block_upper_scene.update_block()
+        for layer in self.block_layers:
+            layer.scene.update_block()
         self.blocks_scene.update_selection_rect()
         self.block_properties.load()
 
@@ -492,11 +488,13 @@ class TilesetWidget(QtWidgets.QWidget):
         ):
             return
         height, width = self.blocks_image.shape[:2]
-        self.blocks_scene.add_transparent_background(
-            width,
-            height,
-            int(width * self.zoom_slider.value() / 10),
-            int(height * self.zoom_slider.value() / 10),
+        self.blocks_scene.addItem(
+            self.blocks_scene_view.get_transparent_background(
+                width,
+                height,
+                int(width * self.zoom_slider.value() / 10),
+                int(height * self.zoom_slider.value() / 10),
+            )
         )
 
         pixmap = QPixmap.fromImage(ndarray_to_QImage(self.blocks_image)).scaled(
@@ -535,8 +533,10 @@ class TilesetWidget(QtWidgets.QWidget):
             int(128 * self.zoom_slider.value() / 10),
             int(512 * self.zoom_slider.value() / 10),
         )
-        self.tiles_scene.add_transparent_background(
-            128, 512, scaled_width=width, scaled_height=height
+        self.tiles_scene.addItem(
+            self.tiles_scene_view.get_transparent_background(
+                128, 512, scaled_width=width, scaled_height=height
+            )
         )
         flip = (
             TileFlip.HORIZONTAL
@@ -574,18 +574,14 @@ class TilesetWidget(QtWidgets.QWidget):
         self.update_tiles()
         self.update_blocks()
         self.set_selection(self.selection)
-        self.block_lower_scene.update_block()
-        self.block_mid_scene.update_block()
-        self.block_upper_scene.update_block()
+        for layer in self.block_layers:
+            layer.scene.update_block()
 
     def set_selection(self, selection: npt.NDArray[np.object_]):
         """Sets the selection to a set of tiles."""
         assert self.main_gui.tiles is not None
         self.selection = selection
         self.selection_scene.clear()
-        self.selection_scene.add_transparent_background(
-            8 * selection.shape[1], 8 * selection.shape[0]
-        )
         image = np.zeros(
             (8 * selection.shape[0], 8 * selection.shape[1], 4), dtype=np.uint8
         )
@@ -603,6 +599,14 @@ class TilesetWidget(QtWidgets.QWidget):
         width, height = (
             int(8 * selection.shape[1] * self.zoom_slider.value() / 10),
             int(8 * selection.shape[0] * self.zoom_slider.value() / 10),
+        )
+        self.selection_scene.addItem(
+            self.selection_scene_view.get_transparent_background(
+                8 * selection.shape[1],
+                8 * selection.shape[0],
+                scaled_width=width,
+                scaled_height=height,
+            )
         )
         item = QGraphicsPixmapItem(
             QPixmap.fromImage(QImage(ndarray_to_QImage(image))).scaled(width, height)
