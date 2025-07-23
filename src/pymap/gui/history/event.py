@@ -8,7 +8,6 @@ from PySide6.QtGui import QUndoCommand
 
 from agb.model.type import ModelValue
 from pymap.configuration import PymapEventConfigType
-from pymap.gui import properties
 from pymap.gui.history.statement import ChangeProperty, UndoRedoStatements
 
 if TYPE_CHECKING:
@@ -133,17 +132,7 @@ class AppendEvent(QUndoCommand):
         self.events_tab = events_tab
         self.event_type = event_type
         if event is None:
-            assert self.events_tab.map_widget.main_gui is not None
-            assert self.events_tab.map_widget.main_gui.project is not None
-            project = self.events_tab.map_widget.main_gui.project
-            datatype = self.event_type['datatype']
-            events = self.events_tab.map_widget.main_gui.get_events(self.event_type)
-            context = list(self.event_type['events_path']) + [len(events)]
-            assert self.events_tab.map_widget.main_gui.header is not None
-            parents = properties.get_parents_by_path(
-                self.events_tab.map_widget.main_gui.header, context
-            )
-            event = project.model[datatype](project, context, parents)
+            event = events_tab.get_default_event(event_type)
         self.event = event
 
     def redo(self):
