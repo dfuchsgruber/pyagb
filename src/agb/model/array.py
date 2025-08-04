@@ -152,7 +152,7 @@ class ArrayType(Type):
             block, additional = datatype.to_assembly(
                 value[i], project, list(context) + [i], list(parents) + [value]
             )
-            blocks.append(block)
+            blocks.append(f'{block} @ {i}')
             additional_blocks += additional
         assembly = '\n'.join(blocks)
         return label_and_align(

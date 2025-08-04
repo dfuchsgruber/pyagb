@@ -91,8 +91,9 @@ class UnionType(Type):
         values: dict[str, ModelValue] = {}
         if self.name_get(project, context, parents) not in self.subtypes:
             raise RuntimeError(
-                f'Active subtype of union {self.name_get(project,
-                               context,parents)} not part of union type.'
+                f'Active subtype of union {
+                    self.name_get(project, context, parents)
+                } not part of union type.'
             )
 
         for name in self.subtypes:
@@ -155,7 +156,7 @@ class UnionType(Type):
         assert isinstance(value, dict), f'Expected a dict, got {value}'
         active_subtype_name = self.name_get(project, context, parents)
         active_subtype = project.model[self.subtypes[active_subtype_name]]
-        return active_subtype.to_assembly(
+        assembly, additional_blocks = active_subtype.to_assembly(
             value[active_subtype_name],
             project,
             list(context) + [active_subtype_name],
@@ -164,6 +165,8 @@ class UnionType(Type):
             alignment=alignment,
             global_label=global_label,
         )
+        assembly = f'@ as <{active_subtype_name}> \n{assembly}\n'
+        return assembly, additional_blocks
 
     def __call__(
         self, project: Project, context: ModelContext, parents: ModelParents

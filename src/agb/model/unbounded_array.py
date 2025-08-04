@@ -122,7 +122,7 @@ class UnboundedArrayType(Type):
             block, additional = datatype.to_assembly(
                 value_i, project, list(context) + [i], parents
             )
-            blocks.append(block)
+            blocks.append(f'{block} @ {i}')
             additional_blocks += additional
         assembly = '\n'.join(blocks)
         return label_and_align(

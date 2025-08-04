@@ -68,7 +68,7 @@ class Structure(Type):
         structure: dict[str, ModelValue] = {}
         parents = list(parents) + [structure]
 
-        priorities = sorted(list(set([x[2] for x in self.structure])))
+        priorities = sorted(list({x[2] for x in self.structure}))
         for priority in priorities:  # Export according to priorities
             for attribute, datatype_name, datatype_priority in self.structure:
                 datatype = project.model[datatype_name]
@@ -169,7 +169,7 @@ class Structure(Type):
                 list(context) + [attribute],
                 list(parents) + [value],
             )
-            assemblies.append(assembly_datatype)
+            assemblies.append(f'{assembly_datatype} @ {attribute}')
             additional_blocks += additional_blocks_datatype
 
         return label_and_align(
