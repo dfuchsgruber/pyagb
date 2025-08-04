@@ -761,12 +761,22 @@ class PymapGui(QMainWindow, PymapGuiModel):
         )
         if len(path):
             self.settings.setValue('map_image/recent', os.path.dirname(path))
+            map_width, map_height = self.get_map_dimensions()
+            border_width, border_height = self.get_border_padding()
+
+            # Render the map scene to an image
             image = QImage(
-                self.map_widget.map_scene_view.scene().sceneRect().size().toSize(),
-                QImage.Format.Format_ARGB32,
+                16 * (map_width + 2 * border_width),
+                16 * (map_height + 2 * border_height),
+                QImage.Format.Format_ARGB32_Premultiplied,
             )
             painter = QPainter(image)
-            self.map_widget.map_scene_view.render(painter)
+            # Render not only the view but the entire scene
+
+            self.map_widget.map_scene_view.scene().render(
+                painter, aspectRatioMode=Qt.AspectRatioMode.IgnoreAspectRatio
+            )
+
             image.save(path)  # type: ignore
             painter.end()
 

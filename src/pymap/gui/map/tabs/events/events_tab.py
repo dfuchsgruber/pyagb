@@ -132,7 +132,7 @@ class EventsTab(MapWidgetTab):
         x: int,
         y: int,
     ) -> tuple[PymapEventConfigType, int] | None:
-        """Gets the event associated with a mouse position."""
+        """Gets the event associated with a map position."""
         if (
             self.map_widget.main_gui.project is None
             or self.map_widget.main_gui.header is None
@@ -233,7 +233,7 @@ class EventsTab(MapWidgetTab):
             self._context_menu_add_template_actions(
                 submenu,
                 event_type,
-                partial(self._set_default_event, event_idx, event_type),
+                partial(self._set_event_from_template, event_idx, event_type),
             )
             context_menu.addSeparator()
 
@@ -247,7 +247,7 @@ class EventsTab(MapWidgetTab):
             self._context_menu_add_template_actions(
                 submenu,
                 event_type,
-                partial(self._add_default_event_at, event_type, x, y),
+                partial(self._add_event_from_template, event_type, x, y),
             )
         # Execute the context menu at the given position
         self.context_menu = context_menu
@@ -350,7 +350,7 @@ class EventsTab(MapWidgetTab):
             set_member_by_path(event, value, path)
         return event
 
-    def _add_default_event_at(
+    def _add_event_from_template(
         self,
         event_type: PymapEventConfigType,
         x: int,
@@ -374,7 +374,7 @@ class EventsTab(MapWidgetTab):
 
         return item.event
 
-    def _set_default_event(
+    def _set_event_from_template(
         self,
         event_idx: int,
         event_type: PymapEventConfigType,
