@@ -52,4 +52,4 @@ docs/_build/
 # Jupyter
 *.ipynb_checkpoints
 
-test.py
+**/test.py
