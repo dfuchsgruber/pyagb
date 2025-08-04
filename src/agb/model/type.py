@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import ast
+import operator
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Mapping, Sequence, TypeAlias
+from typing import TYPE_CHECKING, Any, Mapping, Sequence, TypeAlias
 from warnings import warn
 
 import numpy as np
@@ -260,3 +262,91 @@ def label_and_align(
         blocks.append(f'{label}:')
     blocks.append(assembly)
     return '\n'.join(blocks)
+
+
+def evaluate_expression_with_constants(  # noqa: C901
+    expression: str, proj: Project, *constant_tables: str
+) -> int | float | str:
+    """Safely evaluates a Python-like expression with constants from project.
+
+    Parameters:
+    -----------
+    expression : str
+        The expression to evaluate (e.g., "3 + FOO", "BAR * 2")
+    proj : pymap.project.Project
+        The pymap project containing constant tables
+    *constant_tables : str
+        Variable number of constant table names to load
+
+    Returns:
+    --------
+    result : int | float | str
+        The evaluated result of the expression
+    """
+    # Collect all constants from specified tables
+    constants: dict[str, int] = {}
+    for table_name in constant_tables:
+        if table_name in proj.constants:
+            constants.update(proj.constants[table_name])
+        else:
+            warn(f'Constant table {table_name} not found in project.')
+
+    # Safe operators and functions we allow
+    allowed_operators: dict[Any, Any] = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.FloorDiv: operator.floordiv,
+        ast.Mod: operator.mod,
+        ast.Pow: operator.pow,
+        ast.LShift: operator.lshift,
+        ast.RShift: operator.rshift,
+        ast.BitOr: operator.or_,
+        ast.BitXor: operator.xor,
+        ast.BitAnd: operator.and_,
+        ast.USub: operator.neg,
+        ast.UAdd: operator.pos,
+        ast.Invert: operator.invert,
+    }
+
+    def _eval_node(node: ast.AST) -> Any:
+        if isinstance(node, ast.Constant):  # Numbers, strings
+            return node.value
+        elif isinstance(node, ast.Name):  # Variable names (constants)
+            if node.id in constants:
+                return constants[node.id]
+            else:
+                raise NameError(
+                    f"Constant '{node.id}' not found in any of the specified tables: "
+                    f'{constant_tables}'
+                )
+        elif isinstance(node, ast.BinOp):  # Binary operations
+            left = _eval_node(node.left)
+            right = _eval_node(node.right)
+            op_func = allowed_operators.get(type(node.op))
+            if op_func is None:
+                raise ValueError(
+                    f'Unsupported binary operator: {type(node.op).__name__}'
+                )
+            return op_func(left, right)
+        elif isinstance(node, ast.UnaryOp):  # Unary operations
+            operand = _eval_node(node.operand)
+            op_func = allowed_operators.get(type(node.op))
+            if op_func is None:
+                raise ValueError(
+                    f'Unsupported unary operator: {type(node.op).__name__}'
+                )
+            return op_func(operand)
+        elif isinstance(node, ast.Expression):
+            return _eval_node(node.body)
+        else:
+            raise ValueError(f'Unsupported expression type: {type(node).__name__}')
+
+    try:
+        # Parse the expression into an AST
+        tree = ast.parse(expression, mode='eval')
+        # Evaluate the AST safely
+        return _eval_node(tree)
+    except SyntaxError as e:
+        raise ValueError(f'Invalid expression syntax: {expression}') from e
