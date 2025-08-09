@@ -77,7 +77,6 @@ def datatype_to_assembly(
         [
             get_metadata(datatype_str, label, project),
             get_preamble(constants, project),
-            '',
             assembly,
         ]
         + additional_blocks

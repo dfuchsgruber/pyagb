@@ -259,6 +259,7 @@ def label_and_align(
     if label is not None:
         if global_label:
             blocks.append(f'.global {label}')
+        blocks.append('')
         blocks.append(f'{label}:')
     blocks.append(assembly)
     return '\n'.join(blocks)

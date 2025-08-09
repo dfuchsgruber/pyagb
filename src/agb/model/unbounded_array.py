@@ -122,6 +122,8 @@ class UnboundedArrayType(Type):
             block, additional = datatype.to_assembly(
                 value_i, project, list(context) + [i], parents
             )
+            if i == len(value):
+                blocks.append(f'@ sentinel: {self.sentinel}')
             blocks.append(f'{block} @ {i}')
             additional_blocks += additional
         assembly = '\n'.join(blocks)

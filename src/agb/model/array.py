@@ -144,11 +144,12 @@ class ArrayType(Type):
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        blocks: list[str] = []
+        size = self.size_get(project, context, parents)
+        blocks: list[str] = [f'@ size: {size}']
         additional_blocks: list[str] = []
         datatype = project.model[self.datatype]
         assert isinstance(value, list)
-        for i in range(self.size_get(project, context, parents)):
+        for i in range(size):
             block, additional = datatype.to_assembly(
                 value[i], project, list(context) + [i], list(parents) + [value]
             )
