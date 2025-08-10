@@ -48,7 +48,7 @@ class MapViewLayerSmartShapes(MapViewLayer):
             image = QRGBAImage(
                 tile(
                     template.block_images,
-                    smart_shape.buffer[..., 0] + 1,
+                    smart_shape.buffer[..., 0],
                 )
             )
             padded_width, padded_height = self.view.main_gui.get_border_padding()
@@ -67,3 +67,30 @@ class MapViewLayerSmartShapes(MapViewLayer):
                 self.view.map_widget.smart_shapes_tab.blocks_opacity_slider.sliderPosition()
                 / 20
             )
+
+    def update_smart_shape_block_image_at_padded_position(
+        self, smart_shape_name: str, x: int, y: int
+    ):
+        """Updates the block image at the given padded position.
+
+        Args:
+            smart_shape_name (str): The name of the smart shape.
+            x (int): The x coordinate.
+            y (int): The y coordinate.
+        """
+        assert self.view.visible_blocks is not None, 'Blocks are not loaded'
+        assert self.view.main_gui.project is not None, 'Project is not loaded'
+        smart_shape = self.view.main_gui.smart_shapes[smart_shape_name]
+        template = self.view.main_gui.project.smart_shape_templates[
+            smart_shape.template
+        ]
+
+        block_idx: int = self.view.main_gui.smart_shapes[smart_shape_name].buffer[
+            y, x, 0
+        ]
+        assert self.view.main_gui.block_images is not None, 'Blocks are not loaded'
+        self._smart_shape_rgba_images[smart_shape_name].set_rectangle(
+            template.block_images[block_idx],
+            16 * x,
+            16 * y,
+        )

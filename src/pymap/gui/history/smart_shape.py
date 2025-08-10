@@ -163,8 +163,8 @@ class SetSmartShapeBlocks(QUndoCommand):
         self.main_gui = main_gui
         self.x = x
         self.y = y
-        self.blocks_new = blocks_new
-        self.blocks_old = blocks_old
+        self.blocks_new = blocks_new.copy()
+        self.blocks_old = blocks_old.copy()
         self.smart_shape_name = smart_shape_name
 
     def _set_blocks(self, blocks: Tilemap):
@@ -177,7 +177,7 @@ class SetSmartShapeBlocks(QUndoCommand):
             self.main_gui.map_widget.smart_shapes_tab.current_smart_shape_name
             == self.smart_shape_name
         ):
-            self.main_gui.map_widget.update_map_with_smart_shape_blocks_at(
+            self.main_gui.map_widget.update_smart_shape_blocks_at(
                 self.x, self.y, blocks
             )
 

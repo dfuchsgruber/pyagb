@@ -323,7 +323,9 @@ class SmartShapesTab(BlocksLikeTab):
             return
         assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
         opacity = self.blocks_opacity_slider.sliderPosition()
-        self.map_widget.main_gui.settings.setValue('map_widget/blocks_opacity', opacity)
+        self.map_widget.main_gui.settings.setValue(
+            'smart_shapes_tab/blocks_opacity', opacity
+        )
         self.map_widget.map_scene_view.smart_shapes.update_block_image_opacity()
 
     def load_project(self) -> None:

@@ -355,22 +355,18 @@ class MapWidget(QWidget):
                 indices,  # type: ignore
             )
 
-    def update_map_with_smart_shape_blocks_at(self, x: int, y: int, blocks: Tilemap):
+    def update_smart_shape_blocks_at(self, x: int, y: int, blocks: Tilemap):
         """Updates the smart shape meta block map at a position with blocks."""
-        # if not self.main_gui.footer_loaded:
-        #     return
-        # smart_shape = self.main_gui.smart_shapes[
-        #     self.smart_shapes_tab.current_smart_shape_name
-        # ]
-        # assert self.main_gui.project is not None
-        # template = self.main_gui.project.smart_shape_templates[smart_shape.template]
-        # smart_shape.buffer[y : y + blocks.shape[0], x : x + blocks.shape[1]] = blocks
-        # padded_width, padded_height = self.main_gui.get_border_padding()
-        # map_width, map_height = self.main_gui.get_map_dimensions()
-        # # Redraw relevant block pixmaps
-        # for (yy, xx), block_idx in np.ndenumerate(blocks[:, :, 0]):
-        #     pixmap = template.block_pixmaps[block_idx]
-        #     if x + xx in range(map_width) and y + yy in range(map_height):
-        #         self.smart_shape_images[
-        #             padded_height + y + yy, padded_width + x + xx
-        #         ].setPixmap(pixmap)
+        if not self.main_gui.footer_loaded:
+            return
+        smart_shape = self.main_gui.smart_shapes[
+            self.smart_shapes_tab.current_smart_shape_name
+        ]
+        assert self.main_gui.project is not None
+        smart_shape.buffer[y : y + blocks.shape[0], x : x + blocks.shape[1]] = (
+            blocks.copy()
+        )
+        for yy, xx in np.ndindex(blocks.shape[:2]):
+            self.map_scene_view.smart_shapes.update_smart_shape_block_image_at_padded_position(
+                self.smart_shapes_tab.current_smart_shape_name, x + xx, y + yy
+            )
