@@ -26,13 +26,27 @@ class OpenHistory:
         """Initialize the history."""
         self.main_gui = main_gui
 
-    def __iter__(self) -> Generator[OpenHistoryItem, None, None]:
+    def __iter__(self) -> Generator[OpenHistoryItem]:
         """Iterate over the history."""
         return iter(
             self.main_gui.settings.value('open_history/items', [], list)[  # type: ignore
                 : self.max_size
             ]  # type: ignore
         )  # type: ignore
+
+    def __len__(self) -> int:
+        """Return the length of the history."""
+        return len(self.main_gui.settings.value('open_history/items', [], list))  # type: ignore
+
+    def __getitem__(self, index: int) -> OpenHistoryItem:
+        """Get an item from the history."""
+        items = self.main_gui.settings.value('open_history/items', [], list)  # type: ignore
+        items: list[OpenHistoryItem] = items  # type: ignore
+        if index < 0:
+            index += len(items)
+        if index < 0 or index >= len(items):
+            raise IndexError('Index out of range')
+        return items[index]  # type: ignore
 
     def add(self, item: OpenHistoryItem):
         """Add an item to the history.

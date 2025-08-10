@@ -1,11 +1,69 @@
 """Handles the smart shapes layer in the map view."""
 
-from .layer import MapViewLayerRGBAImage
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from PySide6.QtWidgets import QGraphicsItemGroup, QGraphicsOpacityEffect
+
+from pymap.gui.render import tile
+from pymap.gui.rgba_image import QRGBAImage
+
+from .layer import MapViewLayer
+
+if TYPE_CHECKING:
+    from pymap.gui.map.view import MapView
 
 
-class MapViewLayerSmartShapes(MapViewLayerRGBAImage):
+class MapViewLayerSmartShapes(MapViewLayer):
     """A layer in the map view that displays smart shapes."""
+
+    def __init__(self, view: MapView):
+        """Initialize the layer with an RGBA image."""
+        super().__init__(view)
+        self._smart_shape_rgba_images: dict[str, QRGBAImage] = {}
+        self.block_image_opacity_effect = None
+
+    def update_visible_smart_shape_blocks(self) -> None:
+        """Update the visible smart shape blocks for a given smart shape name."""
+        name = self.view.map_widget.smart_shapes_tab.current_smart_shape_name
+        for layer_name, qrgba_image in self._smart_shape_rgba_images.items():
+            qrgba_image.item.setVisible(name == layer_name)
 
     def load_map(self) -> None:
         """Loads the smart shapes into the scene."""
-        ...
+        group = QGraphicsItemGroup()
+        assert self.view.main_gui.smart_shapes is not None, (
+            'Smart shapes are not loaded'
+        )
+        assert self.view.main_gui.project is not None, 'Project is not loaded'
+        assert self.view.main_gui.project.smart_shape_templates is not None, (
+            'Smart shape templates are not loaded'
+        )
+        self.block_image_opacity_effect = QGraphicsOpacityEffect()
+        for name, smart_shape in self.view.main_gui.smart_shapes.items():
+            template = self.view.main_gui.project.smart_shape_templates[
+                smart_shape.template
+            ]
+            image = QRGBAImage(
+                tile(
+                    template.block_images,
+                    smart_shape.buffer[..., 0] + 1,
+                )
+            )
+            padded_width, padded_height = self.view.main_gui.get_border_padding()
+            image.item.setPos(16 * padded_width, 16 * padded_height)
+            image.item.setGraphicsEffect(self.block_image_opacity_effect)
+            self._smart_shape_rgba_images[name] = image
+            group.addToGroup(image.item)
+        self.update_visible_smart_shape_blocks()
+        self.update_block_image_opacity()
+        self.item = group
+
+    def update_block_image_opacity(self) -> None:
+        """Update the opacity of the block images."""
+        if self.block_image_opacity_effect is not None:
+            self.block_image_opacity_effect.setOpacity(
+                self.view.map_widget.smart_shapes_tab.blocks_opacity_slider.sliderPosition()
+                / 20
+            )

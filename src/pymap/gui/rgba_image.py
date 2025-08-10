@@ -37,6 +37,16 @@ class QRGBAImage:
         else:
             self.item = QGraphicsPixmapItem(self.pixmap)
 
+    @property
+    def width(self) -> int:
+        """Return the width of the RGBA image."""
+        return self.rgba_image.shape[1]
+
+    @property
+    def height(self) -> int:
+        """Return the height of the RGBA image."""
+        return self.rgba_image.shape[0]
+
     def set_rectangle(self, image: RGBAImage, x: int, y: int) -> None:
         """Paints the given image at the specified position on the pixmap."""
         height, width = image.shape[:2]

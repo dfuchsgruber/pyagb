@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
     QApplication,
+    QGraphicsSceneMouseEvent,
     QWidget,
 )
 
@@ -72,11 +72,13 @@ class BlocksLikeTab(MapWidgetTab):
             assert self.selection is not None
             self.set_selection(self.selection)
 
-    def map_scene_mouse_pressed(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_pressed(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for pressing the mouse.
 
         Args:
-            event (QMouseEvent): The event.
+            event (QGraphicsSceneMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -154,11 +156,13 @@ class BlocksLikeTab(MapWidgetTab):
                 self.selection[0, 0, self.connectivity_layer],
             )
 
-    def map_scene_mouse_moved(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_moved(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for moving the mouse.
 
         Args:
-            event (QMouseEvent): The event.
+            event (QGraphicsSceneMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -232,11 +236,13 @@ class BlocksLikeTab(MapWidgetTab):
         """
         self.map_widget.main_gui.flood_fill(x, y, layer, block)
 
-    def map_scene_mouse_released(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_released(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for releasing the mouse.
 
         Args:
-            event (QMouseEvent): The event.
+            event (QGraphicsSceneMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """

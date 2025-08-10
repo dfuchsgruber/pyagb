@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 
 from PySide6 import QtWidgets
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QMouseEvent
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
+    QGraphicsSceneMouseEvent,
     QMessageBox,
     QWidget,
 )
@@ -201,11 +202,13 @@ class ConnectionsTab(MapWidgetTab):
             self.dragged_connection_idx = None
             self.is_dragging = False
 
-    def map_scene_mouse_pressed(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_pressed(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for pressing the mouse.
 
         Args:
-            event (QMouseEvent): The event.
+            event (QGraphicsSceneMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -239,11 +242,13 @@ class ConnectionsTab(MapWidgetTab):
         """
         self._select_connection_at_padded_position(x, y)
 
-    def map_scene_mouse_moved(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_moved(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for moving the mouse.
 
         Args:
-            event (QMouseEvent): The event.
+            event (QGraphicsSceneMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -295,11 +300,13 @@ class ConnectionsTab(MapWidgetTab):
 
             self.last_dragged_position = x, y
 
-    def map_scene_mouse_released(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_released(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for releasing the mouse.
 
         Args:
-            event (QMouseEvent): The event.
+            event (QGraphicsSceneMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -312,7 +319,7 @@ class ConnectionsTab(MapWidgetTab):
         self.dragged_connection_idx = None
 
     def map_scene_mouse_double_clicked(
-        self, event: QMouseEvent, x: int, y: int
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
     ) -> None:
         """Event handler for double clicking the mouse."""
         if not self.map_widget.header_loaded:

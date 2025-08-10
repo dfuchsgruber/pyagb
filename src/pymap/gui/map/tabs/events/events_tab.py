@@ -7,11 +7,7 @@ from typing import TYPE_CHECKING, Protocol, cast
 
 from PySide6 import QtWidgets
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import (
-    QTabWidget,
-    QWidget,
-)
+from PySide6.QtWidgets import QGraphicsSceneMouseEvent, QTabWidget, QWidget
 
 from agb.model.type import ModelValue
 from pymap.configuration import EventTemplateType, PymapEventConfigType
@@ -187,11 +183,13 @@ class EventsTab(MapWidgetTab):
             self.is_dragging = False
         return target
 
-    def map_scene_mouse_pressed(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_pressed(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for pressing the mouse.
 
         Args:
-            event (QMouseEvent): The event.
+            event (QGraphicsSceneMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -203,11 +201,13 @@ class EventsTab(MapWidgetTab):
             self._select_event_at_padded_position(x, y)
             self.create_map_scene_context_menu_at(event, x, y)
 
-    def create_map_scene_context_menu_at(self, event: QMouseEvent, x: int, y: int):
+    def create_map_scene_context_menu_at(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ):
         """Creates a context menu at the given position.
 
         Args:
-            event (QMouseEvent): The event that triggered the context menu.
+            event (QGraphicsSceneMouseEvent): The event that triggered the context menu.
             x (int): The x coordinate of the mouse in map coordinates
                 (with border padding).
             y (int): The y coordinate of the mouse in map coordinates
@@ -251,7 +251,7 @@ class EventsTab(MapWidgetTab):
             )
         # Execute the context menu at the given position
         self.context_menu = context_menu
-        self.context_menu.popup(event.screenPos().toPoint())
+        self.context_menu.popup(event.screenPos())
 
     def _context_menu_add_template_actions(
         self,
@@ -435,11 +435,13 @@ class EventsTab(MapWidgetTab):
         """
         self._select_event_at_padded_position(x, y)
 
-    def map_scene_mouse_moved(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_moved(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for moving the mouse.
 
         Args:
-            event (QMouseEvent): The event.
+            event (QGraphicsSceneMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -484,11 +486,13 @@ class EventsTab(MapWidgetTab):
             )
             self.last_dragged_position = x, y
 
-    def map_scene_mouse_released(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_released(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for releasing the mouse.
 
         Args:
-            event (QMouseEvent): The event.
+            event (QGraphicsSceneMouseEvent): The event.
             x (int): x coordinate of the mouse in map coordinates (with border padding)
             y (int): y coordinate of the mouse in map coordinates (with border padding)
         """
@@ -501,7 +505,7 @@ class EventsTab(MapWidgetTab):
         self.dragged_event = None
 
     def map_scene_mouse_double_clicked(
-        self, event: QMouseEvent, x: int, y: int
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
     ) -> None:
         """Event handler for double clicking the mouse."""
         if not self.map_widget.header_loaded:

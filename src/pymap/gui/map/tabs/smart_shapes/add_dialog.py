@@ -11,13 +11,13 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QGraphicsScene,
-    QGraphicsView,
     QGridLayout,
     QLabel,
     QLineEdit,
 )
 
 from pymap.gui.smart_shape.smart_shape import SmartShape
+from pymap.gui.transparent.view import QGraphicsViewWithTransparentBackground
 
 if TYPE_CHECKING:
     from .smart_shapes import SmartShapesTab
@@ -58,7 +58,7 @@ class AddSmartShapeDialog(QDialog):
         layout.addWidget(self.errorLabel, 3, 1, 1, 2)
 
         self.preview_scene = QGraphicsScene()
-        self.preview_scene_view = QGraphicsView()
+        self.preview_scene_view = QGraphicsViewWithTransparentBackground()
         self.preview_scene_view.setViewport(QOpenGLWidget())
         self.preview_scene_view.setScene(self.preview_scene)
         layout.addWidget(self.preview_scene_view, 4, 1, 1, 2)
@@ -86,7 +86,12 @@ class AddSmartShapeDialog(QDialog):
             ]
         )
         self.preview_scene.clear()
-        self.preview_scene.addPixmap(template.template_pixmap)
+        width, height = 16 * template.dimensions[0], 16 * template.dimensions[1]
+        self.preview_scene.addItem(
+            self.preview_scene_view.get_transparent_background(width, height)
+        )
+        self.preview_scene.addItem(template.template_qrgba_image.item)
+        self.preview_scene.setSceneRect(0, 0, width, height)
 
     def name_is_valid(self) -> bool:
         """Asserts that no name collision happens.

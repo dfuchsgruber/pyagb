@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
 from PySide6.QtGui import QKeyEvent, QKeySequence, QPixmap
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import (
@@ -12,7 +11,6 @@ from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
-    QGraphicsView,
     QGridLayout,
     QGroupBox,
     QLabel,
@@ -22,9 +20,7 @@ from PySide6.QtWidgets import (
 from pymap.gui import render
 from pymap.gui.history.smart_shape import SetSmartShapeTemplateBlocks
 from pymap.gui.map.blocks import BlocksScene, BlocksSceneParentMixin
-from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
-    smart_shape_get_block_image,
-)
+from pymap.gui.rgba_image import QRGBAImage
 from pymap.gui.transparent.view import QGraphicsViewWithTransparentBackground
 from pymap.gui.types import Tilemap
 
@@ -60,6 +56,7 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         self.selection_scene = QGraphicsScene()
         self.selection_scene_view = QGraphicsViewWithTransparentBackground()
         self.selection_scene_view.setViewport(QOpenGLWidget())
+        self.selection_scene_view.setMouseTracking(True)
         self.selection_scene_view.setScene(self.selection_scene)
         group_selection_layout.addWidget(self.selection_scene_view)
 
@@ -68,7 +65,7 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         group_shape.setLayout(group_shape_layout)
         layout.addWidget(group_shape, 1, 2, 1, 1)
         self.shape_scene = ShapeScene(self)
-        self.shape_scene_view = QGraphicsView()
+        self.shape_scene_view = QGraphicsViewWithTransparentBackground()
         self.shape_scene_view.setViewport(QOpenGLWidget())
         self.shape_scene_view.setScene(self.shape_scene)
         group_shape_layout.addWidget(self.shape_scene_view)
@@ -78,8 +75,9 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         group_blocks.setLayout(group_blocks_layout)
         layout.addWidget(group_blocks, 2, 1, 1, 2)
         self.blocks_scene = BlocksScene(self)
-        self.blocks_scene_view = QGraphicsView()
+        self.blocks_scene_view = QGraphicsViewWithTransparentBackground()
         self.blocks_scene_view.setViewport(QOpenGLWidget())
+        self.blocks_scene_view.setMouseTracking(True)
         self.blocks_scene_view.setScene(self.blocks_scene)
         group_blocks_layout.addWidget(self.blocks_scene_view)
 
@@ -87,10 +85,7 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         layout.addWidget(self.info_label, 3, 1, 1, 2)
 
         self.load_blocks()
-        self.shape_scene.load_shape(
-            self.smart_shapes_tab.combo_box_smart_shapes.currentText()
-        )
-        self.update_shape_block_images()
+        self.load_shape(self.smart_shapes_tab.combo_box_smart_shapes.currentText())
 
         undo_action = self.smart_shapes_tab.map_widget.undo_stack.createUndoAction(self)
         undo_action.setShortcut(
@@ -101,6 +96,67 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
     def main_gui(self) -> PymapGui:
         """The main ui for pymap."""
         return self.smart_shapes_tab.map_widget.main_gui
+
+    def load_shape(self, shape: str) -> None:
+        """Loads the shape.
+
+        Args:
+            shape (str): The shape.
+        """
+        assert self.main_gui.project is not None, 'Project is not loaded'
+        smart_shape = self.main_gui.smart_shapes[shape]
+        assert self.main_gui.project is not None, 'Project is not loaded'
+        template = self.main_gui.project.smart_shape_templates[smart_shape.template]
+        map_blocks = self.main_gui.block_images
+        assert map_blocks is not None, 'Blocks are not loaded'
+        self.shape_scene.addItem(
+            self.shape_scene_view.get_transparent_background(
+                template.template_qrgba_image.width,
+                template.template_qrgba_image.height,
+            )
+        )
+        self.shape_scene.addItem(template.template_qrgba_image.item)
+        blocks_image = render.draw_blocks(map_blocks, smart_shape.blocks)
+        self.shape_blocks_qrgba_image = QRGBAImage(blocks_image)
+        self.shape_blocks_qrgba_image.item.setCacheMode(
+            QGraphicsItem.CacheMode.DeviceCoordinateCache
+        )
+        self.shape_blocks_qrgba_image.item.setOpacity(template.blocks_opacity)
+        self.shape_scene.addItem(self.shape_blocks_qrgba_image.item)
+        self.shape_scene.setSceneRect(
+            0,
+            0,
+            template.template_qrgba_image.width,
+            template.template_qrgba_image.height,
+        )
+
+    def load_blocks(self):
+        """Loads the block pool."""
+        self.blocks_scene.clear()
+        if not self.smart_shapes_tab.map_widget.main_gui.footer_loaded:
+            return
+        map_blocks = self.smart_shapes_tab.map_widget.main_gui.block_images
+        assert map_blocks is not None, 'Blocks are not loaded'
+        self.blocks_scene.addItem(
+            self.blocks_scene_view.get_transparent_background(
+                render.blocks_pool.shape[1] * 16, render.blocks_pool.shape[0] * 16
+            )
+        )
+        self.blocks_qrgba_image = QRGBAImage(
+            render.draw_blocks(map_blocks, render.blocks_pool[..., 0])
+        )
+
+        self.blocks_qrgba_image.item.setCacheMode(
+            QGraphicsItem.CacheMode.DeviceCoordinateCache
+        )
+        self.blocks_qrgba_image.item.setAcceptHoverEvents(False)
+        self.blocks_scene.addItem(self.blocks_qrgba_image.item)
+        self.blocks_scene.setSceneRect(
+            0, 0, render.blocks_pool.shape[1] * 16, render.blocks_pool.shape[0] * 16
+        )
+        self.blocks_qrgba_image.item.hoverLeaveEvent = lambda event: self.set_info_text(
+            ''
+        )
 
     def set_selection(self, selection: Tilemap) -> None:
         """Sets the selection according to what is selected in this scene.
@@ -122,7 +178,9 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         map_blocks = self.main_gui.block_images
         assert map_blocks is not None, 'Blocks are not loaded'
         selection_pixmap = QPixmap.fromImage(
-            render.ndarray_to_QImage(render.draw_blocks(map_blocks, self.selection))
+            render.ndarray_to_QImage(
+                render.draw_blocks(map_blocks, self.selection[..., 0])
+            )
         )
         item = QGraphicsPixmapItem(selection_pixmap)
         item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
@@ -139,19 +197,6 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         """
         self.info_label.setText(text)
 
-    def update_shape_block_images(self):
-        """Recomputes the block images for the shape."""
-        assert self.main_gui.block_images is not None, 'Blocks are not loaded'
-        smart_shape = self.smart_shapes_tab.current_smart_shape
-        assert smart_shape is not None, 'Smart shape is not loaded'
-        self.shape_block_images = smart_shape_get_block_image(
-            smart_shape,
-            self.main_gui.block_images,
-        )
-        for _, item in np.ndenumerate(self.shape_block_images):
-            item.setAcceptHoverEvents(False)
-            self.shape_scene.addItem(item)
-
     def update_shape_with_blocks(self, x: int, y: int, blocks: Tilemap) -> None:
         """Updates the shape with a block rectangle at a certain position.
 
@@ -161,13 +206,9 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
             blocks (Tilemap): The blocks.
         """
         assert self.main_gui.block_images is not None, 'Blocks are not loaded'
-        for (yy, xx), block_idx in np.ndenumerate(blocks):
-            pixmap = QPixmap.fromImage(
-                render.ndarray_to_QImage(self.main_gui.block_images[block_idx])
-            )
-            item = self.shape_block_images[yy + y, xx + x]
-            if item.pixmap().cacheKey() != pixmap.cacheKey():
-                item.setPixmap(pixmap)
+
+        rgba_image = render.draw_blocks(self.main_gui.block_images, blocks)
+        self.shape_blocks_qrgba_image.set_rectangle(rgba_image, x * 16, y * 16)
 
     def set_shape_blocks(self, x: int, y: int, blocks: Tilemap) -> None:
         """Sets the blocks of the shape.

@@ -1,7 +1,10 @@
 """Templates for smart shapes."""
 
+from __future__ import annotations
+
 import importlib.resources as resources
 from abc import abstractmethod
+from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
@@ -9,6 +12,9 @@ from PySide6.QtGui import QPixmap
 
 from pymap.gui.smart_shape.smart_shape import SmartShape
 from pymap.gui.types import Tilemap
+
+if TYPE_CHECKING:
+    from pymap.gui.rgba_image import QRGBAImage
 
 
 class SmartShapeTemplate:
@@ -32,6 +38,7 @@ class SmartShapeTemplate:
             )
         ),
         block_tooltips: list[str] | None = ['None', 'Auto-Fill'],
+        blocks_opacity: float = 0.5,
     ):
         """Initialize the template.
 
@@ -41,38 +48,63 @@ class SmartShapeTemplate:
             blocks_pixmap (QPixmap, optional): The blocks pixmap. Defaults to None.
             block_tooltips (list[str], optional): The tooltips for each block. Defaults
                 to None.
+            blocks_opacity (float, optional): The opacity of the blocks.
+                Defaults to 0.5.
         """
+        from pymap.gui.render import QImage_to_ndarray, split_image_into_tiles
+
         if isinstance(template_pixmap, str):
-            template_pixmap = QPixmap(template_pixmap)
-        self.template_pixmap = template_pixmap
+            self._template_pixmap = QPixmap(template_pixmap)
+        else:
+            self._template_pixmap = template_pixmap
 
         if isinstance(blocks_pixmap, str):
             blocks_pixmap = QPixmap(blocks_pixmap)
+        self.block_images = split_image_into_tiles(
+            QImage_to_ndarray(
+                blocks_pixmap.toImage(),
+            ),
+            tile_size=16,
+        ).reshape((-1, 16, 16, 4))
+
         width, height = blocks_pixmap.width(), blocks_pixmap.height()
         assert width % 16 == 0, 'The blocks pixmap width must be a multiple of 8.'
         assert height % 16 == 0, 'The blocks pixmap height must be a multiple of 8.'
-        self.block_pixmaps = [
-            blocks_pixmap.copy(x * 16, y * 16, 16, 16)
-            for y in range(height // 16)
-            for x in range(width // 16)
-        ]
+
         if block_tooltips is not None:
-            assert len(block_tooltips) == len(self.block_pixmaps), (
+            assert len(block_tooltips) == self.num_blocks, (
                 'The number of block tooltips must match the number of blocks.'
             )
         else:
             block_tooltips = [''] * self.num_blocks
         self.block_tooltips = block_tooltips
+        self.blocks_opacity = blocks_opacity
+
+    @property
+    def template_qrgba_image(self) -> QRGBAImage:
+        """Return the template as a QRGBAImage."""
+        from pymap.gui.render import QImage_to_ndarray
+        from pymap.gui.rgba_image import QRGBAImage
+
+        template_rgba = QImage_to_ndarray(
+            self._template_pixmap.toImage(),
+        )
+        return QRGBAImage(
+            template_rgba,
+        )
 
     @property
     def num_blocks(self) -> int:
         """Return the number of blocks to map this shape to the map."""
-        return len(self.block_pixmaps)
+        return self.block_images.shape[0]
 
     @property
     def dimensions(self) -> tuple[int, int]:
         """Return the dimensions of the template."""
-        return self.template_pixmap.width() // 16, self.template_pixmap.height() // 16
+        return (
+            self._template_pixmap.width() // 16,
+            self._template_pixmap.height() // 16,
+        )
 
     @abstractmethod
     def generate_blocks(
@@ -88,6 +120,6 @@ class SmartShapeTemplate:
 
         Returns:
             RGBAImage: The updated buffer.
-            RGBAImage: Which blocks in the buffer a to be changed.
+            RGBAImage: Which blocks in the buffer are to be changed.
         """
         raise NotImplementedError

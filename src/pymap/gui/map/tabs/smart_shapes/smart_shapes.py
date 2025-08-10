@@ -6,27 +6,28 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from PySide6 import QtOpenGLWidgets, QtWidgets
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QGraphicsItem,
-    QGraphicsPixmapItem,
     QGraphicsScene,
     QGridLayout,
     QHBoxLayout,
     QSizePolicy,
+    QSlider,
     QSpacerItem,
     QVBoxLayout,
     QWidget,
 )
 
+from pymap.gui import render
 from pymap.gui.history import AddOrRemoveSmartShape
 from pymap.gui.icon import Icon, icon_paths
 from pymap.gui.map.tabs.blocks_like import BlocksLikeTab
-from pymap.gui.map.tabs.smart_shapes.shape_block_image import (
-    smart_shape_get_block_image,
-)
 from pymap.gui.map.view import VisibleLayer
+from pymap.gui.rgba_image import QRGBAImage
 from pymap.gui.smart_shape.smart_shape import SmartShape
+from pymap.gui.transparent.view import QGraphicsViewWithTransparentBackground
 from pymap.gui.types import MapLayers, Tilemap
 
 from .add_dialog import AddSmartShapeDialog
@@ -45,6 +46,22 @@ class SmartShapesTab(BlocksLikeTab):
         super().__init__(map_widget, parent)
         smart_shapes_layout = QVBoxLayout()
         self.setLayout(smart_shapes_layout)
+
+        self.blocks_opacity_slider = QSlider(Qt.Orientation.Horizontal)
+        self.blocks_opacity_slider.setMinimum(0)
+        self.blocks_opacity_slider.setMaximum(20)
+        self.blocks_opacity_slider.setSingleStep(1)
+        self.blocks_opacity_slider.setSliderPosition(
+            self.map_widget.main_gui.settings.value(
+                'smart_shapes_tab/blocks_opacity', 30, int
+            )  # type: ignore
+        )
+        self.blocks_opacity_slider.valueChanged.connect(self.change_blocks_opacity)
+        blocks_opacity_group = QtWidgets.QGroupBox('Opacity')
+        blocks_opacity_group_layout = QVBoxLayout()
+        blocks_opacity_group.setLayout(blocks_opacity_group_layout)
+        blocks_opacity_group_layout.addWidget(self.blocks_opacity_slider)
+        smart_shapes_layout.addWidget(blocks_opacity_group)
 
         buttons_container = QWidget()
         buttons_layout = QHBoxLayout()
@@ -111,7 +128,7 @@ class SmartShapesTab(BlocksLikeTab):
         smart_shapes_layout.addLayout(tiles_layout)
 
         self.smart_shapes_scene = QGraphicsScene()
-        self.smart_shapes_scene_view = QtWidgets.QGraphicsView()
+        self.smart_shapes_scene_view = QGraphicsViewWithTransparentBackground()
         self.smart_shapes_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.smart_shapes_scene_view.setScene(self.smart_shapes_scene)
         self.smart_shapes_scene_view.setSizePolicy(
@@ -122,7 +139,7 @@ class SmartShapesTab(BlocksLikeTab):
         group_selection = QtWidgets.QGroupBox('Selection')
         tiles_layout.addWidget(group_selection, 1, 1, 1, 1)
         self.selection_scene = QGraphicsScene()
-        self.selection_scene_view = QtWidgets.QGraphicsView()
+        self.selection_scene_view = QGraphicsViewWithTransparentBackground()
         self.selection_scene_view.setScene(self.selection_scene)
         self.selection_scene_view.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
@@ -133,12 +150,13 @@ class SmartShapesTab(BlocksLikeTab):
         selection_scene_layout.addWidget(self.selection_scene_view)
 
         self.blocks_scene = SmartShapesBlocksScene(self)
-        self.blocks_scene_view = QtWidgets.QGraphicsView()
+        self.blocks_scene_view = QGraphicsViewWithTransparentBackground()
         self.blocks_scene_view.setScene(self.blocks_scene)
         self.blocks_scene_view.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
         )
         self.blocks_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        self.blocks_scene_view.setMouseTracking(True)
         tiles_layout.addWidget(self.blocks_scene_view, 2, 1, 1, 1)
 
         group_properties = QtWidgets.QGroupBox('Properties')
@@ -181,6 +199,54 @@ class SmartShapesTab(BlocksLikeTab):
         return self.map_widget.main_gui.smart_shapes[
             self.current_smart_shape_name
         ].buffer
+
+    @property
+    def num_smart_shape_blocks_per_row(self) -> int:
+        """The number of smart shape blocks per row."""  #
+        assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
+        return self.map_widget.main_gui.project.config['pymap']['display'][
+            'smart_shape_blocks_per_row'
+        ]
+
+    def load_smart_shape_blocks(self):
+        """Updates the blocks scene with the current smart shape blocks."""
+        self.blocks_scene.clear()
+        if self.current_smart_shape is not None:
+            assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
+            template = self.map_widget.main_gui.project.smart_shape_templates[
+                self.current_smart_shape.template
+            ]
+            cols = self.num_smart_shape_blocks_per_row
+            rows = (template.num_blocks + cols - 1) // cols
+            tilemap_block_images = np.arange(rows * cols, dtype=int)
+            tilemap_block_images[template.num_blocks :] = 0
+            tilemap_block_images = tilemap_block_images.reshape((rows, cols))
+
+            self.blocks_scene.addItem(
+                self.blocks_scene_view.get_transparent_background(
+                    tilemap_block_images.shape[1] * 16,
+                    tilemap_block_images.shape[0] * 16,
+                )
+            )
+            rgba_image = render.draw_blocks(
+                template.block_images,
+                tilemap_block_images,
+            )
+            # Clear 16x16 blocks that were padded with 0
+            padded_column = template.num_blocks % self.num_smart_shape_blocks_per_row
+            rgba_image[-16:, padded_column * 16 :] = 0
+
+            self.blocks_qrgba_image = QRGBAImage(rgba_image)
+            self.blocks_qrgba_image.item.setCacheMode(
+                QGraphicsItem.CacheMode.DeviceCoordinateCache
+            )
+            self.blocks_scene.addItem(self.blocks_qrgba_image.item)
+            self.blocks_scene.setSceneRect(
+                0,
+                0,
+                tilemap_block_images.shape[1] * 16,
+                tilemap_block_images.shape[0] * 16,
+            )
 
     def add_auto_shape(self):
         """Add an automatic shape."""
@@ -251,6 +317,15 @@ class SmartShapesTab(BlocksLikeTab):
         """The selected layers."""
         return np.array([0])
 
+    def change_blocks_opacity(self):
+        """Changes the opacity of the blocks."""
+        if not self.map_widget.main_gui.project_loaded:
+            return
+        assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
+        opacity = self.blocks_opacity_slider.sliderPosition()
+        self.map_widget.main_gui.settings.setValue('map_widget/blocks_opacity', opacity)
+        self.map_widget.map_scene_view.smart_shapes.update_block_image_opacity()
+
     def load_project(self) -> None:
         """Loads the project."""
         super().load_project()
@@ -300,6 +375,11 @@ class SmartShapesTab(BlocksLikeTab):
         selection = selection.copy()
         self.selection = selection
         self.selection_scene.clear()
+        self.selection_scene.addItem(
+            self.selection_scene_view.get_transparent_background(
+                selection.shape[1] * 16, selection.shape[0] * 16
+            )
+        )
         if (
             not self.map_widget.main_gui.footer_loaded
             or self.current_smart_shape is None
@@ -310,18 +390,18 @@ class SmartShapesTab(BlocksLikeTab):
             self.current_smart_shape.template
         ]
 
-        for (y, x), block in np.ndenumerate(selection[:, :, 0]):
-            item = QGraphicsPixmapItem(template.block_pixmaps[block])
-
-            item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
-            self.selection_scene.addItem(item)
-            item.setPos(16 * x, 16 * y)  # 16 pixels per block
-
+        selection_qrgba_image = QRGBAImage(
+            render.draw_blocks(template.block_images, selection[..., 0])
+        )
+        selection_qrgba_image.item.setCacheMode(
+            QGraphicsItem.CacheMode.DeviceCoordinateCache
+        )
+        self.selection_scene.addItem(selection_qrgba_image.item)
         self.selection_scene.setSceneRect(
             0,
             0,
-            selection.shape[1] * 16,
-            selection.shape[0] * 16,  # 16 pixels per block
+            selection_qrgba_image.pixmap.width(),
+            selection_qrgba_image.pixmap.height(),
         )
 
     def set_blocks_at(self, x: int, y: int, layers: MapLayers, blocks: Tilemap):
@@ -413,27 +493,43 @@ class SmartShapesTab(BlocksLikeTab):
         self._clear_properties_layout()
         self._update_smart_shape_enabled()
         self.update_smart_shapes_scene()
-        self.blocks_scene.load_smart_shape()
+        self.load_smart_shape_blocks()
+        self.map_widget.map_scene_view.smart_shapes.update_visible_smart_shape_blocks()
 
     def update_smart_shapes_scene(self):
         """Updates the smart shapes scene."""
         self.smart_shapes_scene.clear()
         if self.current_smart_shape is not None:
+            map_blocks = self.map_widget.main_gui.block_images
+            assert map_blocks is not None, 'Blocks are not loaded'
             assert self.map_widget.main_gui.block_images is not None
             assert self.map_widget.main_gui.project is not None, 'Project is not loaded'
             template = self.map_widget.main_gui.project.smart_shape_templates[
                 self.current_smart_shape.template
             ]
 
-            self.smart_shapes_scene.addPixmap(template.template_pixmap)
-            for _, pixmap_item in np.ndenumerate(
-                smart_shape_get_block_image(
-                    self.current_smart_shape,
-                    self.map_widget.main_gui.block_images,
+            self.smart_shapes_scene.addItem(
+                self.smart_shapes_scene_view.get_transparent_background(
+                    template.template_qrgba_image.width,
+                    template.template_qrgba_image.height,
                 )
-            ):
-                pixmap_item.setAcceptHoverEvents(False)
-                self.smart_shapes_scene.addItem(pixmap_item)
+            )
+            self.smart_shapes_scene.addItem(template.template_qrgba_image.item)
+            blocks_image = render.draw_blocks(
+                map_blocks, self.current_smart_shape.blocks
+            )
+            self.blocks_qrgba_image = QRGBAImage(blocks_image)
+            self.blocks_qrgba_image.item.setCacheMode(
+                QGraphicsItem.CacheMode.DeviceCoordinateCache
+            )
+            self.blocks_qrgba_image.item.setOpacity(template.blocks_opacity)
+            self.smart_shapes_scene.addItem(self.blocks_qrgba_image.item)
+            self.smart_shapes_scene.setSceneRect(
+                0,
+                0,
+                template.template_qrgba_image.width,
+                template.template_qrgba_image.height,
+            )
 
     def _clear_properties_layout(self):
         """Clear the properties layout."""

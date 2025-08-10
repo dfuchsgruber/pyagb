@@ -40,33 +40,6 @@ class ShapeScene(QGraphicsScene):
         ]
         return template.dimensions
 
-    def load_template(self, template_name: str) -> None:
-        """Loads the template.
-
-        Args:
-            template_name (str): The template.
-        """
-        assert self.edit_dialog.main_gui.project is not None, 'Project is not loaded'
-        template = self.edit_dialog.main_gui.project.smart_shape_templates[
-            template_name
-        ]
-        self.template_pixmap_item = self.addPixmap(template.template_pixmap)
-
-    def load_shape(self, shape: str) -> None:
-        """Loads the shape.
-
-        Args:
-            shape (str): The shape.
-        """
-        assert self.edit_dialog.main_gui.project is not None, 'Project is not loaded'
-        smart_shape = self.edit_dialog.main_gui.smart_shapes[shape]
-        self.load_template(smart_shape.template)
-
-    def clear(self) -> None:
-        """Clears the scene."""
-        super().clear()
-        self.template_pixmap_item = None
-
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         """Mouse press event.
 

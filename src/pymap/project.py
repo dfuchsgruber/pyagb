@@ -499,7 +499,6 @@ class Project:
                             'connections_path'
                         ],
                     )
-
                 with open(
                     Path(path), 'w+', encoding=self.config['json']['encoding']
                 ) as f:

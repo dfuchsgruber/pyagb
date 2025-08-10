@@ -5,8 +5,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
+    QGraphicsSceneMouseEvent,
     QWidget,
 )
 
@@ -69,22 +69,28 @@ class MapWidgetTab(QWidget):
         raise NotImplementedError
 
     @abstractmethod
-    def map_scene_mouse_pressed(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_pressed(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for pressing the mouse."""
         raise NotImplementedError
 
     @abstractmethod
-    def map_scene_mouse_moved(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_moved(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for moving the mouse."""
         raise NotImplementedError
 
     @abstractmethod
-    def map_scene_mouse_released(self, event: QMouseEvent, x: int, y: int) -> None:
+    def map_scene_mouse_released(
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
+    ) -> None:
         """Event handler for releasing the mouse."""
         raise NotImplementedError
 
     def map_scene_mouse_double_clicked(
-        self, event: QMouseEvent, x: int, y: int
+        self, event: QGraphicsSceneMouseEvent, x: int, y: int
     ) -> None:
         """Event handler for double clicking the mouse."""
         ...

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 from functools import partial
@@ -217,6 +218,19 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
         self.setCentralWidget(self.central_widget)
 
+    def open_recent(self, idx: int):
+        """Opens a recent project from the open history.
+
+        Args:
+            idx (int): The index of the recent project to open.
+        """
+        if idx < 0 or idx >= len(self.open_history):
+            return
+        item = self.open_history[idx]
+        self.open_project_and_header(
+            item['project_path'], item['bank'], item['map_idx']
+        )
+
     def build_open_recent_menu(self, menu: QMenu):
         """Builds the open recent menu.
 
@@ -230,10 +244,8 @@ class PymapGui(QMainWindow, PymapGuiModel):
             )
             action.triggered.connect(
                 partial(
-                    self.open_project_and_header,
-                    path_str=item['project_path'],
-                    bank=item['bank'],
-                    map_idx=item['map_idx'],
+                    self.open_recent,
+                    idx,
                 )
             )  # type: ignore
             action.setShortcut(QKeySequence(f'Ctrl+{idx}'))
@@ -1013,10 +1025,25 @@ class PymapGui(QMainWindow, PymapGuiModel):
 
 def main():
     """Main entry point that runs the ui."""
+    parser = argparse.ArgumentParser(
+        description='Pymap GUI for editing map headers and footers.'
+    )
+    parser.add_argument(
+        '--open-recent',
+        '-o',
+        type=int,
+        dest='open_recent',
+        default=None,
+        help='Open a recent map by index.',
+    )
+    args = parser.parse_args()
+
     working_dir = os.getcwd()
     app = QApplication(sys.argv)
     app.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.Round)
     ex = PymapGui()
     ex.show()
     os.chdir(working_dir)
+    if args.open_recent is not None:
+        ex.open_recent(args.open_recent)
     sys.exit(app.exec_())

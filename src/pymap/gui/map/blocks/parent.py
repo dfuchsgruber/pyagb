@@ -4,10 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
-from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QGraphicsItem, QGraphicsPixmapItem
-
-import pymap.gui.render as render
 from pymap.gui.types import Tilemap
 
 if TYPE_CHECKING:
@@ -68,24 +64,3 @@ class BlocksSceneParentMixin:
             value (BlocksScene): The blocks scene.
         """
         self._blocks_scene = value
-
-    def load_blocks(self):
-        """Loads the block pool."""
-        self.blocks_scene.clear()
-        main_gui = self.blocks_scene.blocks_scene_parent.main_gui
-        if not main_gui.footer_loaded:
-            return
-        map_blocks = main_gui.block_images
-        assert map_blocks is not None, 'Blocks are not loaded'
-        self.blocks_image = QPixmap.fromImage(
-            render.ndarray_to_QImage(render.draw_blocks(map_blocks))
-        )
-        item = QGraphicsPixmapItem(self.blocks_image)
-        item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
-        self.blocks_scene.addItem(item)
-        item.setAcceptHoverEvents(False)
-        # This triggers segfaults, because the pixmap item is deleted before
-        # the lambda is called
-        # item.hoverLeaveEvent = (
-        #     lambda event: self.blocks_scene.blocks_scene_parent.set_info_text('')
-        # )

@@ -66,14 +66,14 @@ class LevelsTab(BlocksLikeTab):
         level_layout.addWidget(group_selection)
 
         # Load level gfx
-        self.level_blocks_pixmap = QPixmap(
+        level_blocks_pixmap = QPixmap(
             str(
                 resources.files('pymap.gui.map.tabs.levels').joinpath(
                     'level_blocks.png'
                 )
             ),
         )
-        level_blocks_rgba = QImage_to_ndarray(self.level_blocks_pixmap.toImage())
+        level_blocks_rgba = QImage_to_ndarray(level_blocks_pixmap.toImage())
 
         self.levels_blocks_rgba = split_image_into_tiles(
             level_blocks_rgba,
@@ -83,6 +83,7 @@ class LevelsTab(BlocksLikeTab):
         self.level_scene = LevelBlocksScene(self)
         self.level_scene_view = QGraphicsViewWithTransparentBackground()
         self.level_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        self.level_scene_view.setMouseTracking(True)
         self.level_scene_view.setScene(self.level_scene)
         self.level_scene_view.leaveEvent = (
             lambda event: self.map_widget.info_label.clear()

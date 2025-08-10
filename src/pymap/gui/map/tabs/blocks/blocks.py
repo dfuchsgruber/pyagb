@@ -59,6 +59,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         self.border_scene = BorderScene(self)
         self.border_scene_view = QGraphicsViewWithTransparentBackground()
         self.border_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        self.border_scene_view.setMouseTracking(True)
         self.border_scene_view.setScene(self.border_scene)
         self.border_scene_view.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum
@@ -76,6 +77,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         self.selection_scene_view = QGraphicsViewWithTransparentBackground()
         self.selection_scene_view.setScene(self.selection_scene)
         self.selection_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        self.selection_scene_view.setMouseTracking(True)
         group_selection_layout.addWidget(self.selection_scene_view, 1, 1, 2, 1)
         self.select_levels = QtWidgets.QCheckBox('Select Levels')
         self.select_levels.setChecked(False)
@@ -92,6 +94,7 @@ class BlocksTab(BlocksLikeTab, BlocksSceneParentMixin):
         self.blocks_scene = BlocksScene(self)
         self.blocks_scene_view = QGraphicsViewWithTransparentBackground()
         self.blocks_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
+        self.blocks_scene_view.setMouseTracking(True)
         self.blocks_scene_view.setScene(self.blocks_scene)
         self.blocks_scene_view.leaveEvent = (
             lambda event: self.map_widget.info_label.clear()

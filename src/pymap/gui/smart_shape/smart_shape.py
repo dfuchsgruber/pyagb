@@ -42,11 +42,11 @@ class SmartShape:
 
     def serialize(self) -> SerializedSmartShape:
         """Serialize the smart shape."""
-        return {
-            'template': self.template,
-            'blocks': self.blocks.tolist(),  # type: ignore
-            'buffer': self.buffer.tolist(),  # type: ignore
-        }
+        return SerializedSmartShape(
+            template=self.template,
+            blocks=self.blocks.tolist(),  # type: ignore
+            buffer=self.buffer.tolist(),  # type: ignore
+        )
 
     @classmethod
     def from_serialized(cls, serialized: SerializedSmartShape):

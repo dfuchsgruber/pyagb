@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pymap.gui.map.map_scene import MapScene
 from pymap.gui.types import MapLayers, Tilemap
 
 from .tabs.blocks import BlocksTab
@@ -93,7 +94,9 @@ class MapWidget(QWidget):
 
         grid_layout.addWidget(splitter, 2, 1, 1, 1)
 
+        self.map_scene = MapScene(self)
         self.map_scene_view = MapView(self)
+        self.map_scene_view.setScene(self.map_scene)
         self.map_scene_view.setViewport(QtOpenGLWidgets.QOpenGLWidget())
         self.map_scene_view.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding

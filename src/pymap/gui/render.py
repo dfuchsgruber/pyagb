@@ -295,7 +295,7 @@ def ndarray_to_QImage(
     """
     H, W, C = array.shape
     if C != 4:
-        raise ValueError('Array must have 4 channels!')
+        raise ValueError(f'Array must have 4 channels, not {C}!')
 
     # Convert to uint8 if necessary
     if array.dtype == np.uint8:

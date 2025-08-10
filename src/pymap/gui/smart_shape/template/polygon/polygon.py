@@ -2,6 +2,7 @@
 
 import importlib.resources as resources
 from enum import IntEnum
+from typing import cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -70,11 +71,14 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
 
         for label in non_background_labels:
             mask_label: NDArray[np.bool_] = labeled == label  # type: ignore
-            adjacency: Tilemap = convolve(
-                mask_label.astype(int),
-                adjacency_kernel[::-1, ::-1],
-                mode='constant',
-                cval=0,  # type: ignore
+            adjacency: Tilemap = cast(
+                Tilemap,
+                convolve(
+                    mask_label.astype(int),
+                    adjacency_kernel[::-1, ::-1],
+                    mode='constant',
+                    cval=0,  # type: ignore
+                ),
             )
             converted = adjacency_flags_to_block(adjacency)
             blocks[(converted >= 0) & mask_label] = converted[
