@@ -83,7 +83,7 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
                     cval=0,  # type: ignore
                 ),
             )
-            converted = adjacency_flags_to_block(adjacency)
+            converted = self.adjacency_flags_to_block(adjacency, mask_label)
             blocks[(converted >= 0) & mask_label] = converted[
                 (converted >= 0) & mask_label
             ]
@@ -95,61 +95,62 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
 
         return blocks, idx
 
+    def adjacency_flags_to_block(
+        self, adjacency: Tilemap, mask: NDArray[np.bool_]
+    ) -> Tilemap:
+        """Convert the adjacency flags to a block.
 
-def adjacency_flags_to_block(adjacency: Tilemap) -> Tilemap:
-    """Convert the adjacency flags to a block.
+        Args:
+            adjacency (Tilemap): The adjacency
+            mask (NDArray[np.bool_]): The mask for which to compute blocks
+        Returns:
+            Tilemap: The block. -1 if not found.
+        """
+        adjacency_cross = adjacency & Adjacent.ALL_CROSS
+        blocks = np.full_like(adjacency, -1)
 
-    Args:
-        adjacency (Tilemap): The adjacency
+        # All sides are connected
+        mask = adjacency_cross == Adjacent.ALL_CROSS
+        blocks[mask] = SmartShapeTemplatePolygon.Blocks.INNER
+        blocks[mask & (~((adjacency & Adjacent.NORTH_EAST) > 0))] = (
+            SmartShapeTemplatePolygon.Blocks.INNER_SOUTH_WEST
+        )
+        blocks[mask & (~((adjacency & Adjacent.SOUTH_EAST) > 0))] = (
+            SmartShapeTemplatePolygon.Blocks.INNER_NORTH_WEST
+        )
+        blocks[mask & (~((adjacency & Adjacent.SOUTH_WEST) > 0))] = (
+            SmartShapeTemplatePolygon.Blocks.INNER_NORTH_EAST
+        )
+        blocks[mask & (~((adjacency & Adjacent.NORTH_WEST) > 0))] = (
+            SmartShapeTemplatePolygon.Blocks.INNER_SOUTH_EAST
+        )
 
-    Returns:
-        Tilemap: The block. -1 if not found.
-    """
-    adjacency_cross = adjacency & Adjacent.ALL_CROSS
-    blocks = np.full_like(adjacency, -1)
+        # Three adjacent in the cross neighborhood
+        blocks[adjacency_cross == (Adjacent.SOUTH | Adjacent.EAST | Adjacent.WEST)] = (
+            SmartShapeTemplatePolygon.Blocks.EDGE_NORTH
+        )
+        blocks[adjacency_cross == (Adjacent.NORTH | Adjacent.EAST | Adjacent.WEST)] = (
+            SmartShapeTemplatePolygon.Blocks.EDGE_SOUTH
+        )
+        blocks[adjacency_cross == (Adjacent.NORTH | Adjacent.SOUTH | Adjacent.WEST)] = (
+            SmartShapeTemplatePolygon.Blocks.EDGE_EAST
+        )
+        blocks[adjacency_cross == (Adjacent.NORTH | Adjacent.SOUTH | Adjacent.EAST)] = (
+            SmartShapeTemplatePolygon.Blocks.EDGE_WEST
+        )
 
-    # All sides are connected
-    mask = adjacency_cross == Adjacent.ALL_CROSS
-    blocks[mask] = SmartShapeTemplatePolygon.Blocks.INNER
-    blocks[mask & (~((adjacency & Adjacent.NORTH_EAST) > 0))] = (
-        SmartShapeTemplatePolygon.Blocks.INNER_SOUTH_WEST
-    )
-    blocks[mask & (~((adjacency & Adjacent.SOUTH_EAST) > 0))] = (
-        SmartShapeTemplatePolygon.Blocks.INNER_NORTH_WEST
-    )
-    blocks[mask & (~((adjacency & Adjacent.SOUTH_WEST) > 0))] = (
-        SmartShapeTemplatePolygon.Blocks.INNER_NORTH_EAST
-    )
-    blocks[mask & (~((adjacency & Adjacent.NORTH_WEST) > 0))] = (
-        SmartShapeTemplatePolygon.Blocks.INNER_SOUTH_EAST
-    )
+        # Two adjacent in the cross neighborhood
+        blocks[adjacency_cross == (Adjacent.WEST | Adjacent.SOUTH)] = (
+            SmartShapeTemplatePolygon.Blocks.CORNER_NORTH_EAST
+        )
+        blocks[adjacency_cross == (Adjacent.WEST | Adjacent.NORTH)] = (
+            SmartShapeTemplatePolygon.Blocks.CORNER_SOUTH_EAST
+        )
+        blocks[adjacency_cross == (Adjacent.EAST | Adjacent.SOUTH)] = (
+            SmartShapeTemplatePolygon.Blocks.CORNER_NORTH_WEST
+        )
+        blocks[adjacency_cross == (Adjacent.EAST | Adjacent.NORTH)] = (
+            SmartShapeTemplatePolygon.Blocks.CORNER_SOUTH_WEST
+        )
 
-    # Three adjacent in the cross neighborhood
-    blocks[adjacency_cross == (Adjacent.SOUTH | Adjacent.EAST | Adjacent.WEST)] = (
-        SmartShapeTemplatePolygon.Blocks.EDGE_NORTH
-    )
-    blocks[adjacency_cross == (Adjacent.NORTH | Adjacent.EAST | Adjacent.WEST)] = (
-        SmartShapeTemplatePolygon.Blocks.EDGE_SOUTH
-    )
-    blocks[adjacency_cross == (Adjacent.NORTH | Adjacent.SOUTH | Adjacent.WEST)] = (
-        SmartShapeTemplatePolygon.Blocks.EDGE_EAST
-    )
-    blocks[adjacency_cross == (Adjacent.NORTH | Adjacent.SOUTH | Adjacent.EAST)] = (
-        SmartShapeTemplatePolygon.Blocks.EDGE_WEST
-    )
-
-    # Two adjacent in the cross neighborhood
-    blocks[adjacency_cross == (Adjacent.WEST | Adjacent.SOUTH)] = (
-        SmartShapeTemplatePolygon.Blocks.CORNER_NORTH_EAST
-    )
-    blocks[adjacency_cross == (Adjacent.WEST | Adjacent.NORTH)] = (
-        SmartShapeTemplatePolygon.Blocks.CORNER_SOUTH_EAST
-    )
-    blocks[adjacency_cross == (Adjacent.EAST | Adjacent.SOUTH)] = (
-        SmartShapeTemplatePolygon.Blocks.CORNER_NORTH_WEST
-    )
-    blocks[adjacency_cross == (Adjacent.EAST | Adjacent.NORTH)] = (
-        SmartShapeTemplatePolygon.Blocks.CORNER_SOUTH_WEST
-    )
-
-    return blocks
+        return blocks
