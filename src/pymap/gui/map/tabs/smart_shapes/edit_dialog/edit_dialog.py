@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtGui import QKeyEvent, QKeySequence, QPixmap
+from PySide6.QtGui import QCloseEvent, QKeyEvent, QKeySequence, QPixmap
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from PySide6.QtWidgets import (
     QDialog,
@@ -91,6 +91,25 @@ class EditSmartShapeDialog(QDialog, BlocksSceneParentMixin):
         undo_action.setShortcut(
             QKeySequence.StandardKey.Undo
         )  # This sets Ctrl+Z as the shortcut
+
+        # Ensure resources are cleaned up deterministically when the dialog closes.
+        self.destroyed.connect(lambda: self._cleanup())
+
+    def _cleanup(self) -> None:
+        """Cleanup resources held by the dialog to avoid leaking Qt resources.
+
+        This explicitly clears scenes and deletes heavy widgets to reduce the
+        chance of crashes caused by Qt object finalization during garbage
+        collection.
+        """
+        self.blocks_scene.clear()
+        self.shape_scene.clear()
+        self.selection_scene.clear()
+
+    def closeEvent(self, arg__1: QCloseEvent) -> None:
+        """Handle the dialog close event by cleaning up resources first."""
+        self._cleanup()
+        super().closeEvent(arg__1)
 
     @property
     def main_gui(self) -> PymapGui:
