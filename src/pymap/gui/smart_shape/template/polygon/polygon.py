@@ -38,11 +38,14 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
 
     def __init__(self):
         """Initialize the template."""
-        super().__init__(
-            str(
-                resources.files('pymap.gui.smart_shape.template.polygon').joinpath(
-                    'template.png'
-                )
+        super().__init__(self._template_image_path)
+
+    @property
+    def _template_image_path(self) -> str:
+        """Get the template path."""
+        return str(
+            resources.files('pymap.gui.smart_shape.template.polygon').joinpath(
+                'template.png'
             )
         )
 
@@ -75,7 +78,7 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
                 Tilemap,
                 convolve(
                     mask_label.astype(int),
-                    adjacency_kernel[::-1, ::-1],
+                    adjacency_kernel,
                     mode='constant',
                     cval=0,  # type: ignore
                 ),

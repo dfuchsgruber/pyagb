@@ -22,7 +22,7 @@ class MapViewLayerSmartShapes(MapViewLayer):
         """Initialize the layer with an RGBA image."""
         super().__init__(view)
         self._smart_shape_rgba_images: dict[str, QRGBAImage] = {}
-        self.block_image_opacity_effect = None
+        self.block_image_opacity_effect: dict[str, QGraphicsOpacityEffect] = {}
 
     def update_visible_smart_shape_blocks(self) -> None:
         """Update the visible smart shape blocks for a given smart shape name."""
@@ -32,6 +32,8 @@ class MapViewLayerSmartShapes(MapViewLayer):
 
     def load_map(self) -> None:
         """Loads the smart shapes into the scene."""
+        self._smart_shape_rgba_images = {}
+        self.block_image_opacity_effect = {}
         group = QGraphicsItemGroup()
         assert self.view.main_gui.smart_shapes is not None, (
             'Smart shapes are not loaded'
@@ -40,7 +42,6 @@ class MapViewLayerSmartShapes(MapViewLayer):
         assert self.view.main_gui.project.smart_shape_templates is not None, (
             'Smart shape templates are not loaded'
         )
-        self.block_image_opacity_effect = QGraphicsOpacityEffect()
         for name, smart_shape in self.view.main_gui.smart_shapes.items():
             template = self.view.main_gui.project.smart_shape_templates[
                 smart_shape.template
@@ -51,9 +52,10 @@ class MapViewLayerSmartShapes(MapViewLayer):
                     smart_shape.buffer[..., 0],
                 )
             )
+            self.block_image_opacity_effect[name] = QGraphicsOpacityEffect()
             padded_width, padded_height = self.view.main_gui.get_border_padding()
             image.item.setPos(16 * padded_width, 16 * padded_height)
-            image.item.setGraphicsEffect(self.block_image_opacity_effect)
+            image.item.setGraphicsEffect(self.block_image_opacity_effect[name])
             self._smart_shape_rgba_images[name] = image
             group.addToGroup(image.item)
         self.update_visible_smart_shape_blocks()
@@ -62,8 +64,8 @@ class MapViewLayerSmartShapes(MapViewLayer):
 
     def update_block_image_opacity(self) -> None:
         """Update the opacity of the block images."""
-        if self.block_image_opacity_effect is not None:
-            self.block_image_opacity_effect.setOpacity(
+        for opacity_effect in self.block_image_opacity_effect.values():
+            opacity_effect.setOpacity(
                 self.view.map_widget.smart_shapes_tab.blocks_opacity_slider.sliderPosition()
                 / 20
             )

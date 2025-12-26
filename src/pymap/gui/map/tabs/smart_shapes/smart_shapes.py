@@ -342,6 +342,7 @@ class SmartShapesTab(BlocksLikeTab):
     def load_smart_shape_and_map(self):
         """Reloads the smart shape and updates the map with the smart shape."""
         self.map_widget.load_map()
+        self.load_smart_shape()
 
     @property
     def blocks(self) -> Tilemap | None:

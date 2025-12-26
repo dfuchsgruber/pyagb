@@ -30,4 +30,4 @@ adjacency_kernel = np.array(
         [Adjacent.SOUTH_WEST, Adjacent.SOUTH, Adjacent.SOUTH_EAST],
     ],
     dtype=int,
-)
+)[::-1, ::-1]  # Flip for convolution
