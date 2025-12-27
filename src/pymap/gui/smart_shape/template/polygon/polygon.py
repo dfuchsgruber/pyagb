@@ -14,6 +14,7 @@ from pymap.gui.types import Tilemap
 
 from ...smart_shape import SmartShape
 from ..template import SmartShapeTemplate
+from ..tooltips import SmartShapeTooltips
 
 
 class SmartShapeTemplatePolygon(SmartShapeTemplate):
@@ -38,7 +39,14 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
 
     def __init__(self):
         """Initialize the template."""
-        super().__init__(self._template_image_path)
+        super().__init__(
+            self._template_image_path,
+            block_tooltips=[
+                SmartShapeTooltips.NONE,
+                SmartShapeTooltips.AUTO_FILL,
+                SmartShapeTooltips.NO_FILL,
+            ],
+        )
 
     @property
     def _template_image_path(self) -> str:
@@ -69,7 +77,7 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
         mask = np.zeros_like(buffer, dtype=bool)
 
         # Find all connected components in the buffer
-        labeled = label_image(buffer + 1, connectivity=1)  # type: ignore
+        labeled = label_image((buffer > 0).astype(int) + 1, connectivity=1)  # type: ignore
         non_background_labels: list[int] = np.unique(labeled[buffer != 0]).tolist()  # type: ignore
 
         for label in non_background_labels:
@@ -84,11 +92,9 @@ class SmartShapeTemplatePolygon(SmartShapeTemplate):
                 ),
             )
             converted = self.adjacency_flags_to_block(adjacency, mask_label)
-            blocks[(converted >= 0) & mask_label] = converted[
-                (converted >= 0) & mask_label
-            ]
-            # converted = np.zeros_like(adjacency)
-            mask |= (converted >= 0) & mask_label
+            mask_apply = (converted >= 0) & mask_label & (buffer == 1)
+            blocks[mask_apply] = converted[mask_apply]
+            mask |= mask_apply
 
         idx = np.where(mask)
         blocks = smart_shape.blocks.flatten()[blocks[idx]]
