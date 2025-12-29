@@ -47,6 +47,7 @@ class StringAsConfigType(TypedDict):
     """Configuration for string assembly."""
 
     directives: StringAsDirectivesConfigType
+    comment_delimiter: str
 
 
 class StringCConfigType(TypedDict):
@@ -286,7 +287,8 @@ default_configuration = ConfigType(
                         # Example
                         # .stringpad SIZE "..."
                         padded='.stringpad',
-                    )
+                    ),
+                    comment_delimiter='@',
                 ),
                 'c': StringCConfigType(
                     # Macro to enclose c strings

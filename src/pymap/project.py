@@ -386,7 +386,7 @@ class Project:
                         header['type'] == self.config['pymap']['header']['datatype']
                     ), 'Header datatype mismatches the configuration'
                     self.headers[bank][map_idx] = HeaderType(
-                        label, os.path.relpath(path), namespace
+                        label, Path(path).relative_to(Path.cwd()).as_posix(), namespace
                     )
                     if footer not in self.footers:
                         raise RuntimeError(f'Footer {footer} is not existent.')
@@ -551,7 +551,7 @@ class Project:
                     )
                 else:
                     self.headers[bank][map_idx] = HeaderType(
-                        label, os.path.relpath(path), namespace
+                        label, Path(path).relative_to(Path.cwd()).as_posix(), namespace
                     )
                     datatype = self.config['pymap']['header']['datatype']
                     header = self.model[datatype](self, [], [])
@@ -785,7 +785,9 @@ class Project:
             elif footer_idx not in self.unused_footer_idx():
                 raise RuntimeError(f'Footer index {footer_idx} already present.')
             else:
-                self.footers[label] = FooterType(footer_idx, os.path.relpath(path))
+                self.footers[label] = FooterType(
+                    footer_idx, Path(path).relative_to(Path.cwd()).as_posix()
+                )
                 datatype = self.config['pymap']['footer']['datatype']
                 footer = self.model[datatype](self, [], [])
                 # Save the footer
@@ -817,7 +819,9 @@ class Project:
             assert footer['type'] == self.config['pymap']['footer']['datatype'], (
                 'Footer datatype mismatches the configuration'
             )
-            self.footers[label] = FooterType(footer_idx, os.path.relpath(path))
+            self.footers[label] = FooterType(
+                footer_idx, Path(path).relative_to(Path.cwd()).as_posix()
+            )
             self.save_footer(footer['data'], label, footer.get('smart_shapes', []))
             self.autosave()
 
@@ -941,7 +945,7 @@ class Project:
             if label in tilesets:
                 raise RuntimeError(f'Tileset {label} already present.')
             else:
-                tilesets[label] = os.path.relpath(path)
+                tilesets[label] = Path(path).relative_to(Path.cwd()).as_posix()
                 config = self.config['pymap'][
                     'tileset_primary' if primary else 'tileset_secondary'
                 ]
@@ -1029,7 +1033,7 @@ class Project:
                     'tileset_primary' if primary else 'tileset_secondary'
                 ]['datatype']
             ), 'Tileset datatype mismatches the configuration'
-            tilesets[label] = os.path.relpath(path)
+            tilesets[label] = Path(path).relative_to(Path.cwd()).as_posix()
             self.save_tileset(primary, tileset['data'], label)
             self.autosave()
 
@@ -1239,7 +1243,7 @@ class Project:
                 assert img.width * img.height == 320 * 128
             else:
                 assert img.width * img.height == 192 * 128
-            gfxs[label] = os.path.relpath(path)
+            gfxs[label] = Path(path).relative_to(Path.cwd()).as_posix()
             self.autosave()
 
     def unused_banks(self):
