@@ -43,14 +43,14 @@ def preprocess_assembly_line(line: str, project: Project) -> str:
     preprocessed : str
         The preprocessed line.
     """
-    tokens = [token for token in line.split() if len(token) > 0]
-    if len(tokens) == 0:
-        return line
     # Strip the line
     line = line.strip()
     comment_delimiter = project.config['string']['as']['comment_delimiter']
     if comment_delimiter in line:
         line = line[: line.index(comment_delimiter)]
+    tokens = [token for token in line.split() if len(token) > 0]
+    if len(tokens) == 0:
+        return line
     # Check for directives
     if tokens[0] == project.config['string']['as']['directives']['std']:  # type: ignore
         string = line[line.index(tokens[1]) :]  # Keep multiple spaces
