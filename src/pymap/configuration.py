@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any, NamedTuple, Sequence, TypeAlias, TypedDict
 
-import json5
+import pyjson5 as json5
 
 from agb.model.type import ModelContext, ModelValue
 from pymap.gui.types import ConnectionType
@@ -537,6 +537,6 @@ def get_configuration(file_path: str) -> ConfigType:
     """
     configuration: ConfigType = default_configuration.copy()
     with open(Path(file_path)) as f:
-        custom_configuration = json5.load(f)
+        custom_configuration = json5.load(f)  # type: ignore
     update_dict(custom_configuration, configuration)  # type: ignore
     return configuration

@@ -2,7 +2,7 @@
 
 import argparse
 
-import json5
+import pyjson5 as json5
 
 
 def pymap_gui_cli():
@@ -54,7 +54,7 @@ def pymap2s_cli():
     else:
         # Compile any datatype
         with open(args.input, encoding=project.config['json']['encoding']) as f:
-            input = json5.load(f)
+            input = json5.load(f)  # type: ignore
         assembly = pymap.compile.datatype_to_assembly(
             input['data'], input['type'], input['label'], project
         )

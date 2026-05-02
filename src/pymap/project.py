@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -17,7 +18,7 @@ from typing import (
     overload,
 )
 
-import json5
+import pyjson5 as json5
 
 import agb.string.agbstring
 from agb import image
@@ -151,7 +152,7 @@ class Project:
             If a GUI is present and the project needs to load UI elements.
         """
         with open(Path(file_path)) as f:
-            content = json5.load(f)
+            content = json5.load(f)  # type: ignore
 
         self.headers = content['headers']
         for bank in self.headers:
@@ -170,7 +171,7 @@ class Project:
 
         # Initialize the constants
         with open(str(Path(file_path)) + '.constants') as f:
-            content = json5.load(f)
+            content = json5.load(f)  # type: ignore
         paths = {key: Path(content[key]) for key in content}
         self.constants: constants.Constants = constants.Constants(paths)
 
@@ -218,7 +219,7 @@ class Project:
             'gfxs_secondary': self.gfxs_secondary,
         }
         with open(Path(file_path), 'w+') as f:
-            json5.dump(representation, f, indent=self.config['json']['indent'])
+            json.dump(representation, f, indent=self.config['json']['indent'])
         self.path = file_path
 
     def load_header(
@@ -258,7 +259,7 @@ class Project:
                     f'Path to header [{bank}, {map_idx.zfill(2)}] is not initialized'
                 )
                 with open(Path(path), encoding=self.config['json']['encoding']) as f:
-                    header: ModelDataType = json5.load(f)
+                    header: ModelDataType = json5.load(f)  # type: ignore
                 assert header['label'] == label, (
                     'Header label mismatches the label stored in the project file'
                 )
@@ -382,7 +383,7 @@ class Project:
                     with open(
                         Path(path), encoding=self.config['json']['encoding']
                     ) as f:
-                        header = json5.load(f)
+                        header = json5.load(f)  # type: ignore
                     assert (
                         header['type'] == self.config['pymap']['header']['datatype']
                     ), 'Header datatype mismatches the configuration'
@@ -503,7 +504,7 @@ class Project:
                 with open(
                     Path(path), 'w+', encoding=self.config['json']['encoding']
                 ) as f:
-                    json5.dump(
+                    json.dump(
                         {
                             'data': header,
                             'label': label,
@@ -659,7 +660,7 @@ class Project:
             if label in self.footers:
                 footer_idx, path = self.footers[label]
                 with open(Path(path), encoding=self.config['json']['encoding']) as f:
-                    footer = json5.load(f)
+                    footer = json5.load(f)  # type: ignore
                 assert footer['label'] == label, (
                     'Footer label mismatches the label stored in the project.'
                 )
@@ -752,7 +753,7 @@ class Project:
                 with open(
                     Path(path), 'w+', encoding=self.config['json']['encoding']
                 ) as f:
-                    json5.dump(
+                    json.dump(
                         {
                             'data': footer,
                             'label': label,
@@ -816,7 +817,7 @@ class Project:
             if footer_idx not in self.unused_footer_idx():
                 raise RuntimeError(f'Footer index {footer_idx} already in use.')
             with open(Path(path), encoding=self.config['json']['encoding']) as f:
-                footer = json5.load(f)
+                footer = json5.load(f)  # type: ignore
             assert footer['type'] == self.config['pymap']['footer']['datatype'], (
                 'Footer datatype mismatches the configuration'
             )
@@ -868,7 +869,7 @@ class Project:
             else:
                 assert path is not None
                 with open(Path(path), encoding=self.config['json']['encoding']) as f:
-                    tileset = json5.load(f)
+                    tileset = json5.load(f)  # type: ignore
                 assert tileset['label'] == label, (
                     'Tileset label mismatches the label stored in the project'
                 )
@@ -900,7 +901,7 @@ class Project:
                 with open(
                     Path(path), 'w+', encoding=self.config['json']['encoding']
                 ) as f:
-                    json5.dump(
+                    json.dump(
                         {
                             'data': tileset,
                             'label': label,
@@ -1027,7 +1028,7 @@ class Project:
             if label in tilesets:
                 raise RuntimeError(f'Tileset {label} already existent.')
             with open(Path(path), encoding=self.config['json']['encoding']) as f:
-                tileset = json5.load(f)
+                tileset = json5.load(f)  # type: ignore
             assert (
                 tileset['type']
                 == self.config['pymap'][
