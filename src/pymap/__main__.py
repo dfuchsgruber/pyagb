@@ -2,6 +2,8 @@
 
 import argparse
 
+import json5
+
 
 def pymap_gui_cli():
     """Entry point for the pymap gui application."""
@@ -13,8 +15,6 @@ def pymap_gui_cli():
 
 def pymap2s_cli():
     """Entry point for compiling pymap files."""
-    import json
-
     import pymap.compile
     import pymap.project
 
@@ -54,7 +54,7 @@ def pymap2s_cli():
     else:
         # Compile any datatype
         with open(args.input, encoding=project.config['json']['encoding']) as f:
-            input = json.load(f)
+            input = json5.load(f)
         assembly = pymap.compile.datatype_to_assembly(
             input['data'], input['type'], input['label'], project
         )

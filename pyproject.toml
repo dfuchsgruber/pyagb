@@ -27,6 +27,7 @@ dependencies = [
     "scipy",
     "scikit-image",
     "colormath",
+    "json5"
 ]
 
 [project.optional-dependencies]

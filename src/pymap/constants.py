@@ -1,10 +1,11 @@
 """Resolving and exporting constants for C and assembly code."""
 
-import json
 from collections import defaultdict
 from collections.abc import Mapping
 from pathlib import Path
 from typing import ItemsView, Iterator, Literal
+
+import json5
 
 
 class ConstantTable(Mapping[str, int]):
@@ -175,7 +176,7 @@ class Constants:
             # Initialize the constant table
             try:
                 with open(str(self.constant_paths[key])) as f:
-                    content = json.load(f)
+                    content = json5.load(f)
                 base = None
             except Exception as exn:
                 print(f'Could not load constants {key}.')

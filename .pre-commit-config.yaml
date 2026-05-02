@@ -45,3 +45,4 @@ repos:
           - scipy
           - scikit-image
           - colormath
+          - json5
