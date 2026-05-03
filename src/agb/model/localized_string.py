@@ -4,21 +4,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from src.agb.model.string import StringType
+
 if TYPE_CHECKING:
     from pymap.project import Project
 
-from agb.model.type import ModelContext, ModelParents, ModelValue, Type, label_and_align
+from agb.model.type import ModelContext, ModelParents, ModelValue, label_and_align
 
 
-class StringType(Type):
-    """Type class for strings."""
+class LocalizedStringType(StringType):
+    """Type class for localized strings."""
 
     def __init__(
         self,
         fixed_size: int | None = None,
         box_size: tuple[int, int] | None = None,
+        default_language: str = 'LANG_GER',
     ):
-        """Initializes a string type.
+        """Initializes a localized string type.
 
         Parameters:
         -----------
@@ -38,8 +41,8 @@ class StringType(Type):
             Note that this argument is incompatible with the fixed_size
             argument.
         """
-        self.fixed_size = fixed_size
-        self.box_size = box_size
+        super().__init__(fixed_size, box_size)
+        self.default_language = default_language
 
     def from_data(
         self,
@@ -72,9 +75,11 @@ class StringType(Type):
         string : str
             The string in the rom.
         """
-        assert project.coder is not None, 'Coder is required to decode strings'
-        string, _ = project.coder.hex_to_str(rom, offset)
-        return string
+        return {
+            self.default_language: super().from_data(
+                rom, offset, project, context, parents
+            )
+        }
 
     def to_assembly(
         self,
@@ -117,16 +122,23 @@ class StringType(Type):
             Additional assembly blocks that resulted in the recursive
             compiliation of this type.
         """
-        assert isinstance(value, str), f'Expected a string, got {value}'
-        directives: dict[str, str] = project.config['string']['as']['directives']  # type: ignore
-        if self.fixed_size is not None:
-            assembly = f'{directives["padded"]} {self.fixed_size} "{value}"'
-        elif self.box_size is not None:
-            width, height = self.box_size
-            assembly = f'{directives["auto"]} {width} {height} "{value}"'
-        else:
-            assembly = f'{directives["std"]} "{value}"'
-        return label_and_align(assembly, label, alignment, global_label), []
+        assert isinstance(value, dict), f'Expected a dict, got {value}'
+        assembly = ''
+        additional_blocks = []
+        template = project.config['string']['as']['localization_template']
+        for language, text in value.items():
+            assembly_text, blocks = super().to_assembly(
+                text, project, context, parents, None, None, False
+            )
+            additional_blocks += blocks
+            language_assembly = template.format(
+                language=language, assembly=assembly_text
+            )
+            assembly += language_assembly + '\n'
+
+        return label_and_align(
+            assembly, label, alignment, global_label
+        ), additional_blocks
 
     def __call__(
         self, project: Project, context: ModelContext, parents: ModelParents
@@ -150,7 +162,7 @@ class StringType(Type):
         string : str
             Empty string.
         """
-        return ''
+        return {self.default_language: ''}
 
     def size(
         self,
@@ -180,11 +192,9 @@ class StringType(Type):
         size : int
             The size of this type in bytes.
         """
-        if self.fixed_size is not None:
-            return self.fixed_size
-        assert project.coder is not None, 'Coder is required to decode strings'
-        assert isinstance(value, str), f'Expected a string, got {value}'
-        return len(project.coder.str_to_hex(value))
+        assert isinstance(value, dict), f'Expected a dict, got {value}'
+        value = value[self.default_language]
+        return super().size(value, project, context, parents)
 
     def get_constants(
         self,
@@ -214,4 +224,7 @@ class StringType(Type):
         constants : set of str
             A set of all required constants.
         """
-        return set()
+        assert isinstance(value, dict), f'Expected a dict, got {value}'
+        return super().get_constants(
+            value[self.default_language], project, context, parents
+        )

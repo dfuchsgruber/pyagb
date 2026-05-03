@@ -49,6 +49,7 @@ class StringAsConfigType(TypedDict):
 
     directives: StringAsDirectivesConfigType
     comment_delimiter: str
+    localization_template: str
 
 
 class StringCConfigType(TypedDict):
@@ -290,6 +291,7 @@ default_configuration = ConfigType(
                         padded='.stringpad',
                     ),
                     comment_delimiter='@',
+                    localization_template='.ifdef {language}\n{assembly}\n.endif\n',
                 ),
                 'c': StringCConfigType(
                     # Macro to enclose c strings
