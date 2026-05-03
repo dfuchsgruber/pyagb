@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from src.agb.model.string import StringType
+from .string import StringType
 
 if TYPE_CHECKING:
     from pymap.project import Project
