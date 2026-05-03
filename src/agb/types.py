@@ -2,6 +2,7 @@
 
 from agb.model.array import ArrayType, FixedSizeArrayType, VariableSizeArrayType
 from agb.model.bitfield import BitfieldType
+from agb.model.localized_string import LocalizedStringType
 from agb.model.pointer import DynamicLabelPointer, PointerType
 from agb.model.scalar_type import ScalarType
 from agb.model.string import StringType
@@ -24,4 +25,5 @@ __all__ = [
     'UnboundedArrayType',
     'label_and_align',
     'Type',
+    'LocalizedStringType',
 ]
