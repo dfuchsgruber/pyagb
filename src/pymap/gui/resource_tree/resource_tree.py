@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QIcon
@@ -520,6 +521,90 @@ class ResourceParameterTree(QTreeWidget):
             return
         self.main_gui.project.import_header(
             bank, map_idx, label, path, namespace, footer
+        )
+        self.load_headers()
+        self.main_gui.update()
+
+    def duplicate_header(self, *args: Any, bank: str, map_idx: str):
+        """Duplicates a map header by prompting.
+
+        The existing header's data is written to the chosen path and then imported
+        into the project at the selected bank/map index with the new label.
+        """
+        assert self.main_gui.project is not None
+
+        # Load source header
+        header, _, namespace = self.main_gui.project.load_header(bank, map_idx)
+        if header is None:
+            QMessageBox.critical(
+                self, 'Duplicate Header', 'Could not load the source header.'
+            )
+            return
+
+        # Prompt destination bank and map idx
+        dest_bank = self.prompt_non_full_bank('Duplicate Header')
+        if dest_bank is None:
+            return
+        dest_map_idx = self.prompt_unused_map_idx('Duplicate Header', dest_bank)
+        if dest_map_idx is None:
+            return
+
+        # Prompt new label
+        label = self.prompt_header_label('Duplicate Header')
+        if label is None:
+            return
+
+        # Prompt namespace (allow changing namespace when duplicating)
+        namespace_new = self.prompt_namespace('Duplicate Header')
+        if namespace_new is None:
+            return
+
+        # Determine footer from source header (keep same footer if valid)
+        footer = get_member_by_path(
+            header, self.main_gui.project.config['pymap']['header']['footer_path']
+        )
+        if footer is None or footer not in self.main_gui.project.footers:
+            footer = self.prompt_footer('Duplicate Header')
+            if footer is None:
+                return
+
+        # Ask where to save the duplicated header file
+        default_dir = Path(
+            cast(str, self.main_gui.settings.value('header/recent', '.', str))
+        ).parent
+        default_name = f'{dest_bank}_{dest_map_idx}.pms'
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            'Duplicate Map Header',
+            str(default_dir / default_name),
+            'Pymap Structure (*.pms)',
+        )
+        if not len(path):
+            return
+        self.main_gui.settings.setValue('header/recent', path)
+
+        # Write header wrapper to chosen file so import_header can read it
+        with self.main_gui.project.project_dir():
+            with open(
+                Path(path),
+                'w+',
+                encoding=self.main_gui.project.config['json']['encoding'],
+            ) as f:
+                json.dump(
+                    {
+                        'data': header,
+                        'label': self.main_gui.project.headers[bank][map_idx][0],
+                        'type': self.main_gui.project.config['pymap']['header'][
+                            'datatype'
+                        ],
+                    },
+                    f,
+                    indent=self.main_gui.project.config['json']['indent'],
+                )
+
+        # Import the newly written file into the project at the selected location
+        self.main_gui.project.import_header(
+            dest_bank, dest_map_idx, label, path, namespace_new, footer
         )
         self.load_headers()
         self.main_gui.update()

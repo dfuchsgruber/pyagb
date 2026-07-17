@@ -69,6 +69,11 @@ class ResourceParameterTreeItemHeader(ResourceParameterTreeItem):
         action.triggered.connect(
             partial(tree.main_gui.open_header, self.bank, self.map_idx)
         )
+        action = menu.addAction('Duplicate')  # type: ignore
+        action.setIcon(QIcon(icon_paths[Icon.IMPORT]))
+        action.triggered.connect(
+            partial(tree.duplicate_header, bank=self.bank, map_idx=self.map_idx)
+        )
         action = menu.addAction('Remove')  # type: ignore
         action.triggered.connect(
             partial(tree.remove_header, bank=self.bank, map_idx=self.map_idx)
