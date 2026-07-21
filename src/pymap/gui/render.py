@@ -310,7 +310,13 @@ def ndarray_to_QImage(
         raise ValueError('Unsupported data type for image array')
 
     # Create QImage
-    return QImage(array_u8.data, W, H, 4 * W, QImage.Format.Format_RGBA8888)
+    return QImage(
+        np.ascontiguousarray(array_u8.data),  # type: ignore
+        W,
+        H,
+        4 * W,
+        QImage.Format.Format_RGBA8888,
+    )
 
 
 def QImage_to_ndarray(image: QImage) -> RGBAImage:
